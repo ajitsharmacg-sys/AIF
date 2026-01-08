@@ -1,3 +1,77 @@
 const webedi_header = ["MODIFIER_NAME","TRX_TYPE","MODIFIER_LINE_NO","LEVEL","MODIFIER_TYPE","LINE_START_DATE","LINE_END_DATE","AUTOMATIC_FLAG","OVERRIDE_FLAG","PRICING_PHASE","INCOMPATIBILITY_GROUP","BUCKET","PRODUCT_ATTRIBUTE","PRODUCT_ATTRIBUTE_VALUE","PRECEDENCE","MODIFIER_LINE_TYPE","FORMULA","APPLICATION_METHOD","VALUE","ACCRUAL"];
 const webedi_lines = ["MODIFIER_NAME","TRX_TYPE","MODIFIER_LINE_NO","GROUPING_NO","QUALIFIER_CONTEXT","QUALIFIER_ATTRIBUTE","OPERATOR","PRECEDENCE","VALUE_FROM","VALUE_TO","LINE_START_DATE","LINE_END_DATE"];
 
+buildModifierLineNoWithCustomer(line, customerId, aif) {
+  return `${line.mercury_code}${customerId}${aif.aif_id}_${line.elp}`;
+},
+
+buildModifierLineNoNoCustomer(line, aif) {
+  return `${line.mercury_code}${aif.aif_id}_${line.elp}`;
+},
+
+generateWebEDIHeaderFile(aif) {
+  const opUnit = this.getOpertaionUnitByNSO(aif.nso);
+
+  const headerData = (aif.aif_lines || []).map(line => ({
+    MODIFIER_NAME: opUnit,
+    TRX_TYPE: "INSERT",
+    MODIFIER_LINE_NO: this.buildModifierLineNoNoCustomer(line, aif),
+    LEVEL: "LINE",
+    MODIFIER_TYPE: "Discount",
+    LINE_START_DATE: aif.start_date,
+    LINE_END_DATE: aif.end_date,
+    AUTOMATIC_FLAG: "Y",
+    OVERRIDE_FLAG: "N",
+    PRICING_PHASE: "List Line Adjustment",
+    INCOMPATIBILITY_GROUP: "Level 4 Incompatibility",
+    BUCKET: 1,
+    PRODUCT_ATTRIBUTE: "First Layer",
+    PRODUCT_ATTRIBUTE_VALUE: line.mercury_code,
+    PRECEDENCE: 100,
+    MODIFIER_LINE_TYPE: "LOCAL",
+    FORMULA: "New Price",
+    APPLICATION_METHOD: "",
+    VALUE: line.elp,
+    ACCRUAL: "N"
+  }));
+
+  const wb = utils.book_new();
+  const ws = utils.json_to_sheet(headerData, { header: this.webedi_header });
+  utils.book_append_sheet(wb, ws, "Header");
+  writeFile(wb, `WebEDI_Header_${aif.aif_id}.xlsx`);
+
+generateWebEDILineFile(aif) {
+  const customers = aif.aif_customer_lines || [];
+  if (customers.length === 0) return;
+
+  const opUnit = this.getOpertaionUnitByNSO(aif.nso);
+  const lineData = [];
+
+  customers.forEach(customer => {
+    const customerId = customer.oracle_cust_number;
+
+    (aif.aif_lines || []).forEach(line => {
+      lineData.push({
+        MODIFIER_NAME: opUnit,
+        TRX_TYPE: "INSERT",
+        MODIFIER_LINE_NO: this.buildModifierLineNoWithCustomer(line, customerId, aif),
+        GROUPING_NO: 10,
+        QUALIFIER_CONTEXT: "Customer",
+        QUALIFIER_ATTRIBUTE: "QP Customer Number",
+        OPERATOR: "=",
+        PRECEDENCE: 999,
+        VALUE_FROM: customerId,
+        VALUE_TO: "",
+        LINE_START_DATE: aif.start_date,
+        LINE_END_DATE: aif.end_date
+      });
+    });
+  });
+
+  const wb = utils.book_new();
+  const ws = utils.json_to_sheet(lineData, { header: this.webedi_lines });
+  utils.book_append_sheet(wb, ws, "Lines");
+  writeFile(wb, `WebEDI_Lines_${aif.aif_id}.xlsx`);
+},
+
+},
