@@ -60,25 +60,40 @@ class AifApproverAdmin(admin.ModelAdmin):
 
 computed: {
   groupedApprovers() {
-    const result = {};
+  const result = {};
 
-    this.aif_approvers.forEach(item => {
-      const pg = item.product_group;
-      const resp = item.responsibility;
+  this.aif_approvers.value.forEach(item => {
+    const pg = item.product_group;
+    const resp = item.responsibility;
 
-      if (!result[pg]) {
-        result[pg] = {};
-      }
+    if (!result[pg]) {
+      result[pg] = {};
+    }
 
-      if (!result[pg][resp]) {
-        result[pg][resp] = [];
-      }
+    // 🔥 CHANGE HERE: initialize as OBJECT
+    if (!result[pg][resp]) {
+      result[pg][resp] = {
+        emails: [],
+        modified_by: "",
+        modified_at: ""
+      };
+    }
 
-      result[pg][resp].push(item.email);
-    });
+    // push emails
+    result[pg][resp].emails.push(item.approver.email);
 
-    return result;
-  }
+    // modifier info
+    if (item.meta_edited_by) {
+      result[pg][resp].modified_by =
+        `${item.meta_edited_by.first_name} ${item.meta_edited_by.last_name}`.trim();
+
+      result[pg][resp].modified_at = item.meta_edited_date;
+    }
+  });
+
+  return result;
+}
+
 }
 
 <div class="row g-3">
