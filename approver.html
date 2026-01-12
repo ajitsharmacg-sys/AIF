@@ -154,3 +154,12 @@ computed: {
   </template>
 </div>
 
+
+if (item.meta_edited_by) {
+      result[pg][resp].modified_by =
+        `${item.meta_edited_by.first_name} ${item.meta_edited_by.last_name}`.trim()
+        || item.meta_edited_by.email;
+
+      result[pg][resp].modified_at = item.meta_edited_date;
+    }
+
