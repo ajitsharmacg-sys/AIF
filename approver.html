@@ -113,3 +113,44 @@ computed: {
 
 </div>
 
+
+
+
+
+<div class="row g-3">
+  <template v-for="(responsibilities, productGroup) in groupedApprovers" :key="productGroup">
+    <template v-for="(emails, responsibility) in responsibilities" :key="responsibility">
+
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-body">
+
+            <h6 class="card-title mb-3">
+              [[ productGroup ]]
+            </h6>
+
+            <div class="mb-2">
+              <small class="text-muted">Product Group</small>
+              <div>[[ productGroup ]]</div>
+            </div>
+
+            <div class="mb-2">
+              <small class="text-muted">Responsibility</small>
+              <div>[[ responsibility ]]</div>
+            </div>
+
+            <div class="mb-0">
+              <small class="text-muted">Emails</small>
+              <div>
+                [[ emails.join('; ') ]]
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </template>
+  </template>
+</div>
+
