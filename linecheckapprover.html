@@ -1,36 +1,59 @@
-function userIsApproverFor(productGroup, responsibility, userEmail) {
-  if (!productGroup || !responsibility) return false;
-
-  return aif_approvers.value.some(item => {
-    return (
-      item.product_group === productGroup &&
-      item.responsibility === responsibility &&
-      item.approver?.email === userEmail
-    );
-  });
-}
-
-canEditLine(line) {
+canActOnLine(line, responsibility = "PSD") {
   const userEmail = "{{ request.user.email|escapejs }}";
-  const requiredResponsibility = "Tender"; // or dynamic later
 
-  return userIsApproverFor(
-    line.product_group,
-    requiredResponsibility,
-    userEmail
+  const allowed = aif_approvers.value.some(item =>
+    item.product_group === line.product_group &&
+    item.responsibility === responsibility &&
+    item.approver?.email === userEmail
   );
-}
 
-for (const line of this.lines) {
-  if (!this.canEditLine(line)) {
+  if (!allowed) {
     this.dialog
       .reset_to_default()
       .set_title("Permission denied")
       .set_message(
-        `You are not authorized to modify product group ${line.product_group}.`
+        `You are not authorized to perform this action for Product Group "${line.product_group}".`
       )
       .set_true_action("Close")
       .show();
     return false;
   }
+
+  return true;
 }
+
+
+<input
+  class="form-check-input"
+  type="checkbox"
+  :checked="checked_lines.includes(line)"
+  v-if="aif_status === 'PLANNED' && get_line_status(line)?.status === 'AWAITING_APPROVAL'"
+  @click.prevent="
+    canActOnLine(line)
+      ? checked_lines.push(line)
+      : null
+  "
+>
+
+select_all_lines(event) {
+  if (!event.target.checked) {
+    this.checked_lines = [];
+    return;
+  }
+
+  const validLines = [];
+
+  for (const line of this.selected_aif.aif_lines) {
+    if (this.get_line_status(line)?.status !== 'AWAITING_APPROVAL') continue;
+
+    if (!this.canActOnLine(line)) {
+      event.target.checked = false;
+      return;
+    }
+
+    validLines.push(line);
+  }
+
+  this.checked_lines = validLines;
+}
+
