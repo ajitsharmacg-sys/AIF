@@ -163,3 +163,12 @@ if (item.meta_edited_by) {
       result[pg][resp].modified_at = item.meta_edited_date;
     }
 
+
+<div class="mb-0" v-if="group.modified_by">
+  <small class="text-muted">Modified By</small>
+  <div>
+    <strong>[[ group.modified_by ]]</strong>
+    <span class="text-muted" v-if="group.modified_at">
+      — [[ new Date(group.modified_at).toLocaleString() ]]
+    </span>
+  </div>
