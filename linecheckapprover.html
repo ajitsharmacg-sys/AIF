@@ -1,0 +1,36 @@
+function userIsApproverFor(productGroup, responsibility, userEmail) {
+  if (!productGroup || !responsibility) return false;
+
+  return aif_approvers.value.some(item => {
+    return (
+      item.product_group === productGroup &&
+      item.responsibility === responsibility &&
+      item.approver?.email === userEmail
+    );
+  });
+}
+
+canEditLine(line) {
+  const userEmail = "{{ request.user.email|escapejs }}";
+  const requiredResponsibility = "Tender"; // or dynamic later
+
+  return userIsApproverFor(
+    line.product_group,
+    requiredResponsibility,
+    userEmail
+  );
+}
+
+for (const line of this.lines) {
+  if (!this.canEditLine(line)) {
+    this.dialog
+      .reset_to_default()
+      .set_title("Permission denied")
+      .set_message(
+        `You are not authorized to modify product group ${line.product_group}.`
+      )
+      .set_true_action("Close")
+      .show();
+    return false;
+  }
+}
