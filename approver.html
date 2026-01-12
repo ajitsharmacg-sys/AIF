@@ -54,3 +54,62 @@ class AifApproverAdmin(admin.ModelAdmin):
         return obj.approver.email
 
     approver_email.short_description = "Approver Email"
+
+
+/////////////////////////////////////
+
+computed: {
+  groupedApprovers() {
+    const result = {};
+
+    this.aif_approvers.forEach(item => {
+      const pg = item.product_group;
+      const resp = item.responsibility;
+
+      if (!result[pg]) {
+        result[pg] = {};
+      }
+
+      if (!result[pg][resp]) {
+        result[pg][resp] = [];
+      }
+
+      result[pg][resp].push(item.email);
+    });
+
+    return result;
+  }
+}
+
+<div class="row g-3">
+
+  <template v-for="(responsibilities, productGroup) in groupedApprovers" :key="productGroup">
+    <template v-for="(emails, responsibility) in responsibilities" :key="responsibility">
+
+      <div class="col-md-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <h6 class="card-title mb-2">
+              Product Group: <strong>[[ productGroup ]]</strong>
+            </h6>
+
+            <p class="mb-1">
+              Responsibility: <strong>[[ responsibility ]]</strong>
+            </p>
+
+            <hr>
+
+            <ul class="mb-0">
+              <li v-for="email in emails" :key="email">
+                [[ email ]]
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </template>
+  </template>
+
+</div>
+
