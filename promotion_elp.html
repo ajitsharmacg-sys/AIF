@@ -1,0 +1,86 @@
+line._promo_elp_base   // original user-entered value (EUR)
+
+handle_line_change → promotional_elp
+
+📍 You already have this method – modify ONLY this block
+if (model_column === "promotional_elp") {
+    // store base value once (UI-only)
+    targetLine._promo_elp_base = Number(value);
+
+    // always derive from base
+    targetLine.promotional_elp =
+        this.convertElpToLocal(targetLine._promo_elp_base);
+
+    if (targetLine.promotional_qty && targetLine.promotional_elp) {
+        this.calculatePromotionValues(targetLine, true);
+    }
+    return;
+}
+
+
+paste_mercury_from_excel → promotional_elp
+
+if (promotion_elp) {
+    line_item[targetIndex]._promo_elp_base = Number(promotion_elp);
+    line_item[targetIndex].promotional_elp =
+        this.convertElpToLocal(line_item[targetIndex]._promo_elp_base);
+}
+
+Recalculate when NSO / exchange rate changes
+
+📍 Inside recalculateAllLines()
+
+.then(() => {
+    if (line._promo_elp_base !== undefined) {
+        line.promotional_elp =
+            this.convertElpToLocal(line._promo_elp_base);
+    }
+
+    if (line.promotional_qty && line.promotional_elp) {
+        this.calculatePromotionValues(line);
+    }
+
+    if (this.nav_state.context === "edit" && line.id) {
+        this.changes.edited_lines.add(line.id);
+    }
+});
+
+For delete this id.
+stripUiOnlyFields(line) {
+    delete line._promo_elp_base;
+}
+
+create_aif_lines(aif)
+for (let line of this.lines) {
+    line["aif"] = aif.aif_id;
+
+    this.stripUiOnlyFields(line);
+
+    await postData(api_endpoints.aif_lines, line)
+
+
+create_new_lines()
+for (let line of this.lines) {
+    if (line.id !== "temp") continue;
+
+    line["aif"] = this.aif.aif_id;
+    delete line.id;
+
+    this.stripUiOnlyFields(line);
+
+    await postData(api_endpoints.aif_lines, line)
+
+patch_lines()
+for (const lineid of this.changes.edited_lines) {
+    for (const line of this.lines) {
+        if (lineid === line.id) {
+
+            this.stripUiOnlyFields(line);
+
+            await patchData(
+                api_endpoints.aif_lines + lineid + "/",
+                line
+            );
+        }
+    }
+}
