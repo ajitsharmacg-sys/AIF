@@ -1,0 +1,6 @@
+convertElpToLocal(elp) {
+    const { local_currency, exchange_rate } = this.aif;
+    return (local_currency && local_currency !== "EUR" && exchange_rate)
+        ? elp * exchange_rate
+        : elp;
+}
