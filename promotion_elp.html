@@ -84,3 +84,105 @@ for (const lineid of this.changes.edited_lines) {
         }
     }
 }
+
+
+//////////////////////////////////////////
+
+paste_mercury_from_excel(line_item, index, event) {
+    this.reset_mercury_error();
+
+    const text = event.clipboardData.getData("text/plain");
+    const copied_lines = text.trim().split(/\r?\n/);
+    if (!copied_lines.length) return;
+
+    if (!this.validate_mercury_excel_rows(copied_lines)) {
+        return;
+    }
+
+    copied_lines.forEach((line, lineIndex) => {
+        const columns = line.split("\t");
+
+        const mercury = columns[0]?.trim();
+        const promotion_quantity = columns[1]?.trim();
+        const promotion_elp = columns[2]?.trim();
+
+        const targetIndex = index + lineIndex;
+        line_item[targetIndex] = line_item[targetIndex] || {};
+
+        if (this.nav_state.context === "edit") {
+            line_item[targetIndex]["id"] = "temp";
+        }
+
+        /* Mercury always */
+        line_item[targetIndex].mercury_code = mercury;
+        this.handle_mercury_change(line_item, targetIndex, mercury);
+
+        /* Qty + ELP only if both present */
+        if (promotion_quantity && promotion_elp) {
+            line_item[targetIndex].promotional_qty = promotion_quantity;
+
+            line_item[targetIndex]._promo_elp_base = Number(promotion_elp);
+            line_item[targetIndex].promotional_elp =
+                this.convertElpToLocal(line_item[targetIndex]._promo_elp_base);
+        }
+
+        this.handle_elp_price(line_item, targetIndex, mercury, () => {
+            const line = line_item[targetIndex];
+            if (line.promotional_qty && line.promotional_elp && line.elp) {
+                this.calculatePromotionValues(line, true);
+            }
+        });
+    });
+}
+
+
+validate_mercury_excel_rows(copied_lines) {
+    for (let i = 0; i < copied_lines.length; i++) {
+        const columns = copied_lines[i].split("\t");
+
+        const mercuryRaw = columns[0]?.trim();
+        const qtyRaw = columns[1];
+        const elpRaw = columns[2];
+
+        /* Mercury is mandatory */
+        if (!mercuryRaw) {
+            this.showExcelValidationError(i, "Mercury Code must not be blank.");
+            return false;
+        }
+
+        if (!/^[a-zA-Z0-9]+$/.test(mercuryRaw)) {
+            this.showExcelValidationError(i, "Mercury Code must be alphanumeric.");
+            return false;
+        }
+
+        const qtyProvided = qtyRaw !== undefined && qtyRaw !== "";
+        const elpProvided = elpRaw !== undefined && elpRaw !== "";
+
+        /* ❌ Partial data not allowed */
+        if (qtyProvided !== elpProvided) {
+            this.showExcelValidationError(
+                i,
+                "Promotion Quantity and Promotion ELP must both be provided together."
+            );
+            return false;
+        }
+
+        /* ✅ If both provided → validate */
+        if (qtyProvided && elpProvided) {
+            const qty = Number(qtyRaw);
+            const elp = Number(elpRaw);
+
+            if (!Number.isInteger(qty) || qty < 0) {
+                this.showExcelValidationError(i, "Promotion Quantity must be a number ≥ 0.");
+                return false;
+            }
+
+            if (isNaN(elp) || elp < 0) {
+                this.showExcelValidationError(i, "Promotion ELP must be a number ≥ 0.");
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
