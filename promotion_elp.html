@@ -186,3 +186,48 @@ validate_mercury_excel_rows(copied_lines) {
 
     return true;
 }
+=============================
+
+                def perform_create(self, serializer):
+    aif_line = serializer.validated_data["aif_line"]
+    status = serializer.validated_data["status"]
+
+    # 🔕 Silently ignore duplicate DRAFT
+    if status == AifLineStatusChoices.DRAFT:
+        latest_status = (
+            AifLineStatus.objects
+            .filter(aif_line=aif_line)
+            .order_by("-created_at")
+            .first()
+        )
+
+        if latest_status and latest_status.status == AifLineStatusChoices.DRAFT:
+            return  # 👈 do nothing, no error
+
+    # Existing approval validation
+    if status == AifLineStatusChoices.APPROVED:
+        validate_psbd_approver_permission(
+            user=self.request.user,
+            aif_line=aif_line,
+        )
+
+    instance: AifLineStatus = serializer.save(
+        meta_created_by=self.request.user
+    )
+
+    aif = instance.aif_line.aif
+
+    if instance.status == AifLineStatusChoices.REJECTED:
+        new_status = AifStatusChoices.INVALID
+    else:
+        new_status = determine_aif_status(
+            AifLines.objects.filter(aif=aif),
+            get_aif_status(aif).status,
+        )
+
+    update_aif_workflow(
+        request=self.request,
+        aif=aif,
+        new_status=new_status,
+        comment=instance.comment,
+    )
