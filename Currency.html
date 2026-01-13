@@ -4,3 +4,63 @@ convertElpToLocal(elp) {
         ? elp * exchange_rate
         : elp;
 }
+
+
+handle_elp_price(lines, index, mercury) {
+    if (!mercury) return Promise.resolve();
+
+    const line = lines[index];
+
+    return fetch(`${api_endpoints.master_price_list}?item_code_1st_layer=${mercury}`)
+        .then(res => {
+            if (!res.ok) return Promise.reject(res);
+            return res.json();
+        })
+        .then(data => {
+            if (!data || !data.length) {
+                this.delete_line(line);
+                this.dialog.reset_to_default()
+                    .set_title("Invalid Data Entry")
+                    .set_message("Price list ELP not found")
+                    .set_true_action("Close")
+                    .show();
+                return;
+            }
+
+            const elpEur = parseFloat(data[0].elp_eur);
+
+            line.elp = Number(
+                this.convertElpToLocal(elpEur).toFixed(2)
+            );
+
+            if (line.promotional_qty && line.promotional_elp) {
+                this.calculatePromotionValues(line);
+            }
+
+            return line;
+        })
+        .catch(err => {
+            this.display_error(err, "Failed to load ELP price");
+        });
+},
+
+
+if (promotion_quantity) {
+    line_item[targetIndex].promotional_qty = promotion_quantity;
+}
+
+if (promotion_elp) {
+    line_item[targetIndex].promotional_elp =
+        this.convertElpToLocal(promotion_elp);
+}
+
+if (model_column === "promotional_elp") {
+    targetLine.promotional_elp = this.convertElpToLocal(value);
+
+    if (targetLine.promotional_qty && targetLine.promotional_elp) {
+        this.calculatePromotionValues(targetLine, true);
+    }
+    return;
+}
+
+
