@@ -74,3 +74,48 @@ select_all_lines(event) {
   this.checked_lines = validLines;
 }
 
+
+
+select_all_lines(event) {
+  // Uncheck → clear everything
+  if (!event.target.checked) {
+    this.checked_lines = [];
+    return;
+  }
+
+  const validLines = [];
+  const unauthorizedLines = [];
+
+  for (const line of this.selected_aif.aif_lines) {
+    if (this.get_line_status(line)?.status !== 'AWAITING_APPROVAL') {
+      continue;
+    }
+
+    if (this.canActOnLine(line)) {
+      validLines.push(line);
+    } else {
+      unauthorizedLines.push(line);
+    }
+  }
+
+  // ✅ Check only allowed lines
+  this.checked_lines = validLines;
+
+  // ⚠ Show warning if some lines were skipped
+  if (unauthorizedLines.length > 0) {
+    const message = unauthorizedLines
+      .map(
+        l => `Line ID ${l.id} (Product Group: ${l.product_group})`
+      )
+      .join("<br>");
+
+    this.dialog
+      .reset_to_default()
+      .set_title("Some lines were not selected")
+      .set_message(
+        `You don’t have permission to act on the following line(s):<br><br>${message}`
+      )
+      .set_true_action("Close")
+      .show();
+  }
+}
