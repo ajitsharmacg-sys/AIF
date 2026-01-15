@@ -27,3 +27,38 @@ send_emails(
         Commercial Planning Team
     """,
 )
+
+
+
+send_email_to_group(
+    to=Group.objects.get(name=SALES_OPS_USER),
+    subject=f"Promotion Ref: {aif.aif_id} is now with Revenue Ops Team",
+    body=f"""
+        Dear Team,<br><br>
+
+        Your <b>ONINVOICE promotion request</b> has received
+        <b>commercial approval</b> and has been forwarded to the
+        <b>Revenue Ops Team</b>. Oracle is expected to be updated
+        within <b>48 hours</b>.<br><br>
+
+        Please click the link below to view the promotion details:<br>
+        <a href="{aif_url(request, aif.aif_id)}">
+            {aif_url(request, aif.aif_id)}
+        </a>
+        <br><br>
+
+        <b>NSO:</b> {aif.nso}<br>
+        <b>Promo Campaign:</b> {aif.promotion_campaign}<br>
+        <b>Promo Category:</b> {aif.promotion_category}<br>
+        <b>Promo Sub-Category:</b> Sell-in allowance ONINVOICE<br>
+        <b>Activity:</b> {aif.promotion_activity}<br>
+        <b>TTL Support:</b> £{aif.total_support:,.2f}<br>
+        <br>
+
+        Approved by: <b>{request.user.get_username()}</b><br><br>
+
+        Kind regards,<br>
+        Revenue Ops Team
+    """,
+)
+
