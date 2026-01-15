@@ -94,3 +94,30 @@ send_email(
     """,
 )
 
+
+send_email(
+    to=aif.meta_created_by.email,
+    cc=cc_mail,
+    subject=f"Promotion Ref:{aif.aif_id} Validation Request to {request.user.email}",
+    body=f"""
+        Dear CCI Pricing,<br><br>
+
+        Please be advised that <b>AIF Flow</b> has now requested
+        <b>validation</b> from <b>{request.user.email}</b>.<br><br>
+
+        <b>AIF:</b> {aif.aif_id}<br><br>
+
+        Please click the link below to view the promotion details:<br>
+        <a href="{aif_url(request, aif.aif_id)}">
+            {aif_url(request, aif.aif_id)}
+        </a>
+        <br><br>
+
+        <b>Promotion Status:</b> {aif_status}<br>
+        <b>Validation Status:</b> Pending<br><br>
+
+        Kind regards,<br>
+        AIF Flow
+    """,
+)
+
