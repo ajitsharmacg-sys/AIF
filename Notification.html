@@ -121,3 +121,28 @@ send_email(
     """,
 )
 
+send_email_to_group(
+    to=Group.objects.get(name=SALES_OPS_USER),
+    subject=f"Promotion Ref:{aif.aif_id} has been validated by {request.user.email}",
+    body=f"""
+        Dear CCI Pricing,<br><br>
+
+        Please be advised that <b>{request.user.email}</b> has
+        <b>validated the AIF</b>.<br><br>
+
+        <b>AIF:</b> {aif.aif_id}<br><br>
+
+        Please click below link to view the promotion details:<br>
+        <a href="{aif_url(request, aif.aif_id)}">
+            {aif_url(request, aif.aif_id)}
+        </a>
+        <br><br>
+
+        <b>Promotion Status:</b> Closed<br>
+        <b>Validation Status:</b> Validated<br><br>
+
+        Kind regards,<br>
+        AIF Flow
+    """,
+)
+
