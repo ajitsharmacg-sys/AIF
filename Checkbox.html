@@ -39,3 +39,38 @@ showPermissionError(line) {
     :checked="checked_lines.includes(line)"
   >
 </div>
+
+
+select_all_lines(event) {
+  if (!event.target.checked) {
+    this.checked_lines = [];
+    return;
+  }
+
+  const validLines = [];
+
+  for (const line of this.selected_aif.aif_lines) {
+    if (this.get_line_status(line)?.status !== 'AWAITING_APPROVAL') continue;
+
+    if (!this.canActOnLine(line)) {
+      event.target.checked = false;
+
+      this.dialog
+        .reset_to_default()
+        .set_title("Permission denied")
+        .set_message(
+          `You are not authorized to act on Line ID ${line.id}
+(Product Group: ${line.product_group}).`
+        )
+        .set_true_action("Close")
+        .show();
+
+      return;
+    }
+
+    validLines.push(line);
+  }
+
+  this.checked_lines = validLines;
+}
+
