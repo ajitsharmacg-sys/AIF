@@ -62,3 +62,35 @@ send_email_to_group(
     """,
 )
 
+send_email(
+    to=aif.meta_created_by.email,
+    cc=cc_mail,
+    subject=f"Promotion Ref: {aif.aif_id} has been Rejected",
+    body=f"""
+        Dear {aif.meta_created_by.first_name},<br><br>
+
+        Your <b>ONINVOICE promotion request</b> with reference
+        <b>{aif.aif_id}</b> has been <b>rejected</b>.<br><br>
+
+        <b>Rejected By:</b> {request.user.get_username()}<br>
+        <b>Reason for Rejection:</b> {comment or "-"}<br><br>
+
+        <b>Rejected Line(s):</b>
+        <ul>
+            {rejected_lines_html}
+        </ul>
+
+        Please click the link below to review the promotion details:<br>
+        <a href="{aif_url(request, aif.aif_id)}">
+            {aif_url(request, aif.aif_id)}
+        </a>
+        <br><br>
+
+        If required, you may amend the promotion and resubmit it
+        for approval.<br><br>
+
+        Kind regards,<br>
+        Commercial Planning Team
+    """,
+)
+
