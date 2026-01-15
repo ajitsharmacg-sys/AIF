@@ -119,3 +119,61 @@ select_all_lines(event) {
       .show();
   }
 }
+
+select_all_lines(event) {
+  // Uncheck → clear selection
+  if (!event.target.checked) {
+    this.checked_lines = [];
+    return;
+  }
+
+  const validLines = [];
+  const unauthorizedLines = [];
+
+  for (const line of this.selected_aif.aif_lines) {
+    if (this.get_line_status(line)?.status !== 'AWAITING_APPROVAL') continue;
+
+    if (this.canActOnLine(line)) {
+      validLines.push(line);
+    } else {
+      unauthorizedLines.push(line);
+    }
+  }
+
+  // ❌ NO authorized lines → uncheck select-all
+  if (validLines.length === 0) {
+    event.target.checked = false;
+    this.checked_lines = [];
+
+    this.dialog
+      .reset_to_default()
+      .set_title("Permission denied")
+      .set_message(
+        "You don’t have permission to act on any of the selected lines."
+      )
+      .set_true_action("Close")
+      .show();
+
+    return;
+  }
+
+  // ✅ Some authorized lines → select them
+  this.checked_lines = validLines;
+
+  // ⚠ Show warning if some lines were skipped
+  if (unauthorizedLines.length > 0) {
+    const message = unauthorizedLines
+      .map(l => `Line ${l.id} (${l.product_group})`)
+      .join(" | ");
+
+    this.dialog
+      .reset_to_default()
+      .set_title("Some lines were not selected")
+      .set_message(
+        "You don’t have permission for the following lines: " + message
+      )
+      .set_true_action("Close")
+      .show();
+  }
+}
+
