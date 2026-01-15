@@ -146,3 +146,34 @@ send_email_to_group(
     """,
 )
 
+
+send_email_to_group(
+    to=Group.objects.get(name=SALES_OPS_USER),
+    subject=f"Promotion Ref:{aif.aif_id} has been completed",
+    body=f"""
+        Dear CCI Pricing,<br><br>
+
+        The promotion request has been <b>successfully completed</b>.<br><br>
+
+        <b>AIF:</b> {aif.aif_id}<br><br>
+
+        Please click the link below to review the promotion details:<br>
+        <a href="{aif_url(request, aif.aif_id)}">
+            {aif_url(request, aif.aif_id)}
+        </a>
+        <br><br>
+
+        Please note that this promotion request is subject to
+        <b>SOX audit review</b>.<br><br>
+
+        <b>NSO:</b> {aif.nso}<br>
+        <b>Promo Campaign:</b> {aif.promotion_campaign}<br>
+        <b>Promo Category:</b> {aif.promotion_category}<br>
+        <b>Promo Sub-Category:</b> Sell-in allowance ONINVOICE<br>
+        <b>TTL Support:</b> {aif.total_support}<br><br>
+
+        Kind regards,<br>
+        AIF Flow
+    """,
+)
+
