@@ -1,0 +1,29 @@
+send_emails(
+    to=emails,
+    cc=cc_mail,
+    subject=f"Promotion Ref: {aif.aif_id} is now with Commercial Planning Team",
+    body=f"""
+        Dear {request.user.get_full_name() or request.user.get_username()},<br><br>
+
+        Your <b>ONINVOICE promotion request</b> has been submitted to the
+        <b>Commercial Planning Team</b> for approval and is expected to be
+        approved within <b>24 hours</b>.<br><br>
+
+        Please click the link below to review the promotion details:<br>
+        <a href="{aif_url(request, aif.aif_id)}">
+            {aif_url(request, aif.aif_id)}
+        </a>
+        <br><br>
+
+        <b>NSO:</b> {aif.nso}<br>
+        <b>Promo Campaign:</b> {aif.promotion_campaign}<br>
+        <b>Promo Category:</b> {aif.promotion_category}<br>
+        <b>Promo Sub-Category:</b> Sell-in allowance ONINVOICE<br>
+        <b>Activity:</b> {aif.promotion_activity}<br>
+        <b>TTL Support:</b> £{aif.total_support:,.2f}<br>
+        <br>
+
+        Kind regards,<br>
+        Commercial Planning Team
+    """,
+)
