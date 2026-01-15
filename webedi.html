@@ -1,0 +1,62 @@
+generateWebEDIHeaderFile(aif) {
+  const opUnit = this.getOpertaionUnitByNSO(aif.nso);
+  const customers = aif.aif_customer_lines || [];
+
+  this.ws_data = [];
+
+  const wscols = [
+    { wch: 35 }, { wch: 10 }, { wch: 25 }, { wch: 10 },
+    { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 10 },
+    { wch: 20 }, { wch: 25 }, { wch: 10 }, { wch: 20 },
+    { wch: 25 }, { wch: 10 }, { wch: 15 }, { wch: 15 },
+    { wch: 10 }, { wch: 10 }
+  ];
+
+  // header row
+  this.ws_data.push(this.webedi_header);
+
+  if (customers.length > 0) {
+    customers.forEach(customer => {
+      const customerId = customer.oracle_cust_number;
+      (aif.aif_lines || []).forEach(line => {
+        this.pushWebEDIHeaderRow(aif, line, opUnit, customerId);
+      });
+    });
+  } else {
+    (aif.aif_lines || []).forEach(line => {
+      this.pushWebEDIHeaderRow(aif, line, opUnit);
+    });
+  }
+
+  const wb = utils.book_new();
+  const ws = utils.aoa_to_sheet(this.ws_data);
+  ws["!cols"] = wscols;
+
+  utils.book_append_sheet(wb, ws, "Header");
+  writeFile(wb, `WebEDI_Header_${aif.aif_id}.xlsx`);
+}
+
+pushWebEDIHeaderRow(aif, line, opUnit, customerId = null) {
+  this.ws_data.push([
+    opUnit,                                      // MODIFIER_NAME
+    "INSERT",                                   // TRX_TYPE
+    this.buildModifierLineNo(line, aif, customerId),
+    "LINE",                                     // LEVEL
+    "Discount",                                 // MODIFIER_TYPE
+    aif.start_date,                             // LINE_START_DATE
+    aif.end_date,                               // LINE_END_DATE
+    "Y",                                        // AUTOMATIC_FLAG
+    "N",                                        // OVERRIDE_FLAG
+    "List Line Adjustment",                     // PRICING_PHASE
+    "Level 4 Incompatibility",                  // INCOMPATIBILITY_GROUP
+    1,                                          // BUCKET
+    "First Layer",                              // PRODUCT_ATTRIBUTE
+    line.mercury_code,                          // PRODUCT_ATTRIBUTE_VALUE
+    100,                                        // PRECEDENCE
+    "LOCAL",                                    // MODIFIER_LINE_TYPE
+    "New Price",                                // FORMULA
+    "",                                         // APPLICATION_METHOD
+    line.promotional_elp,                       // VALUE
+    "N"                                         // ACCRUAL
+  ]);
+}
