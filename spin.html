@@ -33,4 +33,33 @@
   ></span>
 </div>
 
+<div class="section-title d-flex align-items-center gap-2">
+  <span>Promotion Details</span>
+
+  <span
+    v-if="isLoading"
+    class="spinner-border text-primary"
+    role="status"
+    style="width: 1.2rem; height: 1.2rem;"
+  ></span>
+
+  <small v-if="isLoading && loadingText" class="text-muted">
+    [[ loadingText ]]
+  </small>
+</div>
+
+  <div class="section-title d-flex align-items-center gap-2">
+  <span>Customer Details</span>
+
+  <span
+    v-if="isLoading"
+    class="spinner-border text-primary"
+    role="status"
+    style="width: 1.2rem; height: 1.2rem;"
+  ></span>
+
+  <small v-if="isLoading && loadingText" class="text-muted">
+    [[ loadingText ]]
+  </small>
+</div>
 
