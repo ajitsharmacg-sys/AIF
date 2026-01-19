@@ -63,3 +63,28 @@
   </small>
 </div>
 
+
+  if (!error_occured) {
+    await this.get_aif(aif.aif_id);
+
+    // ✅ ADD THIS LINE
+    this.aifs.splice(0, 0, this.aif);
+
+    this.navigate("aif_view");
+
+    this.dialog.reset_to_default()
+        .set_title("Progress")
+        .set_message("AIF has been successfully created! AIF Id: " + aif.aif_id)
+        .set_true_action("Close")
+        .show();
+}
+
+
+  // ✅ Replace updated AIF in list (same as tickets)
+this.aifs = [
+    this.aif,
+    ...this.aifs.filter(a => a.aif_id !== this.aif.aif_id)
+];
+
+  this.aifs = this.aifs.filter(a => a.aif_id !== deletedId);
+
