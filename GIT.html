@@ -1,0 +1,90 @@
+type C:\Users\anathsha\.ssh\id_rsa.pub
+
+type C:\Users\anathsha\.ssh\id_rsa.pub
+2. Add it to Bitbucket
+
+Open Bitbucket in browser
+
+Click Profile picture (top right)
+
+Personal settings
+
+SSH keys
+
+Add key
+
+Paste the key
+
+Save
+
+Important:
+Add it under Personal SSH keys, not workspace keys.
+
+3. Verify SSH agent is running (Windows)
+
+Open PowerShell as Administrator and run:
+
+Get-Service ssh-agent | Set-Service -StartupType Automatic
+Start-Service ssh-agent
+ssh-add $env:USERPROFILE\.ssh\id_rsa
+
+
+You should see:
+
+Identity added
+
+4. Test again (this must succeed)
+ssh -T git@bitbucket.org
+
+Expected success output
+authenticated via ssh key.
+You can use git to connect to Bitbucket.
+
+
+If you do NOT see this, cloning will never work.
+
+5. Try cloning again
+git clone git@bitbucket.org:canon-europe/itcg_azure_apps.git
+
+6. If SSH works but clone still fails
+
+Then it’s repo permission, not SSH.
+
+Open this URL while logged in:
+
+https://bitbucket.org/canon-europe/itcg_azure_apps
+
+
+If you see Access denied → ask repo admin to add you
+
+If you see the repo → clone will work
+
+Fast unblock (temporary)
+
+If you need the code immediately:
+
+git clone https://bitbucket.org/canon-europe/itcg_azure_apps.git
+
+
+Use:
+
+Username: your Bitbucket username
+
+Password: App password (not normal password)
+
+Summary (clear)
+
+SSH key exists
+
+SSH connects
+
+Key is not registered with Bitbucket OR repo access missing
+
+Adding the key + permission fixes it
+
+Once you add the key, reply with the output of:
+
+ssh -T git@bitbucket.org
+
+
+and I’ll confirm you’re fully unblocked.
