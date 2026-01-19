@@ -116,3 +116,40 @@ if (this.aifs?.results) {
   this.aifs.results.unshift(this.aif);
 }
 
+    handle_customer_change(line, index, customer_number) {
+  if (!customer_number) return;
+
+  const url =
+    api_endpoints.cdh_customers +
+    "?party_number=" +
+    encodeURIComponent(customer_number);
+
+  fetch(url)
+    .then(response => {
+      if (response.ok) return response.json();
+      return Promise.reject(response);
+    })
+    .then(data => {
+      if (!data || data.length === 0) {
+        this.dialog
+          .reset_to_default()
+          .set_title("Customer Not Found")
+          .set_message(
+            `No customer found for Customer Number: <b>${customer_number}</b>. Please verify and try again.`
+          )
+          .set_true_action("Close")
+          .show();
+        return;
+      }
+
+      line[index]["oracle_cust_number"] = data[0].party_number;
+      line[index]["oracle_cust_name"] = data[0].customer_name;
+    })
+    .catch(error => {
+      this.display_error(
+        error,
+        "An error occurred while fetching customer details. Please try again or contact the support team."
+      );
+    });
+}
+
