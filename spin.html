@@ -167,3 +167,10 @@ if (this.aifs?.results) {
   };
 });
 
+for (let i = 0; i < this.aifs.results.length; ++i) {
+  if (this.aifs.results[i].aif_id === this.selected_aif.aif_id) {
+    // ✅ replace object reference (Vue reactive-safe)
+    this.aifs.results[i] = { ...this.selected_aif };
+    break;
+  }
+}
