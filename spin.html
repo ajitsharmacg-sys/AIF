@@ -91,3 +91,28 @@ this.aifs = [
 
   this.aifs[aif.aif_id] = aif;
 this.aifs[this.selected_aif.aif_id] = this.selected_aif;
+
+
+
+
+
+
+
+
+  updateAifInList(updatedAif) {
+  if (!this.aifs?.results || !updatedAif?.aif_id) return;
+
+  for (let i = 0; i < this.aifs.results.length; i++) {
+    if (this.aifs.results[i].aif_id === updatedAif.aif_id) {
+      // replace to keep Vue reactivity
+      this.aifs.results[i] = { ...updatedAif };
+      return;
+    }
+  }
+}
+
+    this.updateAifInList(this.aif);
+if (this.aifs?.results) {
+  this.aifs.results.unshift(this.aif);
+}
+
