@@ -69,3 +69,26 @@ send_email(
         <b>Rev Sales Ops Team</b>
     """,
 )
+
+send_email(
+    to=Group.objects.get(name=OM_TEAM_USER),
+    subject=f"Promotion Ref:{aif.aif_id} has been implemented in the Oracle",
+    body=f"""
+        Dear OM Team,<br><br>
+
+        Please be advised the <b>ONINVOICE promotion request</b>
+        has been <b>implemented in Oracle</b>.<br><br>
+
+        Kindly review the <b>attached document</b> for the list of
+        impacted orders.<br><br>
+
+        If an order was booked prior to the implementation date of the AIF,
+        please refresh the order accordingly.<br><br>
+
+        <b>Note:</b> Please view attachment for the orders details.<br><br>
+
+        Thanks,<br>
+        Kind Regards<br>
+        <b>Rev Sales Ops Team</b>
+    """,
+)
