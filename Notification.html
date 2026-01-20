@@ -1,9 +1,9 @@
-send_emails(
-    to=emails,
+send_email(
+    to=aif.meta_created_by.email,
     cc=cc_mail,
     subject=f"Promotion Ref: {aif.aif_id} is now with Commercial Planning Team",
     body=f"""
-        Dear {request.user.get_full_name() or request.user.get_username()},<br><br>
+        Dear {aif.meta_created_by.first_name},<br><br>
 
         Your <b>ONINVOICE promotion request</b> has been submitted to the
         <b>Commercial Planning Team</b> for approval and is expected to be
@@ -15,165 +15,8 @@ send_emails(
         </a>
         <br><br>
 
-        <b>NSO:</b> {aif.nso}<br>
-        <b>Promo Campaign:</b> {aif.promotion_campaign}<br>
-        <b>Promo Category:</b> {aif.promotion_category}<br>
-        <b>Promo Sub-Category:</b> Sell-in allowance ONINVOICE<br>
-        <b>Activity:</b> {aif.promotion_activity}<br>
-        <b>TTL Support:</b> £{aif.total_support:,.2f}<br>
-        <br>
-
-        Kind regards,<br>
-        Commercial Planning Team
+        Thanks,<br>
+        Kind Regards,<br>
+        <b>Rev Sales Ops Team</b>
     """,
 )
-
-
-
-send_email_to_group(
-    to=Group.objects.get(name=SALES_OPS_USER),
-    subject=f"Promotion Ref: {aif.aif_id} is now with Revenue Ops Team",
-    body=f"""
-        Dear Team,<br><br>
-
-        Your <b>ONINVOICE promotion request</b> has received
-        <b>commercial approval</b> and has been forwarded to the
-        <b>Revenue Ops Team</b>. Oracle is expected to be updated
-        within <b>48 hours</b>.<br><br>
-
-        Please click the link below to view the promotion details:<br>
-        <a href="{aif_url(request, aif.aif_id)}">
-            {aif_url(request, aif.aif_id)}
-        </a>
-        <br><br>
-
-        <b>NSO:</b> {aif.nso}<br>
-        <b>Promo Campaign:</b> {aif.promotion_campaign}<br>
-        <b>Promo Category:</b> {aif.promotion_category}<br>
-        <b>Promo Sub-Category:</b> Sell-in allowance ONINVOICE<br>
-        <b>Activity:</b> {aif.promotion_activity}<br>
-        <b>TTL Support:</b> £{aif.total_support:,.2f}<br>
-        <br>
-
-        Approved by: <b>{request.user.get_username()}</b><br><br>
-
-        Kind regards,<br>
-        Revenue Ops Team
-    """,
-)
-
-send_email(
-    to=aif.meta_created_by.email,
-    cc=cc_mail,
-    subject=f"Promotion Ref: {aif.aif_id} has been Rejected",
-    body=f"""
-        Dear {aif.meta_created_by.first_name},<br><br>
-
-        Your <b>ONINVOICE promotion request</b> with reference
-        <b>{aif.aif_id}</b> has been <b>rejected</b>.<br><br>
-
-        <b>Rejected By:</b> {request.user.get_username()}<br>
-        <b>Reason for Rejection:</b> {comment or "-"}<br><br>
-
-        <b>Rejected Line(s):</b>
-        <ul>
-            {rejected_lines_html}
-        </ul>
-
-        Please click the link below to review the promotion details:<br>
-        <a href="{aif_url(request, aif.aif_id)}">
-            {aif_url(request, aif.aif_id)}
-        </a>
-        <br><br>
-
-        If required, you may amend the promotion and resubmit it
-        for approval.<br><br>
-
-        Kind regards,<br>
-        Commercial Planning Team
-    """,
-)
-
-
-send_email(
-    to=aif.meta_created_by.email,
-    cc=cc_mail,
-    subject=f"Promotion Ref:{aif.aif_id} Validation Request to {request.user.email}",
-    body=f"""
-        Dear CCI Pricing,<br><br>
-
-        Please be advised that <b>AIF Flow</b> has now requested
-        <b>validation</b> from <b>{request.user.email}</b>.<br><br>
-
-        <b>AIF:</b> {aif.aif_id}<br><br>
-
-        Please click the link below to view the promotion details:<br>
-        <a href="{aif_url(request, aif.aif_id)}">
-            {aif_url(request, aif.aif_id)}
-        </a>
-        <br><br>
-
-        <b>Promotion Status:</b> {aif_status}<br>
-        <b>Validation Status:</b> Pending<br><br>
-
-        Kind regards,<br>
-        AIF Flow
-    """,
-)
-
-send_email_to_group(
-    to=Group.objects.get(name=SALES_OPS_USER),
-    subject=f"Promotion Ref:{aif.aif_id} has been validated by {request.user.email}",
-    body=f"""
-        Dear CCI Pricing,<br><br>
-
-        Please be advised that <b>{request.user.email}</b> has
-        <b>validated the AIF</b>.<br><br>
-
-        <b>AIF:</b> {aif.aif_id}<br><br>
-
-        Please click below link to view the promotion details:<br>
-        <a href="{aif_url(request, aif.aif_id)}">
-            {aif_url(request, aif.aif_id)}
-        </a>
-        <br><br>
-
-        <b>Promotion Status:</b> Closed<br>
-        <b>Validation Status:</b> Validated<br><br>
-
-        Kind regards,<br>
-        AIF Flow
-    """,
-)
-
-
-send_email_to_group(
-    to=Group.objects.get(name=SALES_OPS_USER),
-    subject=f"Promotion Ref:{aif.aif_id} has been completed",
-    body=f"""
-        Dear CCI Pricing,<br><br>
-
-        The promotion request has been <b>successfully completed</b>.<br><br>
-
-        <b>AIF:</b> {aif.aif_id}<br><br>
-
-        Please click the link below to review the promotion details:<br>
-        <a href="{aif_url(request, aif.aif_id)}">
-            {aif_url(request, aif.aif_id)}
-        </a>
-        <br><br>
-
-        Please note that this promotion request is subject to
-        <b>SOX audit review</b>.<br><br>
-
-        <b>NSO:</b> {aif.nso}<br>
-        <b>Promo Campaign:</b> {aif.promotion_campaign}<br>
-        <b>Promo Category:</b> {aif.promotion_category}<br>
-        <b>Promo Sub-Category:</b> Sell-in allowance ONINVOICE<br>
-        <b>TTL Support:</b> {aif.total_support}<br><br>
-
-        Kind regards,<br>
-        AIF Flow
-    """,
-)
-
