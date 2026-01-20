@@ -45,3 +45,27 @@ send_email_to_group(
     """,
 )
 
+send_email(
+    to=aif.meta_created_by.email,
+    cc=cc_mail,
+    subject=f"Promotion Ref:{aif.aif_id} Validation Request to {aif.meta_created_by.email}",
+    body=f"""
+        Dear {aif.meta_created_by.first_name},<br><br>
+
+        Please validate your <b>ONINVOICE promotion request</b>
+        within <b>48 hours</b>.<br><br>
+
+        Please click below link to view the promotion details:<br>
+        <a href="{aif_url(request, aif.aif_id)}">
+            {aif_url(request, aif.aif_id)}
+        </a>
+        <br><br>
+
+        <b>Promotion Status:</b> Closed<br>
+        <b>Validation Status:</b> Pending<br><br>
+
+        Thanks,<br>
+        Kind Regards<br>
+        <b>Rev Sales Ops Team</b>
+    """,
+)
