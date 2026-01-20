@@ -92,3 +92,11 @@ send_email(
         <b>Rev Sales Ops Team</b>
     """,
 )
+
+<input
+  class="form-check-input"
+  type="checkbox"
+  :disabled="!canActOnLine(line)"
+  v-model="checked_lines"
+  :value="line"
+>
