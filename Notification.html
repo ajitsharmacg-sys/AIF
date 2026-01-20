@@ -20,3 +20,28 @@ send_email(
         <b>Rev Sales Ops Team</b>
     """,
 )
+
+
+send_email_to_group(
+    to=Group.objects.get(name=SALES_OPS_USER),
+    subject=f"Promotion Ref: {aif.aif_id} is now with Revenue Ops Team",
+    body=f"""
+        Dear {aif.meta_created_by.first_name},<br><br>
+
+        Your <b>ONINVOICE promotion request</b> has received
+        <b>commercial approval</b> and has been forwarded to the
+        <b>Revenue Ops Team</b>. Oracle is expected to be updated
+        within <b>48 hours</b>.<br><br>
+
+        Please click the link below to view the promotion details:<br>
+        <a href="{aif_url(request, aif.aif_id)}">
+            {aif_url(request, aif.aif_id)}
+        </a>
+        <br><br>
+
+        Thanks,<br>
+        Kind Regards,<br>
+        <b>Rev Sales Ops Team</b>
+    """,
+)
+
