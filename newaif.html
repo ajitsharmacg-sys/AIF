@@ -1,0 +1,90 @@
+<div class="section-title mb-2">Customer Details</div>
+
+<!-- Header -->
+<div class="row fw-semibold border-bottom pb-2 mb-2 text-muted small">
+    <div class="col-1">#</div>
+    <div class="col-5">Customer Number</div>
+    <div class="col-5">Customer Name</div>
+    <div class="col-1"></div>
+</div>
+
+<!-- Scrollable Body -->
+<div class="overflow-auto pe-1" style="max-height: 280px;">
+
+    <template v-for="(line, lineIndex) in customer_lines" :key="lineIndex">
+
+        <form class="row align-items-start g-2 mb-2"
+              :id="'custlineform' + lineIndex"
+              @submit.prevent="">
+
+            <!-- Row Number -->
+            <div class="col-1 pt-2 small text-muted">
+                [[ lineIndex + 1 ]]
+            </div>
+
+            {% for field in aif_customer_line_form.visible_fields %}
+
+                <!-- Customer Number -->
+                {% if field.name == "oracle_cust_number" %}
+                <div class="col-5">
+                    {{ field|add_attrs:":index=lineIndex;
+                                        v-model=customer_lines;
+                                        class=form-control form-control-sm;
+                                        @change=handle_customer_line_change(customer_lines,lineIndex,$event);" }}
+                </div>
+                {% endif %}
+
+                <!-- Customer Name with Search Dropdown -->
+                {% if field.name == "oracle_cust_name" %}
+                <div class="col-5 position-relative">
+
+                    {{ field|add_attrs:":index=lineIndex;
+                                        v-model=customer_lines;
+                                        class=form-control form-control-sm;
+                                        @input=searchCustomerName(lineIndex,$event.target.value);
+                                        autocomplete=off" }}
+
+                    <!-- Bootstrap Dropdown Results -->
+                    <ul v-if="customer_name_search_results[lineIndex]?.length"
+                        class="dropdown-menu show w-100 shadow-sm mt-1"
+                        style="max-height:220px; overflow-y:auto;">
+
+                        <li v-for="cust in customer_name_search_results[lineIndex]"
+                            :key="cust.party_number">
+                            <a href="#"
+                               class="dropdown-item small"
+                               @click.prevent="selectCustomerName(lineIndex, cust)">
+                                [[ cust.label ]]
+                            </a>
+                        </li>
+                    </ul>
+
+                </div>
+                {% endif %}
+
+            {% endfor %}
+
+            <!-- Delete Button -->
+            <div class="col-1 text-end pt-1">
+                <button type="button"
+                        class="btn btn-sm btn-outline-danger"
+                        @click="delete_customer_line(line)">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+        </form>
+
+    </template>
+
+</div>
+
+<!-- Add Button -->
+<div class="mt-2">
+    <button v-if="!isAllNSOMarketEnabled"
+            type="button"
+            class="btn btn-sm btn-primary"
+            @click="add_customer_line()">
+        <i class="bi bi-plus-lg me-1"></i> Add Customer
+    </button>
+</div>
