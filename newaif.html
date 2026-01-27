@@ -153,3 +153,38 @@
     </template>
 </div>
 
+
+
+
+
+
+
+
+{% if field.name == "oracle_cust_name" %}
+<div class="col-5 position-relative">
+
+    <!-- INPUT (Django field, no hardcoding) -->
+    {{ field|add_attrs:":index=lineIndex;
+                        v-model=customer_lines;
+                        @input=searchCustomerName(lineIndex,$event.target.value);
+                        autocomplete=off" }}
+
+    <!-- SIDE DROPDOWN -->
+    <div v-if="customer_name_search_results[lineIndex]?.length"
+         class="position-absolute top-0 start-100 ms-2 bg-white border rounded shadow-sm p-1"
+         style="width: 260px; max-height: 220px; overflow-y: auto; z-index: 3000;">
+
+        <div v-for="cust in customer_name_search_results[lineIndex]"
+             :key="cust.party_number"
+             class="dropdown-item small"
+             role="button"
+             @click="selectCustomerName(lineIndex, cust)">
+
+            [[ cust.label ]]
+        </div>
+
+    </div>
+
+</div>
+{% endif %}
+
