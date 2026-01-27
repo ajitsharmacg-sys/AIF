@@ -208,6 +208,106 @@
 
 
 
+<div class="col-md-6 position-relative">
+
+    <!-- Section Title -->
+    <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">
+        Customer Details
+    </h6>
+
+    <!-- Loading Overlay -->
+    <div v-show="isLoading"
+         class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-50 z-3">
+        <span class="spinner-border text-primary" role="status"></span>
+    </div>
+
+    <!-- Scrollable Table -->
+    <div class="table-responsive border rounded" style="max-height:350px;">
+        <table class="table table-sm table-bordered align-middle mb-0">
+
+            <!-- Header -->
+            <thead class="table-light sticky-top">
+                <tr>
+                    <th style="width:50px;">#</th>
+                    {% for field in aif_customer_line_form.visible_fields %}
+                        <th>
+                            {{ field.label }}
+                            {% if field.help_text %}
+                                <br>
+                                <small class="text-muted fw-normal">
+                                    {{ field.help_text|safe }}
+                                </small>
+                            {% endif %}
+                        </th>
+                    {% endfor %}
+                    <th style="width:60px;"></th>
+                </tr>
+            </thead>
+
+            <!-- Body -->
+            <tbody>
+                <tr v-for="(line, lineIndex) in customer_lines" :key="lineIndex">
+                    <td>[[ lineIndex + 1 ]]</td>
+
+                    {% for field in aif_customer_line_form.visible_fields %}
+                    <td class="position-relative">
+
+                        {% if field.name == "oracle_cust_name" %}
+                        <input
+                            type="text"
+                            class="form-control form-control-sm"
+                            v-model="line.oracle_cust_name"
+                            @input="searchCustomerName(lineIndex, $event.target.value)"
+                            placeholder="Type customer name..."
+                            autocomplete="off"
+                        />
+
+                        <!-- Autocomplete -->
+                        <ul v-if="customer_name_search_results[lineIndex]?.length"
+                            class="dropdown-menu show w-100 shadow-sm"
+                            style="max-height:200px; overflow:auto;">
+
+                            <li v-for="cust in customer_name_search_results[lineIndex]"
+                                :key="cust.party_number">
+                                <button type="button"
+                                        class="dropdown-item text-wrap"
+                                        @click="selectCustomerName(lineIndex, cust)">
+                                    [[ cust.label ]]
+                                </button>
+                            </li>
+                        </ul>
+
+                        {% else %}
+                        {{ field|add_attrs:":index=lineIndex; v-model=customer_lines; @change=handle_customer_line_change(customer_lines,lineIndex,$event); @paste.prevent=paste_customer_from_excel(customer_lines,lineIndex,$event);" }}
+                        {% endif %}
+
+                    </td>
+                    {% endfor %}
+
+                    <!-- Delete Button -->
+                    <td class="text-center">
+                        <button type="button"
+                                class="btn btn-sm btn-danger"
+                                @click="delete_customer_line(line)">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add Line Button -->
+    <div class="mt-2">
+        <button v-if="!isAllNSOMarketEnabled"
+                type="button"
+                class="btn btn-sm btn-primary"
+                @click="add_customer_line()">
+            <i class="bi bi-plus"></i> Add Customer
+        </button>
+    </div>
+
+</div>
 
 
 
