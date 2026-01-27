@@ -9,55 +9,67 @@
         <div class="col-1"></div>
     </div>
 
-    <!-- Customer Rows -->
-    <div v-for="(line, index) in customer_lines"
-         :key="index"
-         class="row align-items-center g-2 mb-2">
+    <!-- Scrollable Customer List -->
+    <div class="position-relative border rounded p-2"
+         style="max-height: 260px; overflow-y: auto;">
 
-        <!-- Row Number -->
-        <div class="col-1">
-            [[ index + 1 ]]
+        <!-- 🔄 Loading Overlay -->
+        <div v-if="isLoading"
+             class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75"
+             style="z-index: 10;">
+            <div class="spinner-border text-primary" role="status"></div>
         </div>
 
-        <!-- Customer Number -->
-        <div class="col-5">
-            <input type="text"
-                   class="form-control form-control-sm"
-                   v-model="line.oracle_cust_number"
-                   @change="handle_customer_change(customer_lines, index, line.oracle_cust_number)"
-                   placeholder="Enter customer number">
+        <!-- Customer Rows -->
+        <div v-for="(line, index) in customer_lines"
+             :key="index"
+             class="row align-items-center g-2 mb-2">
+
+            <!-- Row Number -->
+            <div class="col-1">
+                [[ index + 1 ]]
+            </div>
+
+            <!-- Customer Number -->
+            <div class="col-5">
+                <input type="text"
+                       class="form-control form-control-sm"
+                       v-model="line.oracle_cust_number"
+                       @change="handle_customer_change(customer_lines, index, line.oracle_cust_number)"
+                       placeholder="Enter customer number">
+            </div>
+
+            <!-- Customer Name with Autocomplete -->
+            <div class="col-5 position-relative">
+                <input type="text"
+                       class="form-control form-control-sm"
+                       v-model="line.oracle_cust_name"
+                       @input="searchCustomerName(index, line.oracle_cust_name)"
+                       placeholder="Search customer name">
+
+                <ul v-if="customer_name_search_results[index]?.length"
+                    class="list-group position-absolute w-100 shadow-sm"
+                    style="z-index: 1000; max-height: 200px; overflow-y: auto;">
+
+                    <li v-for="cust in customer_name_search_results[index]"
+                        :key="cust.party_number"
+                        class="list-group-item list-group-item-action"
+                        @click="selectCustomerName(index, cust)">
+                        [[ cust.label ]]
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Delete Button -->
+            <div class="col-1 text-end">
+                <button type="button"
+                        class="btn btn-sm btn-outline-danger"
+                        @click="delete_customer_line(line)">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
         </div>
-
-        <!-- Customer Name with Autocomplete -->
-        <div class="col-5 position-relative">
-            <input type="text"
-                   class="form-control form-control-sm"
-                   v-model="line.oracle_cust_name"
-                   @input="searchCustomerName(index, line.oracle_cust_name)"
-                   placeholder="Search customer name">
-
-            <ul v-if="customer_name_search_results[index]?.length"
-                class="list-group position-absolute w-100 shadow-sm"
-                style="z-index: 1000; max-height: 200px; overflow-y: auto;">
-
-                <li v-for="cust in customer_name_search_results[index]"
-                    :key="cust.party_number"
-                    class="list-group-item list-group-item-action"
-                    @click="selectCustomerName(index, cust)">
-                    [[ cust.label ]]
-                </li>
-            </ul>
-        </div>
-
-        <!-- Delete Button -->
-        <div class="col-1 text-end">
-            <button type="button"
-                    class="btn btn-sm btn-outline-danger"
-                    @click="delete_customer_line(line)">
-                <i class="bi bi-x-lg"></i>
-            </button>
-        </div>
-
     </div>
 
     <!-- Add Customer Button -->
@@ -70,6 +82,7 @@
         </button>
     </div>
 </div>
+
 
 
 
