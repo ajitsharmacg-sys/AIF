@@ -1,3 +1,44 @@
+<div class="col-5 position-relative">
+    <!-- Search box -->
+    <input type="text"
+           class="form-control form-control-sm"
+           v-model="line.oracle_cust_name"
+           @input="searchCustomerName(index, line.oracle_cust_name)"
+           placeholder="Search Customer Name"
+           autocomplete="off">
+
+    <!-- Floating SELECT dropdown -->
+    <select v-if="customer_name_search_results[index]?.length"
+            class="form-select form-select-sm position-absolute w-100 shadow"
+            size="5"
+            style="top: 100%; z-index: 3000;"
+            @change="selectCustomerName(index, $event.target.selectedOptions[0].__cust)">
+
+        <option disabled selected>Select customer</option>
+
+        <option v-for="cust in customer_name_search_results[index]"
+                :key="cust.party_number"
+                :value="cust.party_number"
+                :__cust="cust">
+            [[ cust.label ]]
+        </option>
+    </select>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <div class="col-5">
     <!-- Search Input -->
     <div class="col-5">
