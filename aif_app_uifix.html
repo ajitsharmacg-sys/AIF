@@ -1,3 +1,28 @@
+class AifCustomerLineForm(EnhancedModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["oracle_cust_number"].widget.attrs.update({
+            "placeholder": "Enter Customer Number",
+            "class": "form-control form-control-sm"
+        })
+        self.fields["oracle_cust_name"].widget.attrs.update({
+            "placeholder": "Search Customer Name",
+            "class": "form-control form-control-sm",
+            "autocomplete": "off"
+        })
+
+    class Meta:
+        model = AIFCustomerLines
+        fields = ["oracle_cust_number", "oracle_cust_name"]
+
+
+
+
+
+
+
+
+
 <div class="col-5 position-relative">
 
     <!-- Django rendered input -->
