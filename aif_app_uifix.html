@@ -1,6 +1,78 @@
 <div class="col-md-6">
     <div class="section-title mb-2">Customer Details</div>
 
+    <div class="row fw-bold border-bottom pb-1 mb-2">
+        <div class="col-1">#</div>
+        <div class="col-5">Customer Number</div>
+        <div class="col-5">Customer Name</div>
+        <div class="col-1"></div>
+    </div>
+
+    <div class="position-relative">
+        <!-- SCROLL ONLY HERE -->
+        <div style="max-height: 260px; overflow-y: auto; padding-right: 4px;">
+
+            <div v-for="(line, index) in customer_lines"
+                 :key="index"
+                 class="row align-items-center g-2 mb-2">
+
+                <div class="col-1">[[ index + 1 ]]</div>
+
+                <div class="col-5">
+                    <input type="text"
+                           class="form-control form-control-sm"
+                           v-model="line.oracle_cust_number"
+                           @change="handle_customer_change(customer_lines, index, line.oracle_cust_number)">
+                </div>
+
+                <div class="col-5 position-relative" style="overflow: visible;">
+                    <input type="text"
+                           class="form-control form-control-sm"
+                           v-model="line.oracle_cust_name"
+                           @input="searchCustomerName(index, line.oracle_cust_name)">
+
+                    <ul v-if="customer_name_search_results[index]?.length"
+                        class="list-group position-absolute w-100 shadow"
+                        style="z-index: 1055; max-height: 200px; overflow-y: auto;">
+                        <li v-for="cust in customer_name_search_results[index]"
+                            :key="cust.party_number"
+                            class="list-group-item list-group-item-action"
+                            @click="selectCustomerName(index, cust)">
+                            [[ cust.label ]]
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="col-1 text-end">
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger"
+                            @click="delete_customer_line(line)">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+
+            </div>
+
+        </div> <!-- END SCROLL AREA -->
+
+        <div class="mt-2">
+            <button v-if="!isAllNSOMarketEnabled"
+                    type="button"
+                    class="btn btn-sm btn-primary"
+                    @click="add_customer_line()">
+                <i class="bi bi-plus-lg me-1"></i>
+            </button>
+        </div>
+
+    </div>
+</div>
+
+
+
+
+<div class="col-md-6">
+    <div class="section-title mb-2">Customer Details</div>
+
     <!-- Header Row (ONLY ONCE) -->
     <div class="row fw-bold border-bottom pb-1 mb-2">
         <div class="col-1">#</div>
