@@ -1,27 +1,14 @@
-{% if field.name == "oracle_cust_name" %}
-<div class="col-5 dropdown">
+<ul v-if="customer_name_search_results[lineIndex]?.length"
+    class="list-group mt-1"
+    style="max-height: 220px; overflow-y: auto;">
 
-    {{ field|add_attrs:":index=lineIndex;
-                        v-model=customer_lines;
-                        @input=searchCustomerName(lineIndex,$event.target.value);
-                        data-bs-toggle=dropdown;
-                        aria-expanded=true;
-                        autocomplete=off;
-                        class=form-control form-control-sm dropdown-toggle" }}
+    <li v-for="cust in customer_name_search_results[lineIndex]"
+        :key="cust.party_number"
+        class="list-group-item list-group-item-action small"
+        style="cursor:pointer;"
+        @click="selectCustomerName(lineIndex, cust)">
 
-    <ul v-if="customer_name_search_results[lineIndex]?.length"
-        class="dropdown-menu show w-100 shadow"
-        style="max-height:220px; overflow-y:auto;">
+        [[ cust.label ]]
+    </li>
 
-        <li v-for="cust in customer_name_search_results[lineIndex]"
-            :key="cust.party_number">
-            <a href="#"
-               class="dropdown-item small"
-               @click.prevent="selectCustomerName(lineIndex, cust)">
-                [[ cust.label ]]
-            </a>
-        </li>
-
-    </ul>
-</div>
-{% endif %}
+</ul>
