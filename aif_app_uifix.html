@@ -1,3 +1,12 @@
+{{ field|add_attrs:":index=lineIndex; 
+                  v-model=customer_lines; 
+                  :data-customer-number=line.oracle_cust_number;
+                  @change=handle_customer_line_change(customer_lines,lineIndex,$event);
+                  @paste.prevent=paste_customer_from_excel(customer_lines,lineIndex,$event);" }}
+
+
+
+
 <div class="dropdown w-100">
     <input
         type="text"
