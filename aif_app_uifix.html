@@ -1,0 +1,213 @@
+<div class="col-md-6">
+    <div class="section-title mb-3">Customer Details</div>
+
+    <div class="card border-0">
+        <div class="card-body p-0">
+
+            <!-- Customer Rows -->
+            <div v-for="(line, lineIndex) in customer_lines" :key="lineIndex"
+                 class="row g-2 align-items-end mb-2 border rounded p-2 position-relative">
+
+                <!-- Row Number -->
+                <div class="col-auto">
+                    <span class="fw-semibold"># [[ lineIndex + 1 ]]</span>
+                </div>
+
+                {% for field in aif_customer_line_form.visible_fields %}
+
+                    <!-- Customer Name with Autocomplete -->
+                    {% if field.name == "oracle_cust_name" %}
+                    <div class="col-md-5 position-relative">
+                        <label class="form-label fw-semibold">{{ field.label }}</label>
+                        <input type="text"
+                               class="form-control form-control-sm"
+                               v-model="line.oracle_cust_name"
+                               @change="searchCustomerName(lineIndex, $event.target.value)"
+                               placeholder="Type customer name..."
+                               autocomplete="off" />
+
+                        <!-- Autocomplete Dropdown -->
+                        <ul v-if="customer_name_search_results[lineIndex]?.length"
+                            class="list-group position-absolute w-100 shadow-sm"
+                            style="z-index: 1000; max-height: 200px; overflow-y:auto;">
+                            <li v-for="cust in customer_name_search_results[lineIndex]"
+                                :key="cust.party_number"
+                                class="list-group-item list-group-item-action"
+                                @click="selectCustomerName(lineIndex, cust)">
+                                [[ cust.label ]]
+                            </li>
+                        </ul>
+                    </div>
+
+                    {% else %}
+                    <!-- Other Fields -->
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">{{ field.label }}</label>
+                        {{ field|add_attrs:"class=form-control form-control-sm; :index=lineIndex; v-model=customer_lines; @change=handle_customer_line_change(customer_lines,lineIndex,$event); @paste.prevent=paste_customer_from_excel(customer_lines,lineIndex,$event);" }}
+                        {% if field.help_text %}
+                            <div class="form-text">{{ field.help_text|safe }}</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                {% endfor %}
+
+                <!-- Delete Button -->
+                <div class="col-auto">
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger"
+                            @click="delete_customer_line(line)">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Add Customer Button -->
+            <div v-if="!isAllNSOMarketEnabled" class="mt-2">
+                <button type="button" class="btn btn-sm btn-primary" @click="add_customer_line()">
+                    <i class="bi bi-plus-lg me-1"></i> Add Customer
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+
+
+<h5 class="card-title">Promotion Line Details</h5>
+
+<!-- Promotion Value -->
+<div class="row mb-3">
+    <div class="col-md-4">
+        <label class="form-label fw-bold">Promotion Value</label>
+        <input type="text"
+               class="form-control form-control-sm"
+               :value="promoValue"
+               disabled>
+    </div>
+</div>
+
+<!-- Line Items -->
+<div class="card border-0">
+    <div class="card-body p-0">
+
+        <div v-for="(line, index) in lines"
+             :key="index"
+             class="row g-2 align-items-end mb-2 border rounded p-2">
+
+            <!-- Row Number -->
+            <div class="col-auto">
+                <span class="fw-semibold"># [[ index + 1 ]]</span>
+            </div>
+
+            {% for field in aif_line_form.visible_fields %}
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">{{ field.label }}</label>
+                {{ field|add_attrs:"class=form-control form-control-sm; :index=index; v-model=lines; @change=handle_line_change(lines,index,$event); @paste.prevent=paste_mercury_from_excel(lines,index,$event);" }}
+                {% if field.help_text %}
+                    <div class="form-text">{{ field.help_text|safe }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <!-- Action Buttons -->
+            <div class="col-auto">
+                <div class="btn-group">
+                    <button type="button"
+                            class="btn btn-sm btn-outline-primary"
+                            @click="copy_line(line)">
+                        <i class="bi bi-copy"></i>
+                    </button>
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger"
+                            @click="delete_line(line)">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Add Line Button -->
+        <div class="mt-2">
+            <button type="button"
+                    class="btn btn-sm btn-primary"
+                    @click="add_line()">
+                <i class="bi bi-plus-lg me-1"></i> Add Line
+            </button>
+        </div>
+
+    </div>
+</div>
+
+
+<div class="col-md-6">
+    <form id="aif_form" @submit.prevent="">
+        <div class="section-title mb-3">Promotion Details</div>
+
+        <div class="row g-3">
+
+            {% for field in aif_form.visible_fields %}
+
+                <!-- NSO -->
+                {% if field.name == "nso" %}
+                <div class="col-12">
+                    <label class="form-label fw-semibold">{{ field.label }}</label>
+                    {{ field|add_attrs:"class=form-select form-select-sm; v-model=aif; @change=onNSOChange;" }}
+                </div>
+
+                <!-- All NSO Market -->
+                {% elif field.name == "is_all_nso_enabled" %}
+                <div class="col-12">
+                    <div class="form-check mt-2">
+                        {{ field|add_attrs:"class=form-check-input; v-model=aif; @change=onNSOMarketSelect" }}
+                        <label class="form-check-label fw-semibold">
+                            {{ field.label }}
+                        </label>
+                        {% if field.help_text %}
+                            <div class="form-text">{{ field.help_text|safe }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Default Fields -->
+                {% else %}
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">{{ field.label }}</label>
+                    {{ field|add_attrs:"class=form-control form-control-sm; v-model=aif" }}
+                    {% if field.help_text %}
+                        <div class="form-text">{{ field.help_text|safe }}</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+            {% endfor %}
+
+            <!-- File Upload -->
+            <div class="col-12">
+                <label class="form-label fw-semibold">File Attachment</label>
+                <input type="file"
+                       class="form-control form-control-sm"
+                       id="file_aif"
+                       accept="image/*, application/pdf"
+                       multiple>
+                <div class="form-text">
+                    Files will be uploaded to
+                    <a :href="encodeURI('{{ site_address|safe }}{{ library }}')" target="_blank">
+                        SharePoint
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+
+
+
+
+
