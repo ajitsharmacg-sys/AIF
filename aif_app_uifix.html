@@ -1,5 +1,7 @@
 <div class="col-5">
     <!-- Search Input -->
+    <div class="col-5">
+    <!-- Search Input -->
     <input type="text"
         class="form-control form-control-sm"
         v-model="line.oracle_cust_name"
@@ -7,20 +9,21 @@
         placeholder="Search customer name..."
         autocomplete="off">
 
-    <!-- SELECT DROPDOWN (not floating, so never hides) -->
+    <!-- Results List (acts like dropdown but stable) -->
     <select v-if="customer_name_search_results[index]?.length"
         class="form-select form-select-sm mt-1"
-        size="5"
-        @change="selectCustomerFromDropdown(index, $event)">
+        size="5">
 
-        <option disabled selected value="">Select customer</option>
+        <option disabled value="">Select customer</option>
 
         <option v-for="cust in customer_name_search_results[index]"
                 :key="cust.party_number"
-                :value="cust.party_number">
+                @click="selectCustomerName(index, cust)">
             [[ cust.label ]]
         </option>
     </select>
+</div>
+
 </div>
 
 
