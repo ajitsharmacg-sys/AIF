@@ -441,3 +441,82 @@
 
 
 
+
+<div class="col-md-6">
+    <div class="section-title mb-2">Customer Details</div>
+
+    <!-- Header -->
+    <div class="row fw-bold border-bottom pb-1 mb-2">
+        <div class="col-1">#</div>
+        <div class="col-5">Customer Number</div>
+        <div class="col-5">Customer Name</div>
+        <div class="col-1"></div>
+    </div>
+
+    <div class="position-relative">
+
+        <!-- Scroll Area -->
+        <div class="overflow-auto pe-1" style="max-height: 260px;">
+
+            <!-- Loading Overlay -->
+            <div v-if="isLoading"
+                class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75"
+                style="z-index: 10;">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+
+            <!-- Rows -->
+            <div v-for="(line, index) in customer_lines"
+                 :key="index"
+                 class="row align-items-center g-2 mb-2">
+
+                <!-- Row Number -->
+                <div class="col-1">[[ index + 1 ]]</div>
+
+                <!-- Customer Number (FROM MODEL FORM) -->
+                <div class="col-5">
+                    {{ aif_customer_line_form.oracle_cust_number|add_attrs:":index=index; v-model=customer_lines; @change=handle_customer_line_change(customer_lines,index,$event)" }}
+                </div>
+
+                <!-- Customer Name (FROM MODEL FORM + SEARCH) -->
+                <div class="col-5">
+                    {{ aif_customer_line_form.oracle_cust_name|add_attrs:":index=index; v-model=customer_lines; @input=searchCustomerName(index, customer_lines[index].oracle_cust_name); autocomplete=off" }}
+
+                    <!-- Search Results Select Box -->
+                    <select v-if="customer_name_search_results[index]?.length"
+                            class="form-select form-select-sm mt-1"
+                            size="5">
+                        <option disabled>Select customer</option>
+                        <option v-for="cust in customer_name_search_results[index]"
+                                :key="cust.party_number"
+                                @click="selectCustomerName(index, cust)">
+                            [[ cust.label ]]
+                        </option>
+                    </select>
+                </div>
+
+                <!-- Delete Button -->
+                <div class="col-1 text-end">
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger"
+                            @click="delete_customer_line(line)">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Add Button -->
+        <div class="mt-2">
+            <button v-if="!isAllNSOMarketEnabled"
+                    type="button"
+                    class="btn btn-sm btn-primary"
+                    @click="add_customer_line()">
+                <i class="bi bi-plus-lg me-1"></i>
+            </button>
+        </div>
+
+    </div>
+</div>
+
