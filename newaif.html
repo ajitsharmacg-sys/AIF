@@ -1,3 +1,70 @@
+<div class="col-md-6">
+    <form id="aif_form" @submit.prevent="">
+        <div class="section-title mb-3">Promotion Details</div>
+
+        <div class="row g-2 align-items-center">
+
+            {% for field in aif_form.visible_fields %}
+            <div class="col-4">
+                <label class="form-label fw-semibold mb-0">
+                    {{ field.label }}
+                </label>
+            </div>
+
+            <div class="col-8">
+                {% if field.name == "nso" %}
+                    {{ field|add_attrs:"v-model=aif; @change=onNSOChange; class=form-select form-select-sm" }}
+
+                {% elif field.name == "is_all_nso_enabled" %}
+                    <div class="form-check form-switch">
+                        {{ field|add_attrs:"v-model=aif; @change=onNSOMarketSelect; class=form-check-input" }}
+                        <span class="small text-muted ms-2">
+                            {{ field.help_text|safe }}
+                        </span>
+                    </div>
+
+                {% else %}
+                    {{ field|add_attrs:"v-model=aif; class=form-control form-control-sm" }}
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <!-- File Upload Row -->
+            <div class="col-4">
+                <label class="form-label fw-semibold mb-0">File Attachment</label>
+            </div>
+            <div class="col-8">
+                <input type="file"
+                       class="form-control form-control-sm"
+                       id="file_aif"
+                       accept="image/*, application/pdf"
+                       multiple>
+
+                <div class="form-text">
+                    File will be uploaded to
+                    <a :href="encodeURI('{{ site_address|safe }}{{ library }}')" target="_blank">
+                        SharePoint
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
      stroke-linecap="round" stroke-linejoin="round">
   <circle cx="12" cy="12" r="9"></circle>
