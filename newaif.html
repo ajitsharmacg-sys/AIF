@@ -1,3 +1,43 @@
+
+paste_mercury_from_excel(line_item, index, event) {
+    this.reset_mercury_error();
+
+    const text = event.clipboardData.getData("text/plain");
+    const copied_lines = text.trim().split(/\r?\n/);
+    if (!copied_lines.length) return;
+
+    // Validate only mercury column now
+    for (let i = 0; i < copied_lines.length; i++) {
+        const mercury = copied_lines[i].split("\t")[0]?.trim();
+        if (!mercury || !/^[a-zA-Z0-9]+$/.test(mercury)) {
+            this.showExcelValidationError(i, "Mercury Code must be alphanumeric and not blank.");
+            return;
+        }
+    }
+
+    copied_lines.forEach((row, lineIndex) => {
+        const mercury = row.split("\t")[0]?.trim();
+        const targetIndex = index + lineIndex;
+
+        // Ensure row exists
+        line_item[targetIndex] = line_item[targetIndex] || {};
+
+        // Mark as new row in edit mode
+        if (this.nav_state.context === "edit") {
+            line_item[targetIndex]["id"] = "temp";
+        }
+
+        // ✅ Only set Mercury Code
+        line_item[targetIndex]["mercury_code"] = mercury;
+
+        // Trigger existing logic to fetch product + ELP
+        this.handle_mercury_change(line_item, targetIndex, mercury);
+        this.handle_elp_price(line_item, targetIndex, mercury);
+    });
+}
+
+
+
 <div class="row align-items-center mb-3">
     <div class="col-md-3">
         <label class="form-label small text-muted mb-0">Promotion Value</label>
