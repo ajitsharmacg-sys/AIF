@@ -1,3 +1,37 @@
+handle_mercury_change(lines, index, mercury) {
+    if (!mercury) return Promise.resolve(false);
+
+    const line = lines[index];
+
+    return fetch(`${api_endpoints.pdh_product_hierarchy}?mercury_1st_layer_8_char_field=${encodeURIComponent(mercury)}`)
+        .then(res => {
+            if (!res.ok) return Promise.reject(res);
+            return res.json();
+        })
+        .then(data => {
+            // ❌ Mercury not found
+            if (!data || !data.length) {
+                this.invalidMercuries.push(mercury);
+                return false;
+            }
+
+            // ✅ Mercury found → update fields
+            const product = data[0];
+            line.product_group = product.cemis_group;
+            line.product_description = product.productname || product.description;
+
+            // ✅ Now fetch ELP price ONLY if mercury valid
+            return this.handle_elp_price(lines, index, mercury).then(() => true);
+        })
+        .catch(err => {
+            this.display_error(err, "Failed to load Mercury Details");
+            return false;
+        });
+}
+
+
+
+
 this.invalidMercuries = [];
 if (this.invalidMercuries.length) {
         this.dialog.reset_to_default()
