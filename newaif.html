@@ -1,3 +1,39 @@
+handle_line_change(line, index, event) {
+    this.changes.edited_lines.add(this.lines[index].id);
+
+    const model_column = event.target.getAttribute("name");
+    const value = event.target.value;
+
+    switch (model_column) {
+
+        case "mercury_code":
+            this.handle_mercury_change(line, index, value);
+            break;
+
+        case "promotional_qty":
+            line.promotional_qty = value;
+            if (line.promotional_qty && line.promotional_elp) {
+                this.calculatePromotionValues(line);
+            }
+            break;
+
+        case "promotional_elp":
+            line.promotional_elp = Number(value);
+            if (line.promotional_qty && line.promotional_elp) {
+                this.calculatePromotionValues(line);
+            }
+            break;
+
+        default:
+            // no special handling required
+            break;
+    }
+}
+
+
+
+
+
 handle_mercury_change(lines, index, mercury) {
     if (!mercury) return Promise.resolve(false);
 
