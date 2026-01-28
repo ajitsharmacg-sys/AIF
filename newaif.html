@@ -1,3 +1,15 @@
+this.invalidMercuries = [];
+if (this.invalidMercuries.length) {
+        this.dialog.reset_to_default()
+            .set_title("Invalid Mercury Codes")
+            .set_message(
+                `These mercury codes are not set up in MDM PDH:\n\n${this.invalidMercuries.join(", ")}`
+            )
+            .set_true_action("Close")
+            .show();
+    }
+
+
 paste_mercury_from_excel(line_item, index, event) {
     this.reset_mercury_error();
 
