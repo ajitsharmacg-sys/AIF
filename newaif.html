@@ -1,4 +1,87 @@
 <div class="card-body">
+    <h5 class="mb-3">Promotion Line Details</h5>
+
+    <!-- Promotion Value -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <label class="form-label small text-muted">Promotion Value</label>
+            <input type="text"
+                   class="form-control form-control-sm"
+                   :value="promoValue"
+                   disabled>
+        </div>
+    </div>
+
+    <!-- Header Row (Labels) -->
+    <div class="row text-muted small fw-semibold mb-2">
+        <div class="col-1">#</div>
+
+        {% for field in aif_line_form.visible_fields %}
+            <div class="col">
+                <div>{{ field.label }}</div>
+                {% if field.help_text %}
+                    <div class="form-text small">{{ field.help_text|safe }}</div>
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        <div class="col-auto text-center">Actions</div>
+    </div>
+
+    <!-- Lines -->
+    <template v-for="line in lines" :key="line.id || lines.indexOf(line)">
+        <form class="row g-2 align-items-start mb-2"
+              :id="'lineform' + lines.indexOf(line)"
+              @submit.prevent="">
+
+            <!-- Line Number -->
+            <div class="col-1 pt-2 small text-muted">
+                [[ lines.indexOf(line) + 1 ]]
+            </div>
+
+            <!-- Dynamic Fields -->
+            {% for field in aif_line_form.visible_fields %}
+            <div class="col">
+                {{ field|add_attrs:":index=lines.indexOf(line); v-model=lines; class=form-control form-control-sm; @change=handle_line_change(lines, lines.indexOf(line),$event); @paste.prevent=paste_mercury_from_excel(lines,lines.indexOf(line), $event);" }}
+            </div>
+            {% endfor %}
+
+            <!-- Actions -->
+            <div class="col-auto pt-1">
+                <div class="btn-group btn-group-sm">
+                    <button type="button"
+                            class="btn btn-outline-primary"
+                            @click="copy_line(line)">
+                        <i class="bi bi-copy"></i>
+                    </button>
+                    <button type="button"
+                            class="btn btn-outline-danger"
+                            @click="delete_line(line)">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+        </form>
+    </template>
+
+    <!-- Add Line Button -->
+    <button type="button"
+            class="btn btn-sm btn-primary mt-2"
+            @click="add_line()">
+        <i class="bi bi-plus-lg me-1"></i> Add Line
+    </button>
+</div>
+
+
+
+
+
+
+
+
+
+<div class="card-body">
     <h5 class="card-title">Promotion Line Details</h5>
 
     <!-- Promotion Value -->
