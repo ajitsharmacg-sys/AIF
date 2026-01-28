@@ -134,10 +134,46 @@ File Upload
   <line x1="9" y1="16" x2="13" y2="16"></line>
 </svg>
 
-       Hi Savita,
-I hope you’re doing well.
-I’m reaching out to request your feedback on Ashwini Sunil Jivne regarding her priority objective settings for BOTP tracking. Her rating has been changed from Succeeding to Needs Improvement from the SBU side, and I’m currently trying to understand the reason for this change.
-As per the policy, she is required to be in BOTP for two months. To support this, I would appreciate your help in defining a few project-related objectives that can be used to track and measure her progress during this period.
-Thank you in advance for your support.
-Best regards,
-Ajit
+
+NSO_CURRENCY_MAP = {
+    "NSO Austria": "EUR",
+    "NSO Belgium": "EUR",
+    "NSO Czech": "CZK",
+    "NSO Denmark": "DKK",
+    "NSO Finland": "EUR",
+    "NSO France": "EUR",
+    "NSO Germany": "EUR",
+    "NSO Hungary": "HUF",
+    "NSO Ireland": "EUR",
+    "NSO Italy": "EUR",
+    "NSO Netherlands": "EUR",
+    "NSO Norway": "NOK",
+    "NSO Poland": "PLN",
+    "NSO Portugal": "EUR",
+    "NSO Slovakia": "EUR",
+    "NSO Spain": "EUR",
+    "NSO Sweden": "SEK",
+    "NSO Switzerland": "CHF",
+    "NSO UK": "GBP",
+    "RSO Russia": "RUB",
+    "CEL": "EUR",
+}
+
+class AifForm(forms.ModelForm):
+
+    class Meta:
+        model = Aif
+        fields = "__all__"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        nso = cleaned_data.get("nso")
+
+        # Auto assign currency based on NSO
+        if nso:
+            cleaned_data["local_currency"] = NSO_CURRENCY_MAP.get(nso, "EUR")
+
+        return cleaned_data
+
+      self.fields["local_currency"].widget.attrs["readonly"] = True
+
