@@ -1,6 +1,26 @@
 <td>
   <span v-if="!item?.aif_status" class="spinner-grow spinner-grow-sm"></span>
 
+  <div v-else class="d-flex align-items-center gap-2">
+
+    <!-- ICON -->
+    <span v-html="status_svg(get_aif_status(item))"></span>
+
+    <!-- TEXT PILL -->
+    <span class="badge rounded-pill"
+          :class="status_color(get_aif_status(item))">
+        [[ format_status_label(get_aif_status(item)) ]]
+    </span>
+
+  </div>
+</td>
+
+
+
+
+<td>
+  <span v-if="!item?.aif_status" class="spinner-grow spinner-grow-sm"></span>
+
   <span v-else class="badge rounded-pill d-inline-flex align-items-center gap-2"
         :class="status_color(get_aif_status(item))">
 
