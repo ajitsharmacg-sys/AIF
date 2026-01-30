@@ -1,3 +1,49 @@
+status_icon(status) {
+  switch (status) {
+    case "DRAFT":
+      return `<svg width="14" height="14" viewBox="0 0 16 16" fill="#6c757d">
+                <path d="M12.146 0.854a.5.5 0 0 1 .708 0l2.292 2.292a.5.5 0 0 1 0 .708L5 14H2v-3L12.146.854z"/>
+                <path fill-rule="evenodd" d="M1 13.5V16h2.5l8.293-8.293-2.5-2.5L1 13.5z"/>
+              </svg>`;
+
+    case "PLANNED":
+      return `<svg width="14" height="14" viewBox="0 0 16 16" fill="#0d6efd">
+                <path d="M3 0v2H1a1 1 0 0 0-1 1v1h16V3a1 1 0 0 0-1-1h-2V0h-2v2H5V0H3z"/>
+                <path d="M16 6H0v9a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V6zm-9 6l-2-2 1.5-1.5L7 9l3.5-3.5L12 7l-5 5z"/>
+              </svg>`;
+
+    case "AWAITING_VALIDATION":
+      return `<svg width="14" height="14" viewBox="0 0 16 16" fill="#fd7e14">
+                <path d="M2 1h12v2c0 2-2 3-3 4 1 1 3 2 3 4v2H2v-2c0-2 2-3 3-4-1-1-3-2-3-4V1z"/>
+              </svg>`;
+
+    case "COMMERCIALLY_APPROVED":
+      return `<svg width="14" height="14" viewBox="0 0 16 16" fill="#198754">
+                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM7 11.5l4-4-1.5-1.5L7 8.5 5.5 7 4 8.5l3 3z"/>
+              </svg>`;
+
+    case "INVALID":
+      return `<svg width="14" height="14" viewBox="0 0 16 16" fill="#dc3545">
+                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.5 5.5l5 5m0-5l-5 5" stroke="white" stroke-width="1.5"/>
+              </svg>`;
+
+    case "CLOSED":
+      return `<svg width="14" height="14" viewBox="0 0 16 16" fill="#212529">
+                <path d="M5 6V4a3 3 0 1 1 6 0v2h1a1 1 0 0 1 1 1v7H3V7a1 1 0 0 1 1-1h1zm2 0h2V4a1 1 0 1 0-2 0v2z"/>
+              </svg>`;
+
+    default:
+      return "";
+  }
+}
+
+
+
+
+
+
+
+
 <td>
   <span v-if="!item?.aif_status" class="spinner-grow spinner-grow-sm"></span>
 
