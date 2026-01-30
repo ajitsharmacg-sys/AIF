@@ -1,3 +1,171 @@
+<div class="container-fluid">
+  <div class="card">
+    <div class="card-body">
+
+      <!-- TOP GRID -->
+      <div class="row g-4">
+
+        <!-- LEFT COLUMN -->
+        <div class="col-lg-6">
+
+          <!-- Customer Details -->
+          <div v-if="selected_aif?.aif_customer_lines?.length">
+            <h5 class="mb-3">Customer Details</h5>
+
+            <div class="table-responsive border rounded p-2 mb-4">
+              <table class="table table-sm table-bordered mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>#</th>
+                    <th>Customer Number</th>
+                    <th>Customer Name</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(cust, index) in selected_aif.aif_customer_lines" :key="cust.id">
+                    <td>[[ index + 1 ]]</td>
+                    <td>[[ cust.oracle_cust_number ]]</td>
+                    <td>[[ cust.oracle_cust_name ]]</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Status History -->
+          <div>
+            <h5 class="mb-3">AIF Status History</h5>
+
+            <div class="border rounded p-2" v-if="aif_status">
+              <ul class="list-group list-group-flush">
+                <li class="list-group-item" v-for="status in selected_aif.aif_status" :key="status.id">
+                  <div class="small text-muted">
+                    <span :class="status_format(status.status)">[[ status.status ]]</span>
+                    by <span class="fw-medium">[[ status.meta_created_by?.first_name ]] [[ status.meta_created_by?.last_name ]]</span>
+                    at <span class="fst-italic">[[ new Date(status.meta_created_date).toLocaleString() ]]</span>
+                  </div>
+                  <div v-if="status.comment" class="small text-muted mt-1">
+                    [[ status.comment ]]
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Skeleton -->
+            <div v-else class="card" aria-hidden="true">
+              <div class="card-body">
+                <h5 class="placeholder-glow"><span class="placeholder col-6"></span></h5>
+                <p class="placeholder-glow">
+                  <span class="placeholder col-7"></span>
+                  <span class="placeholder col-4"></span>
+                  <span class="placeholder col-6"></span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="col-lg-6">
+
+          <div v-if="selected_aif?.aif_id">
+            <h5 class="mb-3">AIF Details</h5>
+
+            <div class="table-responsive border rounded p-2">
+              <table class="table table-sm table-bordered mb-0 align-middle">
+                <tbody>
+                  <tr v-for="key in header_columns" :key="key">
+                    <th class="bg-light w-50">[[ get_verbose_name(key) ]]</th>
+                    <td>
+                      <template v-if="key === 'is_all_nso_enabled'">
+                        <input type="checkbox" class="form-check-input"
+                               :checked="selected_aif.is_all_nso_enabled" disabled />
+                      </template>
+                      <template v-else>
+                        [[ selected_aif[key] ]]
+                      </template>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <th class="bg-light">AIF Status</th>
+                    <td><span :class="status_format(aif_status)">[[ aif_status ]]</span></td>
+                  </tr>
+
+                  <tr>
+                    <th class="bg-light">Attachments</th>
+                    <td>
+                      <a :href="selected_aif.link" target="_blank">
+                        <i class="bi bi-folder"></i>
+                      </a>
+                    </td>
+                  </tr>
+
+                  <tr v-if="aif_status !== 'CLOSED' && aif_status !== 'PLANNED'">
+                    <th class="bg-light">AIF Level Actions</th>
+                    <td>
+                      <div class="d-flex flex-wrap gap-2">
+                        <button v-for="choice in get_status_choices()"
+                                :class="get_display_action(choice).button_class"
+                                @click="show_modal('modal_' + choice)">
+                          [[ get_display_action(choice).button_text ]]
+                        </button>
+
+                        <button v-if="['DRAFT', 'INVALID'].includes(aif_status)"
+                                class="btn btn-sm btn-primary"
+                                @click="navigate('aif_app', 'edit')">
+                          Edit
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <tr v-if="aif_status === 'PLANNED'">
+                    <th class="bg-light">Line Level Actions</th>
+                    <td>
+                      <div v-if="checked_lines.length > 0" class="d-flex gap-2">
+                        <button v-for="choice in multiple_line_status_choices()"
+                                :class="get_line_display_action(choice).button_class"
+                                @click="show_modal('line_modal_' + choice)">
+                          [[ get_line_display_action(choice).button_text ]]
+                        </button>
+                      </div>
+                      <div v-else class="alert alert-primary py-2 mb-0">
+                        Select one or more lines to see available actions
+                      </div>
+                    </td>
+                  </tr>
+
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 {% load static %}
 {% load common_tags %}
 {% block aif_view %}
