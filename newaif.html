@@ -6,6 +6,14 @@
     <span class="fw-semibold">[[ format_status_label(get_aif_status(item)) ]]</span>
   </div>
 </td>
+<td>
+  <span v-if="!item?.aif_status" class="spinner-grow spinner-grow-sm"></span>
+
+  <div v-else :class="status_chip_class(get_aif_status(item))">
+    <span v-html="status_svg(get_aif_status(item))" class="me-1 d-inline-flex align-items-center"></span>
+    <span>[[ format_status_label(get_aif_status(item)) ]]</span>
+  </div>
+</td>
 
 status_svg(status) {
   switch (status) {
