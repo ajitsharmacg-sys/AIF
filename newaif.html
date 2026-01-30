@@ -1,3 +1,55 @@
+<div class="btn-group btn-group-sm">
+
+    <!-- SharePoint -->
+    <a :href="item.link"
+       target="_blank"
+       class="btn btn-outline-dark"
+       title="Open SharePoint">
+        <i class="bi bi-share"></i>
+    </a>
+
+    <!-- Edit -->
+    <button v-if="['DRAFT', 'REJECTED'].includes(get_aif_status(item))"
+            type="button"
+            class="btn btn-outline-primary"
+            title="Edit AIF"
+            @click="select_aif_and_navigate(item, 'aif_app', 'edit')">
+        <i class="bi bi-pencil"></i>
+    </button>
+
+    <!-- Delete -->
+    <button v-if="['DRAFT', 'REJECTED'].includes(get_aif_status(item))"
+            type="button"
+            class="btn btn-outline-danger"
+            title="Delete AIF"
+            @click="selected_aif = item; toggle_modal('modal_confirm_delete');">
+        <i class="bi bi-x-lg"></i>
+    </button>
+
+    <!-- View -->
+    <button type="button"
+            class="btn btn-outline-secondary"
+            title="View AIF"
+            @click="select_aif_and_navigate(item, 'aif_view'); checked_lines = [];">
+        <i class="bi bi-eye"></i>
+    </button>
+
+    <!-- Use as Template -->
+    <button type="button"
+            class="btn btn-outline-warning"
+            title="Use As Template"
+            @click="select_aif_and_navigate(item, 'aif_app', 'template')">
+        <i class="bi bi-copy"></i>
+    </button>
+
+</div>
+
+
+
+
+
+
+
 handle_line_change(line, index, event) {
     this.changes.edited_lines.add(this.lines[index].id);
 
