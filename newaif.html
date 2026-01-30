@@ -1,3 +1,54 @@
+<td>
+  <span v-if="!item?.aif_status" class="spinner-grow spinner-grow-sm"></span>
+
+  <div v-else class="d-flex align-items-center gap-2">
+    <i :class="status_icon(get_aif_status(item))" class="fs-5"></i>
+    <span class="fw-semibold">[[ format_status_label(get_aif_status(item)) ]]</span>
+  </div>
+</td>
+
+status_icon(status) {
+  switch (status) {
+    case "DRAFT":
+      return "bi bi-pencil-square text-secondary";
+
+    case "PLANNED":
+      return "bi bi-calendar-check text-primary";
+
+    case "AWAITING_VALIDATION":
+      return "bi bi-hourglass-split text-warning";
+
+    case "COMMERCIALLY_APPROVED":
+      return "bi bi-check-circle-fill text-success";
+
+    case "INVALID":
+      return "bi bi-x-circle-fill text-danger";
+
+    case "CLOSED":
+      return "bi bi-lock-fill text-dark";
+
+    default:
+      return "bi bi-question-circle text-muted";
+  }
+},
+
+format_status_label(status) {
+  if (!status) return "";
+
+  return status
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/\b\w/g, l => l.toUpperCase());
+}
+
+
+
+
+
+
+
+
+
 <div class="btn-group btn-group-sm">
 
     <!-- SharePoint -->
