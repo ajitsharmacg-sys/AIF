@@ -2,6 +2,184 @@
   <div class="card">
     <div class="card-body">
 
+      <!-- ================= TOP ROW ================= -->
+      <div class="row mb-4">
+
+        <!-- Customer Details -->
+        <div class="col-md-6 mb-3" v-if="selected_aif?.aif_customer_lines?.length">
+          <h5 class="mb-3">Customer Details</h5>
+          <table class="table table-sm">
+            <thead class="table-light">
+              <tr>
+                <th>#</th>
+                <th>Customer Number</th>
+                <th>Customer Name</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(cust, index) in selected_aif.aif_customer_lines" :key="cust.id">
+                <td>[[ index + 1 ]]</td>
+                <td>[[ cust.oracle_cust_number ]]</td>
+                <td>[[ cust.oracle_cust_name ]]</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- AIF Details -->
+        <div class="col-md-6 mb-3" v-if="selected_aif?.aif_id">
+          <h5 class="mb-3">AIF Details</h5>
+          <table class="table table-sm">
+            <tbody>
+              <template v-for="key in header_columns">
+                <tr>
+                  <th class="w-50">[[ get_verbose_name(key) ]]</th>
+                  <td>
+                    <template v-if="key === 'is_all_nso_enabled'">
+                      <input type="checkbox" class="form-check-input" :checked="selected_aif.is_all_nso_enabled" disabled>
+                    </template>
+                    <template v-else>
+                      [[ selected_aif[key] ]]
+                    </template>
+                  </td>
+                </tr>
+              </template>
+
+              <tr>
+                <th>Status</th>
+                <td>
+                  <span :class="status_format(aif_status)">[[ aif_status ]]</span>
+                </td>
+              </tr>
+
+              <tr>
+                <th>Attachments</th>
+                <td>
+                  <a :href="selected_aif.link" target="_blank">
+                    <i class="bi bi-folder"></i>
+                  </a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+      <!-- ================= STATUS HISTORY ================= -->
+      <div class="mb-4" v-if="selected_aif?.aif_status?.length">
+        <h5 class="mb-3">Customer Status History</h5>
+        <ul class="list-group">
+          <li class="list-group-item" v-for="status in selected_aif.aif_status">
+            <div class="text-body-secondary">
+              <span :class="status_format(status.status)">[[ status.status ]]</span>
+              by <strong>[[ status.meta_created_by?.first_name ]] [[ status.meta_created_by?.last_name ]]</strong>
+              at <span class="fst-italic">[[ new Date(status.meta_created_date).toLocaleString() ]]</span>
+            </div>
+            <div v-if="status.comment">
+              <small class="text-muted">[[ status.comment ]]</small>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- ================= LINE DETAILS ================= -->
+      <div v-if="selected_aif?.aif_lines?.length">
+
+        <!-- Line Toolbar -->
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div class="btn-group btn-group-sm">
+            <input type="radio" class="btn-check" name="lines_per_page" id="l5" @click="n_of_lines = 5" checked>
+            <label class="btn btn-outline-secondary" for="l5">5</label>
+
+            <input type="radio" class="btn-check" name="lines_per_page" id="l10" @click="n_of_lines = 10">
+            <label class="btn btn-outline-secondary" for="l10">10</label>
+
+            <input type="radio" class="btn-check" name="lines_per_page" id="l25" @click="n_of_lines = 25">
+            <label class="btn btn-outline-secondary" for="l25">25</label>
+          </div>
+
+          <div class="w-50">
+            <input type="text" v-model="search_text" class="form-control form-control-sm"
+                   :placeholder="'Search by ' + filter_fields.join(', ')">
+          </div>
+        </div>
+
+        <!-- Promotion Value -->
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <label class="form-label fw-bold">Promotion Value</label>
+            <input type="text" class="form-control form-control-sm" :value="promoValue" disabled>
+          </div>
+        </div>
+
+        <!-- Line Table -->
+        <table class="table table-sm">
+          <thead class="table-light">
+            <tr>
+              <th>ID</th>
+              <template v-for="key in line_columns">
+                <th>[[ get_line_verbose_name(key) ]]</th>
+              </template>
+              <th>Status</th>
+              <th>Info</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="line in page_items">
+              <td>[[ line.id ]]</td>
+              <template v-for="key in line_columns">
+                <td>[[ line[key] ]]</td>
+              </template>
+              <td>
+                <span :class="status_format(get_line_status(line)?.status)">
+                  [[ get_line_status(line)?.status ]]
+                </span>
+              </td>
+              <td>
+                <button class="btn btn-sm btn-outline-secondary"
+                        @click="selected_line = line; show_modal('line_status_modal')">
+                  <i class="bi bi-clock-history"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <nav>
+          <ul class="pagination pagination-sm">
+            <li class="page-item">
+              <button class="page-link" @click="if (selected_page > 0) selected_page--">«</button>
+            </li>
+            <li class="page-item" v-for="page_num in pages" :class="{active: selected_page === page_num - 1}">
+              <button class="page-link" @click="selected_page = page_num - 1">[[ page_num ]]</button>
+            </li>
+            <li class="page-item">
+              <button class="page-link" @click="if(selected_page + 1 < n_of_pages) selected_page++">»</button>
+            </li>
+          </ul>
+        </nav>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+<div class="container-fluid">
+  <div class="card">
+    <div class="card-body">
+
       <!-- TOP GRID -->
       <div class="row g-4">
 
