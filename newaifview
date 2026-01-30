@@ -2,6 +2,208 @@
 {% load common_tags %}
 {% block aif_view %}
 
+<section id="aif_view" v-if="nav_state.aif_view">
+<div class="container-fluid">
+
+  <!-- Back + Breadcrumb -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <i class="bi bi-arrow-left-circle-fill fs-4 me-2"
+         role="button"
+         @click="navigate(nav_state.previous)"></i>
+
+      <nav class="d-inline-block" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item">
+            <a href="#" @click="navigate('list_of_aifs')">List Of AIFs</a>
+          </li>
+          <li class="breadcrumb-item active">[[ selected_aif.aif_id ]]</li>
+        </ol>
+      </nav>
+    </div>
+
+    <div v-if="aif_status !== 'DRAFT' && user_role.includes('AIF App Sales Ops User')">
+      <button class="btn btn-sm btn-outline-primary"
+              @click="export_to_excel(selected_aif)">
+        <i class="bi bi-download me-1"></i> Download Web ADI Template
+      </button>
+    </div>
+  </div>
+
+  <!-- TOP SECTION -->
+  <div class="row g-4 mb-4">
+
+    <!-- LEFT: AIF DETAILS -->
+    <div class="col-lg-6">
+      <div class="border rounded p-3 h-100">
+        <h5 class="mb-3">AIF Details</h5>
+
+        <table class="table table-sm table-bordered align-middle mb-0">
+          <tbody>
+            <tr v-for="key in header_columns" :key="key">
+              <th class="bg-light w-50">[[ get_verbose_name(key) ]]</th>
+              <td>
+                <template v-if="key === 'is_all_nso_enabled'">
+                  <input type="checkbox" class="form-check-input"
+                         :checked="selected_aif.is_all_nso_enabled" disabled>
+                </template>
+                <template v-else>
+                  [[ selected_aif[key] ]]
+                </template>
+              </td>
+            </tr>
+
+            <tr>
+              <th class="bg-light">AIF Status</th>
+              <td><span :class="status_format(aif_status)">[[ aif_status ]]</span></td>
+            </tr>
+
+            <tr>
+              <th class="bg-light">Attachments</th>
+              <td>
+                <a :href="selected_aif.link" target="_blank">
+                  <i class="bi bi-folder"></i>
+                </a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- RIGHT: STATUS HISTORY -->
+    <div class="col-lg-6">
+      <div class="border rounded p-3 h-100">
+        <h5 class="mb-3">AIF Status History</h5>
+
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item"
+              v-for="status in selected_aif.aif_status"
+              :key="status.id">
+
+            <div class="small text-muted">
+              <span :class="status_format(status.status)">[[ status.status ]]</span>
+              by <strong>[[ status.meta_created_by?.first_name ]] [[ status.meta_created_by?.last_name ]]</strong>
+              at <em>[[ new Date(status.meta_created_date).toLocaleString() ]]</em>
+            </div>
+
+            <div v-if="status.comment" class="small mt-1 text-muted">
+              [[ status.comment ]]
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOMER DETAILS -->
+  <div class="border rounded p-3 mb-4" v-if="selected_aif.aif_customer_lines?.length">
+    <h5 class="mb-3">Customer Details</h5>
+
+    <div class="table-responsive">
+      <table class="table table-sm table-bordered mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Customer Number</th>
+            <th>Customer Name</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(cust, index) in selected_aif.aif_customer_lines" :key="cust.id">
+            <td>[[ index + 1 ]]</td>
+            <td>[[ cust.oracle_cust_number ]]</td>
+            <td>[[ cust.oracle_cust_name ]]</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- LINES SECTION -->
+  <div class="border rounded p-3">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">AIF Lines</h5>
+
+      <div class="d-flex align-items-center gap-3">
+        <div class="btn-group btn-group-sm">
+          <input type="radio" class="btn-check" id="l5" @click="n_of_lines = 5" checked>
+          <label class="btn btn-outline-secondary" for="l5">5</label>
+
+          <input type="radio" class="btn-check" id="l10" @click="n_of_lines = 10">
+          <label class="btn btn-outline-secondary" for="l10">10</label>
+
+          <input type="radio" class="btn-check" id="l25" @click="n_of_lines = 25">
+          <label class="btn btn-outline-secondary" for="l25">25</label>
+        </div>
+
+        <input type="text" class="form-control form-control-sm w-auto"
+               v-model="search_text"
+               placeholder="Search lines">
+      </div>
+    </div>
+
+    <!-- Promo Value -->
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Promotion Value</label>
+      <input type="text" class="form-control form-control-sm w-25"
+             :value="promoValue" disabled>
+    </div>
+
+    <!-- Table -->
+    <div class="table-responsive">
+      <table class="table table-sm table-bordered align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>ID</th>
+            <th v-for="key in line_columns">[[ get_line_verbose_name(key) ]]</th>
+            <th>Line Status</th>
+            <th>Additional Info</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr v-for="line in page_items" :key="line.id">
+            <td>[[ line.id ]]</td>
+            <td v-for="key in line_columns">[[ line[key] ]]</td>
+            <td><span :class="status_format(get_line_status(line).status)">[[ get_line_status(line).status ]]</span></td>
+            <td>
+              <button class="btn btn-sm btn-outline-secondary"
+                      @click="selected_line = line; show_modal('line_status_modal')">
+                <i class="bi bi-clock-history"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+</div>
+</section>
+
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{% load static %}
+{% load common_tags %}
+{% block aif_view %}
+
 <section id="aif_view">
   <div v-if="nav_state.aif_view" class="container-fluid">
 
