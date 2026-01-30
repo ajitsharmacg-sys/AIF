@@ -1,0 +1,197 @@
+{% load static %}
+{% load common_tags %}
+{% block aif_view %}
+
+<section id="aif_view">
+  <div v-if="nav_state.aif_view" class="container-fluid">
+
+    <!-- Back Button -->
+    <div class="fs-4 mb-3">
+      <a href="#">
+        <i class="bi bi-arrow-left-circle-fill" @click="navigate(nav_state.previous)"></i>
+      </a>
+    </div>
+
+    <!-- Breadcrumb + Download -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2 mb-md-0">
+          <li class="breadcrumb-item">
+            <a href="#" @click="navigate('list_of_aifs')">List Of AIFs</a>
+          </li>
+          <li class="breadcrumb-item active">[[ selected_aif.aif_id ]]</li>
+        </ol>
+      </nav>
+
+      <div class="d-flex align-items-center gap-2"
+           v-if="aif_status !== 'DRAFT' && user_role.includes('AIF App Sales Ops User')">
+        <span class="text-muted small fw-medium">Download Web ADI Template</span>
+        <button class="btn btn-sm btn-outline-primary" @click="export_to_excel(selected_aif)">
+          <i class="bi bi-download"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= TOP SECTION ================= -->
+    <div class="row g-3">
+
+      <!-- LEFT COLUMN -->
+      <div class="col-12 col-lg-4">
+
+        <!-- Customer Details -->
+        <div class="card mb-3" v-if="selected_aif?.aif_customer_lines">
+          <div class="card-body">
+            <h5 class="card-title">Customer Details</h5>
+            <div class="table-responsive" style="max-height:250px;">
+              <table class="table table-sm table-bordered mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>#</th>
+                    <th>Customer Number</th>
+                    <th>Customer Name</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(cust, index) in selected_aif.aif_customer_lines" :key="cust.id">
+                    <td>[[ index + 1 ]]</td>
+                    <td>[[ cust.oracle_cust_number ]]</td>
+                    <td>[[ cust.oracle_cust_name ]]</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- AIF Status History -->
+        <div class="card" v-if="aif_status">
+          <div class="card-body">
+            <h5 class="card-title">AIF Status History</h5>
+            <div style="max-height:250px; overflow-y:auto;">
+              <ul class="list-group">
+                <li class="list-group-item" v-for="status in selected_aif.aif_status">
+                  <div class="text-body-secondary small">
+                    <span :class="status_format(status.status)">[[ status.status ]]</span>
+                    by <strong>[[ status.meta_created_by?.first_name ]] [[ status.meta_created_by?.last_name ]]</strong>
+                    at <em>[[ new Date(status.meta_created_date).toLocaleString() ]]</em>
+                  </div>
+                  <small v-if="status.comment" class="text-muted">[[ status.comment ]]</small>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="col-12 col-lg-8">
+
+        <div class="card" v-if="selected_aif?.aif_id">
+          <div class="card-body">
+            <h5 class="card-title">AIF Details</h5>
+
+            <!-- Desktop Table -->
+            <div class="d-none d-md-block table-responsive">
+              <table class="table table-sm table-bordered">
+                <tbody>
+                  <tr v-for="key in header_columns">
+                    <th>[[ get_verbose_name(key) ]]</th>
+                    <td>
+                      <template v-if="key === 'is_all_nso_enabled'">
+                        <input type="checkbox" class="form-check-input"
+                               :checked="selected_aif.is_all_nso_enabled" disabled>
+                      </template>
+                      <template v-else>
+                        [[ selected_aif[key] ]]
+                      </template>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>AIF Status</th>
+                    <td><span :class="status_format(aif_status)">[[ aif_status ]]</span></td>
+                  </tr>
+                  <tr>
+                    <th>Attachments</th>
+                    <td>
+                      <a :href="selected_aif.link" target="_blank">
+                        <i class="bi bi-folder"></i> Open Folder
+                      </a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Mobile Cards -->
+            <div class="d-md-none">
+              <div class="card mb-2" v-for="key in header_columns">
+                <div class="card-body py-2 px-3">
+                  <div class="text-muted small">[[ get_verbose_name(key) ]]</div>
+                  <div class="fw-semibold">
+                    <template v-if="key === 'is_all_nso_enabled'">
+                      <input type="checkbox" class="form-check-input"
+                             :checked="selected_aif.is_all_nso_enabled" disabled>
+                    </template>
+                    <template v-else>
+                      [[ selected_aif[key] ]]
+                    </template>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card mb-2">
+                <div class="card-body py-2 px-3">
+                  <div class="text-muted small">AIF Status</div>
+                  <span :class="status_format(aif_status)">[[ aif_status ]]</span>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-body py-2 px-3">
+                  <div class="text-muted small">Attachments</div>
+                  <a :href="selected_aif.link" target="_blank">
+                    <i class="bi bi-folder"></i> Open Folder
+                  </a>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ================= LINE ITEMS ================= -->
+    <div class="card mt-4" v-if="selected_aif?.aif_lines">
+      <div class="card-body">
+        <h5 class="card-title">AIF Lines</h5>
+
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th v-for="key in line_columns">[[ get_line_verbose_name(key) ]]</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="line in page_items">
+                <td>[[ line.id ]]</td>
+                <td v-for="key in line_columns">[[ line[key] ]]</td>
+                <td><span :class="status_format(get_line_status(line).status)">
+                  [[ get_line_status(line).status ]]
+                </span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</section>
+{% endblock %}
