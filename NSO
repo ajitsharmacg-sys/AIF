@@ -1,3 +1,25 @@
+<div class="col-4">
+    <label class="form-label mb-1 d-flex align-items-center gap-1">
+        File Attachment
+        <a :href="encodeURI('{{ site_address|safe }}{{ library }}')"
+           target="_blank"
+           title="File will be uploaded to SharePoint"
+           class="d-inline-flex align-items-center ms-1">
+            <img src="{% static 'common/img/sharepoint.svg' %}"
+                 alt="SharePoint"
+                 width="16"
+                 height="16">
+        </a>
+    </label>
+
+    <input type="file" class="form-control form-control-sm">
+</div>
+
+
+
+
+
+
 class OrganizationConfig(models.Model):
     organization = models.OneToOneField(
         Organization,
