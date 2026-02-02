@@ -1,0 +1,58 @@
+class OrganizationConfig(models.Model):
+    organization = models.OneToOneField(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="config"
+    )
+    currency = models.CharField(max_length=3)
+from django.db import migrations
+
+def create_nso_currency_mapping(apps, schema_editor):
+    Organization = apps.get_model("common", "Organization")  # adjust app label
+    OrganizationConfig = apps.get_model("yourapp", "OrganizationConfig")
+
+    nso_currency_map = {
+        "NSO Austria": "EUR",
+        "NSO Belgium": "EUR",
+        "NSO Czech": "CZK",
+        "NSO Denmark": "DKK",
+        "NSO Finland": "EUR",
+        "NSO France": "EUR",
+        "NSO Germany": "EUR",
+        "NSO Hungary": "HUF",
+        "NSO Ireland": "EUR",
+        "NSO Italy": "EUR",
+        "NSO Netherlands": "EUR",
+        "NSO Norway": "NOK",
+        "NSO Poland": "PLN",
+        "NSO Portugal": "EUR",
+        "NSO Slovakia": "EUR",
+        "NSO Spain": "EUR",
+        "NSO Sweden": "SEK",
+        "NSO Switzerland": "CHF",
+        "NSO UK": "GBP",
+        "RSO Russia": "RUB",
+        "CEL": "EUR",
+    }
+
+    for org_name, currency in nso_currency_map.items():
+        try:
+            org = Organization.objects.get(organization_name=org_name)
+            OrganizationConfig.objects.update_or_create(
+                organization=org,
+                defaults={"currency": currency}
+            )
+        except Organization.DoesNotExist:
+            print(f"Organization not found: {org_name}")
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ("yourapp", "previous_migration"),
+        ("common", "organization_migration"),  # adjust if needed
+    ]
+
+    operations = [
+        migrations.RunPython(create_nso_currency_mapping),
+    ]
