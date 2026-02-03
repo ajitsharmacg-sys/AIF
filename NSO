@@ -1,5 +1,69 @@
 async paste_mercury_from_excel(line_item, startIndex, event) {
     this.invalidMercuries = [];
+    const text = event.clipboardData.getData("text/plain");
+    const copied_lines = text.trim().split(/\r?\n/);
+    if (!copied_lines.length) return;
+
+    // 1️⃣ Validate format only
+    for (let i = 0; i < copied_lines.length; i++) {
+        const mercury = copied_lines[i].split("\t")[0]?.trim();
+        if (!mercury || !/^[a-zA-Z0-9]+$/.test(mercury)) {
+            this.showExcelValidationError(i, "Mercury Code must be alphanumeric and not blank.");
+            return;
+        }
+    }
+
+    // 2️⃣ Insert ALL rows immediately (UX improvement)
+    const rowRefs = [];
+    let insertIndex = startIndex;
+
+    for (let i = 0; i < copied_lines.length; i++) {
+        const mercury_code = copied_lines[i].split("\t")[0].trim();
+
+        line_item.splice(insertIndex, 0, {});
+        const row = line_item[insertIndex];
+
+        row.mercury_code = mercury_code;
+        if (this.nav_state.context === "edit") {
+            row.id = "temp";
+        }
+
+        rowRefs.push(row);
+        insertIndex++;
+    }
+
+    // 3️⃣ Now validate each mercury asynchronously
+    for (const row of rowRefs) {
+        const currentIndex = line_item.indexOf(row);
+        if (currentIndex === -1) continue; // already deleted earlier
+
+        await this.handle_mercury_change(line_item, currentIndex, row.mercury_code);
+    }
+
+    // 4️⃣ Final summary message
+    if (this.invalidMercuries.length) {
+        this.dialog.reset_to_default()
+            .set_title("Some Mercury Codes Were Removed")
+            .set_message(this.invalidMercuries.join(", "))
+            .set_true_action("Close")
+            .show();
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+async paste_mercury_from_excel(line_item, startIndex, event) {
+    this.invalidMercuries = [];
 
     const text = event.clipboardData.getData("text/plain");
     const copied_lines = text.trim().split(/\r?\n/);
