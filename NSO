@@ -1,3 +1,118 @@
+from django.db import models
+from common.models import Organization
+
+
+class CurrencyChoices(models.TextChoices):
+    EUR = "EUR", "EUR"
+    GBP = "GBP", "GBP"
+    CHF = "CHF", "CHF"
+    SEK = "SEK", "SEK"
+    NOK = "NOK", "NOK"
+    DKK = "DKK", "DKK"
+    PLN = "PLN", "PLN"
+    HUF = "HUF", "HUF"
+    CZK = "CZK", "CZK"
+    RUB = "RUB", "RUB"
+
+class NSOConfiguration(models.Model):
+
+    nso = models.OneToOneField(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="config",
+        limit_choices_to=~models.Q(organization_name__in=["CENV", "CEL"])
+    )
+
+    currency = models.CharField(
+        max_length=3,
+        choices=CurrencyChoices.choices,
+        default=CurrencyChoices.EUR
+    )
+
+    operation_unit_code = models.CharField(max_length=20)
+
+    def __str__(self):
+        return f"{self.nso.organization_name} - {self.currency}"
+
+class NSOConfigurationSerializer(serializers.ModelSerializer):
+    nso_name = serializers.CharField(source="nso.organization_name", read_only=True)
+
+    class Meta:
+        model = NSOConfiguration
+        fields = ["id", "nso", "nso_name", "currency", "operation_unit_code"]
+# admin.py
+
+from django.contrib import admin
+from .models import NSOConfiguration
+
+@admin.register(NSOConfiguration)
+class NSOConfigurationAdmin(admin.ModelAdmin):
+    list_display = ("nso", "currency", "operation_unit_code")
+    list_filter = ("currency",)
+    search_fields = ("nso__organization_name", "operation_unit_code")
+
+async function loadNSOConfig() {
+    const res = await fetch("/api/nso-config/");
+    const data = await res.json();
+
+    const nsoConfigMap = {};
+    data.forEach(item => {
+        nsoConfigMap[item.nso_name] = {
+            currency: item.currency,
+            operationUnit: item.operation_unit_code + " ITCG ELP On Invoice Promotion (GLB)"
+        };
+    });
+
+    return nsoConfigMap;
+}
+
+
+# urls.py
+
+from rest_framework.routers import DefaultRouter
+from .views import NSOConfigurationViewSet
+
+router = DefaultRouter()
+router.register(r'nso-config', NSOConfigurationViewSet, basename='nso-config')
+
+urlpatterns = router.urls
+
+
+# views.py
+
+from rest_framework import viewsets
+from .models import NSOConfiguration
+from .serializers import NSOConfigurationSerializer
+
+class NSOConfigurationViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = NSOConfiguration.objects.select_related("nso")
+    serializer_class = NSOConfigurationSerializer
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 status_icon(status) {
   switch (status) {
     case "DRAFT":
