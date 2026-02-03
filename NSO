@@ -1,3 +1,32 @@
+# ---------- NSO DROPDOWN ----------
+orgs = Organization.objects.exclude(
+    organization_name__in=["CENV", "CEL"]
+).values_list("organization_name", flat=True)
+
+org_choices = [("", "Select NSO")] + [(org, org) for org in orgs]
+
+self.fields["nso"].choices = org_choices
+self.fields["nso"].required = True
+self.fields["nso"].widget = Select(
+    attrs={"class": "form-select form-select-sm"},
+    choices=org_choices,
+)
+
+
+# ---------- PROMO CATEGORY DROPDOWN ----------
+promo_choices = [("", "Select Promo Category")] + list(self.fields["promotion_category"].choices)
+
+self.fields["promotion_category"].choices = promo_choices
+self.fields["promotion_category"].required = True
+self.fields["promotion_category"].widget = Select(
+    attrs={"class": "form-select form-select-sm"},
+    choices=promo_choices,
+)
+
+
+
+
+
 from django.forms import Select
 
 self.fields["promotion_category"].widget = Select(
