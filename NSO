@@ -1,3 +1,46 @@
+status_icon(status) {
+  switch (status) {
+    case "DRAFT":
+      return `<i class="bi bi-pencil-square text-secondary"></i>`;
+
+    case "PLANNED":
+      return `<i class="bi bi-calendar-check text-primary"></i>`;
+
+    case "AWAITING_VALIDATION":
+      return `<i class="bi bi-hourglass-split text-warning"></i>`;
+
+    case "AWAITING_APPROVAL":
+      return `<i class="bi bi-hourglass-split text-warning"></i>`;
+
+    case "COMMERCIALLY_APPROVED":
+      return `<i class="bi bi-check-circle-fill text-success"></i>`;
+
+    case "APPROVED":
+      return `<i class="bi bi-check-circle-fill text-success"></i>`;
+
+    case "INVALID":
+      return `<i class="bi bi-x-circle-fill text-danger"></i>`;
+
+    case "REJECTED":
+      return `<i class="bi bi-x-circle-fill text-danger"></i>`;
+
+    case "CLOSED":
+      return `<i class="bi bi-lock-fill text-warning"></i>`;
+
+    default:
+      return `<i class="bi bi-question-circle text-muted"></i>`;
+  }
+}
+
+
+
+
+
+
+
+
+
+
 <div v-else class="alert alert-secondary py-2 mb-0">
     <span class="text-muted fst-italic small">
         Search by {{ filter_fields.join(', ') }} — Select line to see available action.
