@@ -121,6 +121,7 @@ urlpatterns = router.urls
 
 # views.py
 
+# views.py
 from rest_framework import viewsets
 from .models import NSOConfiguration
 from .serializers import NSOConfigurationSerializer
@@ -128,6 +129,8 @@ from .serializers import NSOConfigurationSerializer
 class NSOConfigurationViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = NSOConfiguration.objects.select_related("nso")
     serializer_class = NSOConfigurationSerializer
+    filterset_fields = ["nso__organization_name"]
+
 
 
 
