@@ -1,3 +1,36 @@
+hasDuplicateMercuries() {
+    const mercurySet = new Set();
+    const duplicates = new Set();
+
+    for (const line of this.lines) {
+        const mercury = line.mercury_code?.trim();
+        if (!mercury) continue;
+
+        if (mercurySet.has(mercury)) {
+            duplicates.add(mercury);
+        } else {
+            mercurySet.add(mercury);
+        }
+    }
+
+    if (duplicates.size > 0) {
+        const dupList = Array.from(duplicates).join(", ");
+
+        this.dialog
+            .reset_to_default()
+            .set_title("Duplicate Mercury Codes")
+            .set_message(`Mercury code(s) ${dupList} are entered more than once.`)
+            .set_true_action("Close")
+            .show();
+
+        return true;
+    }
+
+    return false;
+}
+
+
+
 async paste_mercury_from_excel(line_item, index, event) {
     this.invalidMercuries = [];
 
