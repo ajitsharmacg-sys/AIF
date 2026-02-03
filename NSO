@@ -1,3 +1,9 @@
+real_choices = [(value, label) for value, label in field.choices if value]
+
+# Add your custom placeholder at top
+new_choices = [("", "Select Promo Category")] + real_choices
+
+
 # ---------- NSO DROPDOWN ----------
 orgs = Organization.objects.exclude(
     organization_name__in=["CENV", "CEL"]
