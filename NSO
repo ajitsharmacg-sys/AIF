@@ -7,6 +7,16 @@ self.fields["promotion_category"].widget = Select(
 
 
 
+{% else %}
+    {% if field.field.widget.input_type == "select" or field.field.choices %}
+        {{ field|add_attrs:"v-model=aif; class=form-select form-select-sm" }}
+    {% else %}
+        {{ field|add_attrs:"v-model=aif; class=form-control form-control-sm" }}
+    {% endif %}
+{% endif %}
+
+
+
 onNSOChange(event) {
     const nso = event.target.value;
     if (!nso) return;
