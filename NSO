@@ -1,3 +1,12 @@
+from django.forms import Select
+
+self.fields["promotion_category"].widget = Select(
+    attrs={"class": "form-select form-select-sm"},
+    choices=self.fields["promotion_category"].choices,
+)
+
+
+
 onNSOChange(event) {
     const nso = event.target.value;
     if (!nso) return;
