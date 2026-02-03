@@ -1,3 +1,9 @@
+self.fields["promotion_category"].widget = Select(
+            attrs={"class": "form-select form-select-sm"},
+            choices=self.fields["promotion_category"].choices,
+        )
+
+
 field = self.fields["promotion_category"]
 
 field.choices = [("", "Select Promo Category")] + [
