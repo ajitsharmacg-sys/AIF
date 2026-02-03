@@ -1,3 +1,71 @@
+async paste_mercury_from_excel(line_item, startIndex, event) {
+    this.invalidMercuries = [];
+
+    const text = event.clipboardData.getData("text/plain");
+    const copied_lines = text.trim().split(/\r?\n/);
+    if (!copied_lines.length) return;
+
+    const rows = []; // store row object references
+
+    /* -------------------------------
+       PASS 1 — Create rows & assign mercury
+       ------------------------------- */
+    let insertOffset = 0;
+
+    for (let i = 0; i < copied_lines.length; i++) {
+        const mercury = copied_lines[i].split("\t")[0]?.trim();
+
+        if (!mercury || !/^[a-zA-Z0-9]+$/.test(mercury)) {
+            this.invalidMercuries.push(mercury || `(Row ${i + 1})`);
+            continue;
+        }
+
+        const rowIndex = startIndex + insertOffset;
+
+        line_item.splice(rowIndex, 0, {});
+        const row = line_item[rowIndex];
+
+        row.mercury_code = mercury;
+        if (this.nav_state.context === "edit") {
+            row.id = "temp";
+        }
+
+        rows.push(row); // store reference, NOT index
+        insertOffset++;
+    }
+
+    /* -------------------------------
+       PASS 2 — Call shared mercury logic safely
+       ------------------------------- */
+    for (const row of rows) {
+        const currentIndex = line_item.indexOf(row);
+        if (currentIndex === -1) continue; // row already deleted by earlier failure
+
+        await this.handle_mercury_change(line_item, currentIndex, row.mercury_code);
+    }
+
+    /* -------------------------------
+       Final error message (only once)
+       ------------------------------- */
+    if (this.invalidMercuries.length) {
+        this.dialog.reset_to_default()
+            .set_title("Some Mercury Codes Were Skipped")
+            .set_message(this.invalidMercuries.join(", "))
+            .set_true_action("Close")
+            .show();
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
 async paste_mercury_from_excel(line_item, index, event) {
     this.invalidMercuries = [];
     const text = event.clipboardData.getData("text/plain");
