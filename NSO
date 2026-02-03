@@ -1,3 +1,68 @@
+async paste_mercury_from_excel(line_item, index, event) {
+    this.invalidMercuries = [];
+
+    const text = event.clipboardData.getData("text/plain");
+    const copied_lines = text.trim().split(/\r?\n/);
+    if (!copied_lines.length) return;
+
+    // 🔹 Step 1: Basic format validation
+    for (let i = 0; i < copied_lines.length; i++) {
+        const mercury = copied_lines[i].split("\t")[0]?.trim();
+        if (!mercury || !/^[a-zA-Z0-9]+$/.test(mercury)) {
+            this.showExcelValidationError(i, "Mercury Code must be alphanumeric and not blank.");
+            return;
+        }
+    }
+
+    const rowRefs = [];
+
+    // 🔹 Step 2: Create rows and paste mercury codes immediately
+    for (let i = 0; i < copied_lines.length; i++) {
+        const mercury_code = copied_lines[i].split("\t")[0].trim();
+
+        let row;
+
+        // 👉 Reuse current row only if it's empty
+        if (i === 0 && !line_item[index]?.mercury_code) {
+            row = line_item[index];
+        } else {
+            line_item.splice(index, 0, {});
+            row = line_item[index];
+        }
+
+        row.mercury_code = mercury_code;
+
+        if (this.nav_state.context === "edit") {
+            row.id = "temp";
+        }
+
+        rowRefs.push(row);
+        index++; // move to next position
+    }
+
+    // 🔹 Step 3: Validate each mercury via API
+    for (const row of rowRefs) {
+        const currentIndex = line_item.indexOf(row);
+        if (currentIndex === -1) continue; // row already removed
+        await this.handle_mercury_change(line_item, currentIndex, row.mercury_code);
+    }
+
+    // 🔹 Step 4: Show one summary error if needed
+    if (this.invalidMercuries.length) {
+        this.dialog.reset_to_default()
+            .set_title("Some Mercury Codes Were Removed")
+            .set_message(this.invalidMercuries.join(", "))
+            .set_true_action("Close")
+            .show();
+    }
+}
+
+
+
+
+
+
+
 async paste_mercury_from_excel(line_item, startIndex, event) {
     this.invalidMercuries = [];
     const text = event.clipboardData.getData("text/plain");
