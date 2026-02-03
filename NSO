@@ -1,7 +1,14 @@
-real_choices = [(value, label) for value, label in field.choices if value]
+field = self.fields["promotion_category"]
 
-# Add your custom placeholder at top
-new_choices = [("", "Select Promo Category")] + real_choices
+field.choices = [("", "Select Promo Category")] + [
+    (value, label) for value, label in field.choices if value
+]
+
+field.widget = Select(
+    attrs={"class": "form-select form-select-sm"},
+    choices=field.choices,
+)
+field.required = True
 
 
 # ---------- NSO DROPDOWN ----------
