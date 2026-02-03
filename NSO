@@ -1,3 +1,43 @@
+async paste_mercury_from_excel(line_item, index, event) {
+    this.invalidMercuries = [];
+    const text = event.clipboardData.getData("text/plain");
+    const copied_lines = text.trim().split(/\r?\n/);
+    if (!copied_lines.length) return;
+
+    // Step 1: Validate format first
+    for (let i = 0; i < copied_lines.length; i++) {
+        const mercury = copied_lines[i].split("\t")[0]?.trim();
+        if (!mercury || !/^[a-zA-Z0-9]+$/.test(mercury)) {
+            this.showExcelValidationError(i, "Mercury Code must be alphanumeric and not blank.");
+            return;
+        }
+    }
+
+    // Step 2: Process one-by-one (await works here)
+    for (let lineIndex = 0; lineIndex < copied_lines.length; lineIndex++) {
+        const cells = copied_lines[lineIndex].split("\t");
+        const mercury_code = cells[0]?.trim() || "";
+
+        line_item[index] = line_item[index] || {};
+        line_item[index]["mercury_code"] = mercury_code;
+
+        if (this.nav_state.context === "edit") {
+            line_item[index]["id"] = "temp";
+        }
+
+        // ✅ WAIT for API validation before moving to next line
+        await this.handle_mercury_change(line_item, index, mercury_code);
+
+        if (lineIndex < copied_lines.length - 1) {
+            line_item.push({});
+            index++;
+        }
+    }
+}
+
+
+
+
 self.fields["promotion_category"].widget = Select(
             attrs={"class": "form-select form-select-sm"},
             choices=self.fields["promotion_category"].choices,
