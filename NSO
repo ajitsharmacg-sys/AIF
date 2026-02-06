@@ -1,3 +1,31 @@
+getOperationUnitByNSO(nso) {
+    if (!nso) return Promise.resolve("");
+
+    const url = `/api/nso-currency-opunit/?nso=${encodeURIComponent(nso)}`;
+
+    return fetch(url)
+        .then(res => {
+            if (!res.ok) return Promise.reject(res);
+            return res.json();
+        })
+        .then(data => {
+            const config = data && data.length ? data[0] : null;
+            const opUnit = config?.operation_unit_code;
+
+            if (!opUnit) return "";
+
+            return `${opUnit} ITCG ELP On Invoice Promotion (GLB)`;
+        })
+        .catch(err => {
+            this.display_error(err, "Failed to load NSO operating unit");
+            return "";
+        });
+}
+
+
+
+
+
 from django.core.management.base import BaseCommand
 from aif.models import NSOCurrencyOpUnitConfig
 
