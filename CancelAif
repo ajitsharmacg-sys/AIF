@@ -1,33 +1,36 @@
 async buildWebEDIHeaderRows({
-  sourceAIF,        // where lines/customers come from
-  effectiveAIF,     // dates + aif_id + nso
+  sourceAIF,        // cancelled AIF (for cancel) OR current AIF
+  effectiveAIF,     // ALWAYS current AIF (for cancel)
   trxType           // "UPDATE" | "INSERT"
 }) {
   if (!sourceAIF?.aif_lines?.length) return;
 
-  const opUnit = await this.getOperationUnitByNSO(effectiveAIF.nso);
+  // ✅ OpUnit comes from the source AIF (cancelled or new)
+  const opUnit = await this.getOperationUnitByNSO(sourceAIF.nso);
 
   const hasCustomers =
     Array.isArray(sourceAIF.aif_customer_lines) &&
     sourceAIF.aif_customer_lines.length > 0;
 
+  const startDate = this.formatExcelDates(effectiveAIF.start_date);
+  const endDate =
+    trxType === "UPDATE"
+      ? this.formatExcelDates(effectiveAIF.start_date) // cancel end
+      : this.formatExcelDates(effectiveAIF.end_date);
+
   // =========================
-  // CASE 1: NO CUSTOMERS
+  // NO CUSTOMER
   // =========================
   if (!hasCustomers) {
     sourceAIF.aif_lines.forEach(line => {
       this.ws_data.push([
         opUnit,
         trxType,
-        this.buildModifierLineNo(line, effectiveAIF), // no customer
+        this.buildModifierLineNo(line, effectiveAIF),
         "LINE",
         "Discount",
-        this.formatExcelDates(effectiveAIF.start_date),
-        this.formatExcelDates(
-          trxType === "UPDATE"
-            ? effectiveAIF.start_date
-            : effectiveAIF.end_date
-        ),
+        startDate,
+        endDate,
         "Y",
         "N",
         "List Line Adjustment",
@@ -47,7 +50,7 @@ async buildWebEDIHeaderRows({
   }
 
   // =========================
-  // CASE 2: CUSTOMERS EXIST
+  // WITH CUSTOMER
   // =========================
   sourceAIF.aif_customer_lines.forEach(customer => {
     const customerId = customer.oracle_cust_number;
@@ -59,12 +62,8 @@ async buildWebEDIHeaderRows({
         this.buildModifierLineNo(line, effectiveAIF, customerId),
         "LINE",
         "Discount",
-        this.formatExcelDates(effectiveAIF.start_date),
-        this.formatExcelDates(
-          trxType === "UPDATE"
-            ? effectiveAIF.start_date
-            : effectiveAIF.end_date
-        ),
+        startDate,
+        endDate,
         "Y",
         "N",
         "List Line Adjustment",
@@ -82,6 +81,7 @@ async buildWebEDIHeaderRows({
     });
   });
 }
+
 
 
 
