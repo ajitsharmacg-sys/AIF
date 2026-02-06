@@ -1,0 +1,95 @@
+buildWebEDIHeaderRows({
+  sourceAIF,        // where lines come from
+  effectiveAIF,     // where dates & modifier context come from
+  opUnit,
+  trxType           // "UPDATE" | "INSERT"
+}) {
+  const customers = sourceAIF.aif_customer_lines?.length
+    ? sourceAIF.aif_customer_lines
+    : [null];
+
+  customers.forEach(customer => {
+    const customerId = customer?.oracle_cust_number || null;
+
+    sourceAIF.aif_lines.forEach(line => {
+      this.ws_data.push([
+        opUnit,
+        trxType,
+        this.buildModifierLineNo(line, effectiveAIF, customerId),
+        "LINE",
+        "Discount",
+        this.formatExcelDates(effectiveAIF.start_date),
+        this.formatExcelDates(
+          trxType === "UPDATE"
+            ? effectiveAIF.start_date   // cancel case → end at cancel start
+            : effectiveAIF.end_date
+        ),
+        "Y",
+        "N",
+        "List Line Adjustment",
+        "Level 4 Incompatibility",
+        1,
+        "First Layer",
+        line.mercury_code,
+        100,
+        "LOCAL",
+        "",
+        "New Price",
+        Number(line.promotional_elp) || 0,
+        "N"
+      ]);
+    });
+  });
+}
+
+
+async generateWebEDIHeaderFile(aif) {
+  const opUnit = await this.getOperationUnitByNSO(aif.nso);
+
+  this.ws_data = [];
+  this.ws_data.push(this.webedi_header);
+
+  const cancelledIds = (aif.aif_cancel_numbers || "")
+    .split(";")
+    .map(v => v.trim())
+    .filter(Boolean);
+
+  if (cancelledIds.length > 0) {
+    const cancelledAifs = await this.load_aifs_for_cancellation(cancelledIds);
+
+    for (const cancelled of cancelledAifs) {
+      // 1️⃣ UPDATE cancelled AIF
+      this.buildWebEDIHeaderRows({
+        sourceAIF: cancelled.aif,
+        effectiveAIF: aif,      // use cancel start date
+        opUnit,
+        trxType: "UPDATE"
+      });
+
+      // 2️⃣ INSERT cancelled AIF (reinsert with new dates)
+      this.buildWebEDIHeaderRows({
+        sourceAIF: cancelled.aif,
+        effectiveAIF: aif,
+        opUnit,
+        trxType: "INSERT"
+      });
+    }
+  }
+
+  // 3️⃣ INSERT new AIF
+  this.buildWebEDIHeaderRows({
+    sourceAIF: aif,
+    effectiveAIF: aif,
+    opUnit,
+    trxType: "INSERT"
+  });
+
+  const wb = utils.book_new();
+  const ws = utils.aoa_to_sheet(this.ws_data);
+  utils.book_append_sheet(wb, ws, "Header");
+
+  writeFile(
+    wb,
+    `FINAL_${this.formatDate()}_WebADI_AIF(${aif.aif_id})1Head_SET_upload_v1.xlsx`
+  );
+}
