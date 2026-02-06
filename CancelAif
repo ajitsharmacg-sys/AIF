@@ -1,3 +1,61 @@
+async buildWebEDIHeaderRows({
+  sourceAIF,        // where lines/customers come from
+  effectiveAIF,     // whose dates & aif_id apply
+  trxType           // "UPDATE" | "INSERT"
+}) {
+  if (!sourceAIF?.aif_lines?.length) return;
+
+  // 🔑 OpUnit resolved from EFFECTIVE AIF
+  const opUnit = await this.getOperationUnitByNSO(effectiveAIF.nso);
+
+  const customers =
+    sourceAIF.aif_customer_lines?.length
+      ? sourceAIF.aif_customer_lines
+      : [null];
+
+  customers.forEach(customer => {
+    const customerId = customer?.oracle_cust_number || null;
+
+    sourceAIF.aif_lines.forEach(line => {
+      this.ws_data.push([
+        opUnit,
+        trxType,
+        this.buildModifierLineNo(line, effectiveAIF, customerId),
+        "LINE",
+        "Discount",
+        this.formatExcelDates(effectiveAIF.start_date),
+        this.formatExcelDates(
+          trxType === "UPDATE"
+            ? effectiveAIF.start_date
+            : effectiveAIF.end_date
+        ),
+        "Y",
+        "N",
+        "List Line Adjustment",
+        "Level 4 Incompatibility",
+        1,
+        "First Layer",
+        line.mercury_code,
+        100,
+        "LOCAL",
+        "",
+        "New Price",
+        Number(line.promotional_elp) || 0,
+        "N"
+      ]);
+    });
+  });
+}
+
+
+
+
+
+
+
+
+
+
 async load_aifs_for_cancellation(aifIds = []) {
     this.aifs_for_cancellation = [];
 
