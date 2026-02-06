@@ -1,3 +1,43 @@
+async load_aifs_for_cancellation(aifIds = []) {
+  const aifs_cancellation_list = [];
+
+  for (const aifId of aifIds) {
+    let aifData = null;
+
+    // 1️⃣ Load AIF (base object)
+    await fetch(api_endpoints.aif + aifId + "/")
+      .then(res => res.json())
+      .then(data => {
+        aifData = data;
+      });
+
+    if (!aifData) continue;
+
+    // 2️⃣ Attach AIF lines (same key as current AIF)
+    await fetch(api_endpoints.aif_lines + "?aif=" + aifId)
+      .then(res => res.json())
+      .then(data => {
+        aifData.aif_lines = data;
+      });
+
+    // 3️⃣ Attach customer lines (same key as current AIF)
+    await fetch(api_endpoints.aif_customer_line + "?aif=" + aifId)
+      .then(res => res.json())
+      .then(data => {
+        aifData.aif_customer_lines = data;
+      });
+
+    // ✅ Push in SAME SHAPE as selected_aif
+    aifs_cancellation_list.push(aifData);
+  }
+
+  return aifs_cancellation_list;
+}
+
+
+
+
+
 async buildWebEDIHeaderRows({
   sourceAIF,        // where lines/customers come from
   effectiveAIF,     // whose dates & aif_id apply
