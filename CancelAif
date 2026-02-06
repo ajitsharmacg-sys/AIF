@@ -1,0 +1,31 @@
+async load_aifs_for_cancellation(aifIds = []) {
+    this.aifs_for_cancellation = [];
+
+    for (const aifId of aifIds) {
+        const aifObj = {};
+
+        // 1️⃣ AIF header
+        await fetch(api_endpoints.aif + aifId + "/")
+            .then(response => response.json())
+            .then(data => {
+                aifObj.aif = data;
+            });
+
+        // 2️⃣ AIF lines
+        await fetch(api_endpoints.aif_lines + "?aif=" + aifId)
+            .then(response => response.json())
+            .then(data => {
+                aifObj.aif_lines = data;
+            });
+
+        // 3️⃣ AIF customer lines
+        await fetch(api_endpoints.aif_customer_line + "?aif=" + aifId)
+            .then(response => response.json())
+            .then(data => {
+                aifObj.aif_customer_lines = data;
+            });
+
+        // 4️⃣ Store fully prepared AIF
+        this.aifs_for_cancellation.push(aifObj);
+    }
+}
