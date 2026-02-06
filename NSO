@@ -1,3 +1,80 @@
+from rest_framework import serializers
+from aif.models import NSOCurrencyOpUnitConfig
+
+
+class NSOCurrencyOpUnitConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NSOCurrencyOpUnitConfig
+        fields = "__all__"
+
+from rest_framework import viewsets, filters
+from django_filters.rest_framework import DjangoFilterBackend
+from pricerequest.api_permissions import IsApplicationUser
+from aif.models import NSOCurrencyOpUnitConfig
+from aif.serializers import NSOCurrencyOpUnitConfigSerializer
+
+class NSOCurrencyOpUnitConfigViewSet(viewsets.ModelViewSet):
+    """
+    CRUD API for NSO → Currency → Operating Unit mapping.
+    Used for admin configuration and lookups.
+    """
+
+    permission_classes = [IsApplicationUser]
+    queryset = NSOCurrencyOpUnitConfig.objects.all()
+    serializer_class = NSOCurrencyOpUnitConfigSerializer
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+
+    filterset_fields = {
+        "nso": ["exact"],
+        "currency": ["exact"],
+        "operation_unit_code": ["exact"],
+    }
+
+    search_fields = [
+        "nso",
+        "operation_unit_code",
+    ]
+
+    ordering_fields = [
+        "nso",
+        "currency",
+        "operation_unit_code",
+    ]
+
+    ordering = ["nso", "currency"]
+
+from rest_framework.routers import DefaultRouter
+from aif.views import NSOCurrencyOpUnitConfigViewSet
+
+router = DefaultRouter()
+router.register(
+    r"nso-currency-opunit",
+    NSOCurrencyOpUnitConfigViewSet,
+    basename="nso-currency-opunit"
+)
+
+urlpatterns = router.urls
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 from aif.roles import PSBD_TEAM_USER
 
 class AifLineView(viewsets.ModelViewSet):
