@@ -1,3 +1,92 @@
+async buildWebEDIHeaderRows({
+  sourceAIF,        // where lines/customers come from
+  effectiveAIF,     // dates + aif_id + nso
+  trxType           // "UPDATE" | "INSERT"
+}) {
+  if (!sourceAIF?.aif_lines?.length) return;
+
+  const opUnit = await this.getOperationUnitByNSO(effectiveAIF.nso);
+
+  const hasCustomers =
+    Array.isArray(sourceAIF.aif_customer_lines) &&
+    sourceAIF.aif_customer_lines.length > 0;
+
+  // =========================
+  // CASE 1: NO CUSTOMERS
+  // =========================
+  if (!hasCustomers) {
+    sourceAIF.aif_lines.forEach(line => {
+      this.ws_data.push([
+        opUnit,
+        trxType,
+        this.buildModifierLineNo(line, effectiveAIF), // no customer
+        "LINE",
+        "Discount",
+        this.formatExcelDates(effectiveAIF.start_date),
+        this.formatExcelDates(
+          trxType === "UPDATE"
+            ? effectiveAIF.start_date
+            : effectiveAIF.end_date
+        ),
+        "Y",
+        "N",
+        "List Line Adjustment",
+        "Level 4 Incompatibility",
+        1,
+        "First Layer",
+        line.mercury_code,
+        100,
+        "LOCAL",
+        "",
+        "New Price",
+        Number(line.promotional_elp) || 0,
+        "N"
+      ]);
+    });
+    return;
+  }
+
+  // =========================
+  // CASE 2: CUSTOMERS EXIST
+  // =========================
+  sourceAIF.aif_customer_lines.forEach(customer => {
+    const customerId = customer.oracle_cust_number;
+
+    sourceAIF.aif_lines.forEach(line => {
+      this.ws_data.push([
+        opUnit,
+        trxType,
+        this.buildModifierLineNo(line, effectiveAIF, customerId),
+        "LINE",
+        "Discount",
+        this.formatExcelDates(effectiveAIF.start_date),
+        this.formatExcelDates(
+          trxType === "UPDATE"
+            ? effectiveAIF.start_date
+            : effectiveAIF.end_date
+        ),
+        "Y",
+        "N",
+        "List Line Adjustment",
+        "Level 4 Incompatibility",
+        1,
+        "First Layer",
+        line.mercury_code,
+        100,
+        "LOCAL",
+        "",
+        "New Price",
+        Number(line.promotional_elp) || 0,
+        "N"
+      ]);
+    });
+  });
+}
+
+
+
+
+
 async load_aifs_for_cancellation(aifIds = []) {
   const aifs_cancellation_list = [];
 
