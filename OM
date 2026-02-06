@@ -1,3 +1,8 @@
+import io
+from django.db import connections
+from openpyxl import Workbook
+
+
 def generate_open_orders_excel(aif: Aif) -> bytes | None:
     """
     Generates Excel attachment for Open Orders based on AIF.
