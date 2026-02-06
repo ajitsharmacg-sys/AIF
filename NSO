@@ -1,3 +1,83 @@
+from django.core.management.base import BaseCommand
+from aif.models import NSOCurrencyOpUnitConfig
+
+
+class Command(BaseCommand):
+    help = "Seed NSO → Currency → Operating Unit configuration"
+
+    NSO_CURRENCY_OPUNIT_DATA = [
+        ("NSO Austria", "EUR", "AT AAZ"),
+        ("NSO Belgium", "EUR", "BE AAS"),
+        ("NSO Czech", "CZK", None),
+        ("NSO Denmark", "DKK", "DK ATV"),
+        ("NSO Finland", "EUR", "FI ABL"),
+        ("NSO France", "EUR", "FR AAY"),
+        ("NSO Germany", "EUR", "DE AAU"),
+        ("NSO Hungary", "HUF", None),
+        ("NSO Ireland", "EUR", "IE AEM"),
+        ("NSO Italy", "EUR", "IT ABA"),
+        ("NSO Netherlands", "EUR", "NL AAT"),
+        ("NSO Netherlands 2", "EUR", "NL ABX"),
+        ("NSO Norway", "NOK", "NO ARK"),
+        ("NSO Poland", "PLN", None),
+        ("NSO Portugal", "EUR", "PT AYI"),
+        ("NSO Slovakia", "EUR", None),
+        ("NSO Spain", "EUR", "ES AAV"),
+        ("NSO Sweden", "SEK", "SE ABG"),
+        ("NSO Switzerland", "CHF", "CH ANN"),
+        ("NSO UK", "GBP", "GB AAP"),
+        ("RSO Russia", "RUB", None),
+    ]
+
+    def handle(self, *args, **options):
+        created, updated, skipped = 0, 0, 0
+
+        for nso, currency, op_unit in self.NSO_CURRENCY_OPUNIT_DATA:
+            if not op_unit:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"Skipping {nso} ({currency}) – no operating unit"
+                    )
+                )
+                skipped += 1
+                continue
+
+            obj, is_created = NSOCurrencyOpUnitConfig.objects.update_or_create(
+                nso=nso,
+                currency=currency,
+                defaults={"operation_unit_code": op_unit},
+            )
+
+            if is_created:
+                created += 1
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"Created: {nso} | {currency} | {op_unit}"
+                    )
+                )
+            else:
+                updated += 1
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"Updated: {nso} | {currency} | {op_unit}"
+                    )
+                )
+
+        self.stdout.write("")
+        self.stdout.write(self.style.NOTICE("Seeding completed"))
+        self.stdout.write(f"Created : {created}")
+        self.stdout.write(f"Updated : {updated}")
+        self.stdout.write(f"Skipped : {skipped}")
+
+seed_nso_currency_opunit.py
+
+
+
+
+
+
+
+
 from rest_framework import serializers
 from aif.models import NSOCurrencyOpUnitConfig
 
