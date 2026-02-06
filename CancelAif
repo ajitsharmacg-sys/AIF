@@ -1,11 +1,12 @@
 <template v-else-if="key === 'aif_to_be_cancelled'">
-        <span
-            v-for="(aif, index) in selected_aif[key]?.split(';')"
-            :key="index"
-            class="d-block"
-        >
-            [[ aif ]]
-        </span>
+        <ul class="mb-0 ps-3">
+            <li
+                v-for="(aif, index) in selected_aif[key]?.split(';')"
+                :key="index"
+            >
+                [[ aif ]]
+            </li>
+        </ul>
     </template>
 
 async buildWebEDIHeaderRows({
