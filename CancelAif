@@ -1,4 +1,6 @@
-
+<template v-else-if="key === 'aif_cancel_numbers'">
+    [[ (selected_aif[key] || '').split(';').join(', ') ]]
+</template>
 
 
 async export_to_excel(aif) {
