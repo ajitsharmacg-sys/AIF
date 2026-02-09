@@ -1,3 +1,56 @@
+async generateWebEDIHeaderFile(aif) {
+  this.ws_data = [];
+  this.ws_data.push(this.webedi_header);
+
+  const cancelledIds = (aif.aif_cancel_numbers || "")
+    .split(";")
+    .map(v => v.trim())
+    .filter(Boolean);
+
+  // ===============================
+  // 1️⃣ CANCELLED AIFs → UPDATE + INSERT
+  // ===============================
+  if (cancelledIds.length > 0) {
+    const cancelledAifs = await this.load_aifs_for_cancellation(cancelledIds);
+
+    for (const cancelledAif of cancelledAifs) {
+
+      // 🔁 UPDATE cancelled AIF
+      await this.buildWebEDIHeaderRows({
+        sourceAIF: cancelledAif,
+        effectiveAIF: aif,
+        trxType: "UPDATE"
+      });
+
+      // ➕ INSERT cancelled AIF
+      await this.buildWebEDIHeaderRows({
+        sourceAIF: cancelledAif,
+        effectiveAIF: aif,
+        trxType: "INSERT"
+      });
+    }
+  }
+
+  // ===============================
+  // 2️⃣ CURRENT AIF → NEW INSERT
+  // ===============================
+  await this.buildWebEDIHeaderRows({
+    sourceAIF: aif,
+    effectiveAIF: aif,
+    trxType: "INSERT"
+  });
+
+  const wb = utils.book_new();
+  const ws = utils.aoa_to_sheet(this.ws_data);
+  utils.book_append_sheet(wb, ws, "Header");
+
+  writeFile(
+    wb,
+    `WebADI_AIF_${aif.aif_id}_Header_Set_${this.getCurrentDateTimeForFile()}.xlsx`
+  );
+}
+
+
 <div
     class="ms-auto d-flex align-items-center gap-2"
     v-if="!['DRAFT', 'INVALID'].includes(this.aif_status) 
