@@ -1,3 +1,29 @@
+<div
+    class="ms-auto d-flex align-items-center gap-2"
+    v-if="!['DRAFT', 'INVALID'].includes(this.aif_status) 
+        && this.user_role.includes('AIF App Sales Ops User')"
+>
+    <span class="text-muted small fw-medium">
+        Download Web ADI Template
+    </span>
+
+    <button
+        type="button"
+        class="btn btn-sm btn-outline-primary d-flex align-items-center gap-2"
+        @click="export_to_excel(selected_aif)"
+        :disabled="isLoading"
+    >
+        <template v-if="!isLoading">
+            <i class="bi bi-download"></i>
+        </template>
+
+        <template v-else>
+            <span class="spinner-border spinner-border-sm" role="status"></span>
+            <span class="small">[[ downloadStep ]]</span>
+        </template>
+    </button>
+</div>
+
 <button
     type="button"
     class="btn btn-sm btn-outline-primary d-flex align-items-center gap-2"
