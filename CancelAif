@@ -1,4 +1,16 @@
 <div
+  class="ms-auto d-flex align-items-center gap-2"
+  v-if="
+    !['DRAFT', 'INVALID'].includes(aif_status) &&
+    (
+      ADMIN_ROLE.some(r => user_role.includes(r)) ||
+      AIF_STATUS_TO_ROLE[aif_status]
+        ?.some(r => user_role.includes(r))
+    )
+  "
+>
+
+<div
   class="form-check"
   v-if="
     aif_status === 'PLANNED' &&
