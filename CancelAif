@@ -1,3 +1,28 @@
+
+
+
+async export_to_excel(aif) {
+  this.isLoading = true;
+  this.downloadStep = "Preparing…";
+
+  const hasCustomers = (aif.aif_customer_lines || []).length > 0;
+
+  this.downloadStep = "Generating Header file…";
+  await this.generateWebEDIHeaderFile(aif);
+
+  if (hasCustomers) {
+    this.downloadStep = "Generating Line file…";
+    await this.generateWebEDILineFile(aif);
+  }
+
+  this.downloadStep = "Finalizing…";
+
+  this.isLoading = false;
+  this.downloadStep = "";
+}
+
+
+
 <template v-else-if="key === 'aif_to_be_cancelled'">
         <ul class="mb-0 ps-3">
             <li
