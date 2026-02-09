@@ -1,3 +1,32 @@
+getCurrentDateTimeForFile() {
+  const d = new Date();
+
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+
+  return `${yyyy}${mm}${dd}_${hh}${min}`;
+}
+
+
+const fileDate = this.getCurrentDateTimeForFile();
+
+writeFile(
+  wb,
+  `WebADI_AIF_${aif.aif_id}_Header_Set_${fileDate}.xlsx`
+);
+
+const fileDate = this.getCurrentDateTimeForFile();
+
+writeFile(
+  wb,
+  `WebADI_AIF_${aif.aif_id}_Line_Set_${fileDate}.xlsx`
+);
+
+
+
 <template v-else-if="key === 'aif_cancel_numbers'">
     [[ (selected_aif[key] || '').split(';').join(', ') ]]
 </template>
