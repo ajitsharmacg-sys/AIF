@@ -1,3 +1,31 @@
+sleep(ms = 0) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+async export_to_excel(aif) {
+  this.isLoading = true;
+  this.downloadStep = "Preparing…";
+
+  await this.sleep(); // 👈 allow UI paint
+
+  const hasCustomers = (aif.aif_customer_lines || []).length > 0;
+
+  this.downloadStep = "Generating Header file…";
+  await this.sleep(); // 👈 allow UI paint
+  await this.generateWebEDIHeaderFile(aif);
+
+  if (hasCustomers) {
+    this.downloadStep = "Generating Line file…";
+    await this.sleep(); // 👈 allow UI paint
+    await this.generateWebEDILineFile(aif);
+  }
+
+  this.downloadStep = "Finalizing…";
+  await this.sleep(); // 👈 allow UI paint
+
+  this.isLoading = false;
+  this.downloadStep = "";
+}
+
 async generateWebEDIHeaderFile(aif) {
   this.ws_data = [];
   this.ws_data.push(this.webedi_header);
