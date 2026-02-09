@@ -1,3 +1,21 @@
+<button
+    type="button"
+    class="btn btn-sm btn-outline-primary d-flex align-items-center gap-2"
+    @click="export_to_excel(selected_aif)"
+    :disabled="isLoading"
+>
+    <template v-if="!isLoading">
+        <i class="bi bi-download"></i>
+        <span>Download</span>
+    </template>
+
+    <template v-else>
+        <span class="spinner-border spinner-border-sm" role="status"></span>
+        <span class="small">[[ downloadStep ]]</span>
+    </template>
+</button>
+
+
 getCurrentDateTimeForFile() {
   const d = new Date();
 
