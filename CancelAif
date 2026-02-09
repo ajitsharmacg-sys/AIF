@@ -1,3 +1,13 @@
+<div
+  class="form-check"
+  v-if="
+    aif_status === 'PLANNED' &&
+    get_line_status(line)?.status === 'AWAITING_APPROVAL' &&
+    LINE_STATUS_TO_ROLE['AWAITING_APPROVAL']
+      .some(role => user_role.includes(role))
+  "
+>
+
 sleep(ms = 0) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
