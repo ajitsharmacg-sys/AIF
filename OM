@@ -1,3 +1,30 @@
+from django import forms
+from django.contrib import admin
+
+class OMEmailsConfigForm(forms.ModelForm):
+    class Meta:
+        model = OMEmailsConfig
+        fields = "__all__"
+
+    def clean_om_emails(self):
+        value = self.cleaned_data.get("om_emails")
+
+        if not value:
+            return value
+
+        emails = [email.strip() for email in value.split(";") if email.strip()]
+
+        for email in emails:
+            validate_email(email)
+
+        return value
+
+
+@admin.register(OMEmailsConfig)
+class OMEmailsConfigAdmin(admin.ModelAdmin):
+    form = OMEmailsConfigForm
+
+
 config = OMEmailsConfig.objects.first()
 om_emails = config.get_email_list() if config else []
 
