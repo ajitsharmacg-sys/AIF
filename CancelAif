@@ -1,3 +1,45 @@
+def get_queryset(self):
+    user = self.request.user
+    aif_id = self.request.query_params.get("aif")
+
+    base_qs = AifLines.objects.all()
+
+    if not aif_id:
+        return base_qs.none()
+
+    # If user is NOT PSBD user → no restriction
+    if not user.groups.filter(name=PSBD_TEAM_USER).exists():
+        return base_qs.filter(aif=aif_id)
+
+    # 🔹 Get AIF object
+    try:
+        aif = Aif.objects.get(id=aif_id)
+    except Aif.DoesNotExist:
+        return base_qs.none()
+
+    # 🔹 Map promotion_category → responsibility
+    responsibility = self.PROMOTION_CATEGORY_TO_RESPONSIBILITY.get(
+        aif.promotion_category
+    )
+
+    # 🔹 Filter approver by BOTH product_group and responsibility
+    allowed_groups = AifApprover.objects.filter(
+        approver=user,
+        responsibility=responsibility
+    ).values_list("product_group", flat=True)
+
+    return base_qs.filter(
+        aif=aif_id,
+        product_group__in=allowed_groups
+    )
+
+
+
+
+
+
+
+
 <div
   class="ms-auto d-flex align-items-center gap-2"
   v-if="
