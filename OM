@@ -1,3 +1,28 @@
+class OMEmailsConfig(models.Model):
+    om_emails = models.TextField(
+        max_length=1000,
+        null=True,
+        blank=True,
+        verbose_name="OM Emails"
+    )
+
+    def get_email_list(self):
+        if not self.om_emails:
+            return []
+
+        return [
+            email.strip()
+            for email in self.om_emails.split(";")
+            if email.strip()
+        ]
+
+    def __str__(self):
+        return f"{self.om_emails}"
+
+    class Meta:
+        verbose_name_plural = "OM Emails Config"
+
+
 pandas==3.0.0
 openpyxl==3.1.5
 
