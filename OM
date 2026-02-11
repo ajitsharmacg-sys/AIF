@@ -1,23 +1,42 @@
-from django import forms
-from django.contrib import admin
+from django.db import models
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
-class OMEmailsConfigForm(forms.ModelForm):
-    class Meta:
-        model = OMEmailsConfig
-        fields = "__all__"
 
-    def clean_om_emails(self):
-        value = self.cleaned_data.get("om_emails")
+class OMEmailsConfig(models.Model):
+    om_emails = models.TextField(
+        max_length=1000,
+        null=True,
+        blank=True,
+        verbose_name="OM Emails"
+    )
 
-        if not value:
-            return value
+    def clean(self):
+        if not self.om_emails:
+            return
 
-        emails = [email.strip() for email in value.split(";") if email.strip()]
+        emails = [email.strip() for email in self.om_emails.split(";") if email.strip()]
+
+        invalid_emails = []
 
         for email in emails:
-            validate_email(email)
+            try:
+                validate_email(email)
+            except ValidationError:
+                invalid_emails.append(email)
 
-        return value
+        if invalid_emails:
+            raise ValidationError(
+                {
+                    "om_emails": f"Invalid email(s): {', '.join(invalid_emails)}"
+                }
+            )
+
+    def __str__(self):
+        return self.om_emails or ""
+
+    class Meta:
+        verbose_name_plural = "OM Emails Config"
 
 
 @admin.register(OMEmailsConfig)
