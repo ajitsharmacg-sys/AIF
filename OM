@@ -1,3 +1,25 @@
+if new_status == AifStatusChoices.AWAITING_VALIDATION:
+
+    attachment = prepare_open_orders_attachment(aif)
+    email_config = OMEmailsConfig.objects.first()
+
+    if (
+        email_config
+        and email_config.om_emails
+        and attachment
+        and attachment.get("file_content")
+    ):
+        send_email_with_attachments(
+            to=email_config.om_emails,
+            subject=f"AIF {aif.aif_id} - Open Orders Report",
+            body="Please find the attached Open Orders report.",
+            cc=None,
+            attachments=[attachment],
+        )
+
+
+
+
 from django.db import models
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
