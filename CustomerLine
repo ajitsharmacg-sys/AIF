@@ -1,0 +1,98 @@
+async create_new_customer_lines() {
+    this.dialog.reset_to_default()
+        .set_title("Progress")
+        .set_message("Creating new customer lines, please wait...")
+        .set_true_action("Close")
+        .show();
+
+    let error_occured = false;
+
+    for (let line of this.customer_lines) {
+        if (line.id !== "temp") continue;
+
+        line["aif"] = this.aif.aif_id;
+        delete line["id"];
+
+        await postData(api_endpoints.aif_customer_line, line)
+            .then(response => {
+                if (response.ok) return response.json();
+                return Promise.reject(response);
+            })
+            .catch(error_response => {
+                error_occured = true;
+                this.display_error(error_response);
+            });
+    }
+
+    if (!error_occured) {
+        this.dialog.reset_to_default()
+            .set_title("Progress")
+            .set_message("New customer lines created successfully!")
+            .set_true_action("Close")
+            .show();
+    }
+}
+
+
+async patch_customer_lines() {
+    this.dialog.reset_to_default()
+        .set_title("Progress")
+        .set_message("Editing customer lines, please wait...")
+        .set_true_action("Close")
+        .show();
+
+    let error_occured = false;
+
+    for (const lineid of this.customer_changes.edited_cust_lines) {
+        for (const line of this.customer_lines) {
+            if (lineid === line.id) {
+                await patchData(api_endpoints.aif_customer_line + lineid + "/", line)
+                    .catch(error_response => {
+                        error_occured = true;
+                        this.display_error(error_response);
+                    });
+            }
+        }
+    }
+
+    if (!error_occured) {
+        this.dialog.reset_to_default()
+            .set_title("Progress")
+            .set_message("Customer lines updated successfully!")
+            .set_true_action("Close")
+            .show();
+    }
+}
+
+
+async save() {
+    if (!this.validate_forms()) { return; }
+
+    await this.patch_aif();
+
+    // 🔹 CUSTOMER LINES FIRST
+    await this.create_new_customer_lines();
+    await this.patch_customer_lines();
+    await this.delete_customer_lines();
+
+    // 🔹 AIF LINES
+    await this.create_new_lines();
+    await this.patch_lines();
+    await this.delete_lines();
+
+    await this.upload_to_sharepoint(this.aif);
+
+    this.changes = { new_lines_count: 0, deleted_lines: new Set([]), edited_lines: new Set([]) };
+    this.customer_changes = { new_cust_lines_count: 0, deleted_cust_lines: new Set([]), edited_cust_lines: new Set([]) };
+
+    await this.get_aif(this.aif.aif_id);
+    this.updateAifInList(this.aif);
+
+    this.dialog.reset_to_default()
+        .set_title("Success")
+        .set_message("AIF modified successfully!")
+        .set_true_action("Close")
+        .show();
+
+    this.navigate("aif_view");
+}
