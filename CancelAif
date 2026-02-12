@@ -1,5 +1,40 @@
 def get_queryset(self):
     user = self.request.user
+
+    if not user.groups.filter(name=PSBD_TEAM_USER).exists():
+        return AifLines.objects.all()
+
+    aif_id = self.request.query_params.get("aif")
+    if not aif_id:
+        return AifLines.objects.none()
+
+    aif = Aif.objects.filter(aif_id=aif_id).first()
+    if not aif:
+        return AifLines.objects.none()
+
+    responsibility = PROMOTION_CATEGORY_TO_RESPONSIBILITY.get(
+        aif.promotion_category
+    )
+
+    allowed_groups = AifApprover.objects.filter(
+        approver=user,
+        responsibility=responsibility
+    ).values_list("product_group", flat=True)
+
+    return AifLines.objects.filter(
+        aif=aif,
+        product_group__in=allowed_groups
+    )
+
+
+
+
+
+
+
+
+def get_queryset(self):
+    user = self.request.user
     aif_id = self.request.query_params.get("aif")
 
     base_qs = AifLines.objects.all()
