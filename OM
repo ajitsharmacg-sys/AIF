@@ -1,4 +1,120 @@
 from django.db import connections
+from django.utils import timezone
+from io import BytesIO
+from openpyxl import Workbook
+from openpyxl.styles import Font
+
+
+def prepare_open_orders_attachment(aif):
+    mercury_codes = list(
+        aif.aif_lines.values_list("mercury_code", flat=True)
+    )
+
+    if not mercury_codes:
+        return None
+
+    customers = list(
+        aif.aif_customer_lines.values_list("oracle_cust_number", flat=True)
+    )
+
+    pricing_date = aif.start_date  # DateField (DATE only)
+
+    # Dynamic placeholders
+    mercury_placeholders = ",".join(["%s"] * len(mercury_codes))
+
+    sql = f"""
+        SELECT
+            CAST(ORDERED_DATE AS DATE) AS ORDERED_DATE,
+            ORDER_NUMBER,
+            ORDER_LINE_NUMBER_DETAIL,
+            ORDERED_ITEM,
+            CAST(PRICING_DATE AS DATE) AS PRICING_DATE,
+            UNIT_SELLING_PRICE,
+            UNIT_LIST_PRICE,
+            OPERATING_NAME,
+            PARTY_NUMBER
+        FROM dbo.OpenOrders_AIF
+        WHERE
+            CAST(PRICING_DATE AS DATE) = %s
+            AND LEFT(ORDERED_ITEM, 8) IN ({mercury_placeholders})
+    """
+
+    params = [pricing_date] + mercury_codes
+
+    if customers:
+        customer_placeholders = ",".join(["%s"] * len(customers))
+        sql += f" AND PARTY_NUMBER IN ({customer_placeholders})"
+        params += customers
+
+    # Execute query
+    with connections["powerbi"].cursor() as cursor:
+        cursor.execute(sql, params)
+        columns = [col[0] for col in cursor.description]
+        rows = cursor.fetchall()
+
+    if not rows:
+        return None
+
+    # Create Excel workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Open Orders"
+
+    # Format headers (replace _ with space)
+    formatted_headers = [col.replace("_", " ").title() for col in columns]
+    ws.append(formatted_headers)
+
+    # Bold header row
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+
+    # Add data rows
+    for row in rows:
+        ws.append(row)
+
+    # Auto column width
+    for column in ws.columns:
+        max_length = 0
+        column_letter = column[0].column_letter
+
+        for cell in column:
+            if cell.value:
+                max_length = max(max_length, len(str(cell.value)))
+
+        ws.column_dimensions[column_letter].width = max_length + 2
+
+    ws.freeze_panes = "A2"
+
+    # Save to memory
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    filename = (
+        f"OpenOrders_AIF_{aif.aif_id}_"
+        f"{timezone.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    )
+
+    return {
+        "file_name": filename,
+        "file_content": buffer.getvalue(),
+        "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+from django.db import connections
 from io import BytesIO
 from django.utils import timezone
 from openpyxl.styles import Font
