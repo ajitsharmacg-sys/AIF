@@ -1,12 +1,11 @@
+from django.db import connections
 from io import BytesIO
-from django.db import connection
 from django.utils import timezone
 from openpyxl.styles import Font
 import pandas as pd
 
 
 def prepare_open_orders_attachment(aif):
-    # 1️⃣ Get mercury codes
     mercury_codes = list(
         aif.aif_lines.values_list("mercury_code", flat=True)
     )
@@ -14,14 +13,13 @@ def prepare_open_orders_attachment(aif):
     if not mercury_codes:
         return None
 
-    # 2️⃣ Get customers (optional)
     customers = list(
         aif.aif_customer_lines.values_list("oracle_cust_number", flat=True)
     )
 
-    pricing_date = aif.start_date  # DateField → already DATE
+    pricing_date = aif.start_date  # DateField → already DATE only
 
-    # 3️⃣ Build dynamic placeholders for SQL Server
+    # Build dynamic placeholders for IN clause
     mercury_placeholders = ",".join(["%s"] * len(mercury_codes))
 
     sql = f"""
@@ -35,7 +33,7 @@ def prepare_open_orders_attachment(aif):
             UNIT_LIST_PRICE,
             OPERATING_NAME,
             PARTY_NUMBER
-        FROM [PowerBI].[dbo].[OpenOrders_AIF]
+        FROM dbo.OpenOrders_AIF
         WHERE
             CAST(PRICING_DATE AS DATE) = %s
             AND LEFT(ORDERED_ITEM, 8) IN ({mercury_placeholders})
@@ -43,26 +41,21 @@ def prepare_open_orders_attachment(aif):
 
     params = [pricing_date] + mercury_codes
 
-    # 4️⃣ Add customer filter if exists
     if customers:
         customer_placeholders = ",".join(["%s"] * len(customers))
         sql += f" AND PARTY_NUMBER IN ({customer_placeholders})"
         params += customers
 
-    # 5️⃣ Execute safely
-    try:
-        df = pd.read_sql(sql, connection, params=params)
-    except Exception as e:
-        print("Open Orders SQL Error:", e)
-        return None
+    # Use PowerBI database connection
+    df = pd.read_sql(sql, connections["powerbi"].connection, params=params)
 
     if df.empty:
         return None
 
-    # 6️⃣ Format column headers (replace _ with space)
+    # Format column headers (replace _ with space)
     df.columns = df.columns.str.replace("_", " ").str.title()
 
-    # 7️⃣ Write Excel in memory
+    # Write Excel in memory
     buffer = BytesIO()
 
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
@@ -71,7 +64,7 @@ def prepare_open_orders_attachment(aif):
         workbook = writer.book
         worksheet = writer.sheets["Open Orders"]
 
-        # Bold header
+        # Bold header row
         for cell in worksheet[1]:
             cell.font = Font(bold=True)
 
@@ -90,7 +83,6 @@ def prepare_open_orders_attachment(aif):
 
     buffer.seek(0)
 
-    # 8️⃣ File name
     filename = (
         f"OpenOrders_AIF_{aif.aif_id}_"
         f"{timezone.now().strftime('%Y%m%d_%H%M')}.xlsx"
@@ -101,7 +93,6 @@ def prepare_open_orders_attachment(aif):
         "file_content": buffer.getvalue(),
         "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     }
-
 
 
 
