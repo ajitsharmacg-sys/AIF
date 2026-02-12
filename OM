@@ -1,3 +1,95 @@
+
+
+
+from openpyxl.utils import get_column_letter
+
+def prepare_open_orders_attachment(aif):
+    mercury_codes = list(
+        aif.aif_lines.values_list("mercury_code", flat=True)
+    )
+
+    if not mercury_codes:
+        return None
+
+    customers = list(
+        aif.aif_customer_lines.values_list("oracle_cust_number", flat=True)
+    )
+
+    pricing_date = aif.start_date
+
+    mercury_placeholders = ",".join(["%s"] * len(mercury_codes))
+
+    sql = f"""
+        SELECT
+            CAST(ORDERED_DATE AS DATE) AS ORDERED_DATE,
+            ORDER_NUMBER,
+            ORDER_LINE_NUMBER_DETAIL,
+            ORDERED_ITEM,
+            CAST(PRICING_DATE AS DATE) AS PRICING_DATE,
+            UNIT_SELLING_PRICE,
+            UNIT_LIST_PRICE,
+            OPERATING_NAME,
+            PARTY_NUMBER
+        FROM dbo.OpenOrders_AIF
+        WHERE
+            CAST(PRICING_DATE AS DATE) = %s
+            AND LEFT(ORDERED_ITEM, 8) IN ({mercury_placeholders})
+    """
+
+    params = [pricing_date] + mercury_codes
+
+    if customers:
+        customer_placeholders = ",".join(["%s"] * len(customers))
+        sql += f" AND PARTY_NUMBER IN ({customer_placeholders})"
+        params += customers
+
+    with connections["powerbi"].cursor() as cursor:
+        cursor.execute(sql, params)
+        columns = [col[0] for col in cursor.description]
+        rows = cursor.fetchall()
+
+    if not rows:
+        return None
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Open Orders"
+
+    # Format headers
+    headers = [col.replace("_", " ").title() for col in columns]
+    ws.append(headers)
+
+    # Bold header
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+
+    # ✅ Set column width ONLY based on header length
+    for col_index, header in enumerate(headers, start=1):
+        column_letter = get_column_letter(col_index)
+        ws.column_dimensions[column_letter].width = len(header) + 4
+
+    # Add data rows
+    for row in rows:
+        ws.append(row)
+
+    ws.freeze_panes = "A2"
+
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    encoded_file = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+    filename = (
+        f"OpenOrders_AIF_{aif.aif_id}_"
+        f"{timezone.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    )
+
+    return {
+        "Name": filename,
+        "ContentBytes": encoded_file,
+    }
+
 import base64
 from io import BytesIO
 from openpyxl import Workbook
