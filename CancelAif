@@ -1,10 +1,13 @@
 def get_queryset(self):
     user = self.request.user
 
-    if not user.groups.filter(name=PSBD_TEAM_USER).exists():
+    # 🔹 For PATCH / GET single object / DELETE → don't restrict queryset
+    if self.action in ["retrieve", "update", "partial_update", "destroy"]:
         return AifLines.objects.all()
 
+    # 🔹 From here → only LIST action
     aif_id = self.request.query_params.get("aif")
+
     if not aif_id:
         return AifLines.objects.none()
 
@@ -12,6 +15,11 @@ def get_queryset(self):
     if not aif:
         return AifLines.objects.none()
 
+    # 🔹 If NOT PSBD → return all lines for that AIF
+    if not user.groups.filter(name=PSBD_TEAM_USER).exists():
+        return AifLines.objects.filter(aif=aif)
+
+    # 🔹 PSBD users → restrict by responsibility
     responsibility = PROMOTION_CATEGORY_TO_RESPONSIBILITY.get(
         aif.promotion_category
     )
@@ -25,12 +33,6 @@ def get_queryset(self):
         aif=aif,
         product_group__in=allowed_groups
     )
-
-
-
-
-
-
 
 
 def get_queryset(self):
