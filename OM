@@ -1,3 +1,21 @@
+<section class="section" id="aif_app">
+    <div v-if="nav_state.aif_app">
+
+        <!-- ✅ GLOBAL LOADER HERE -->
+        <div v-if="isLoading"
+             class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75"
+             style="z-index: 1055;">
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status"></div>
+                <div class="small mt-2 text-muted">Processing...</div>
+            </div>
+        </div>
+
+        <!-- Existing content continues -->
+        <div class="fs-4 mb-3">
+            ...
+
+
 async paste_customer_from_excel(line_item, index, event) {
     this.isLoading = true;
 
