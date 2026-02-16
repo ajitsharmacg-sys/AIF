@@ -1,3 +1,76 @@
+async paste_customer_from_excel(line_item, index, event) {
+    this.isLoading = true;
+
+    const text = event.clipboardData.getData("text/plain");
+    const copied_lines = text.trim().split(/\r?\n/);
+
+    if (!copied_lines.length) {
+        this.isLoading = false;
+        return;
+    }
+
+    // Step 1: Validate format only
+    for (let i = 0; i < copied_lines.length; i++) {
+        const customer = copied_lines[i].split("\t")[0]?.trim();
+
+        if (!customer || !/^[a-zA-Z0-9]+$/.test(customer)) {
+            this.showExcelValidationError(
+                i,
+                "Customer Number must be alphanumeric and not blank."
+            );
+            this.isLoading = false;
+            return;
+        }
+    }
+
+    const rowRefs = [];
+
+    // Step 2: Insert rows first (same pattern as mercury)
+    for (let i = 0; i < copied_lines.length; i++) {
+
+        const customer_number = copied_lines[i].split("\t")[0].trim();
+
+        let row;
+
+        if (i === 0 && !line_item[index]?.oracle_cust_number) {
+            row = line_item[index];
+        } else {
+            line_item.splice(index, 0, {});
+            row = line_item[index];
+        }
+
+        row.oracle_cust_number = customer_number;
+
+        if (this.nav_state.context === "edit") {
+            row.id = "temp";
+        }
+
+        rowRefs.push(row);
+        index++;
+    }
+
+    // Step 3: Validate each row against DB
+    for (const row of rowRefs) {
+
+        const currentIndex = line_item.indexOf(row);
+        if (currentIndex === -1) continue;
+
+        await this.handle_customer_change(
+            line_item,
+            currentIndex,
+            row.oracle_cust_number
+        );
+    }
+
+    this.isLoading = false;
+}
+
+
+
+
+
+
+
 updateExchangeRate(recalculate = false) {
     if (!this.aif.local_currency) return;
 
