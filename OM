@@ -1,3 +1,66 @@
+updateExchangeRate(recalculate = false) {
+    if (!this.aif.local_currency) return;
+
+    this.isLoading = true;
+
+    const url = `${api_endpoints.exchange_rates}?to_currency=${encodeURIComponent(this.aif.local_currency)}`;
+
+    fetch(url)
+        .then(res => {
+            if (!res.ok) return Promise.reject(res);
+            return res.json();
+        })
+        .then(data => {
+
+            // 🔴 NEW: Handle empty response
+            if (!data || data.length === 0) {
+                this.isLoading = false;
+
+                this.aif.exchange_rate = "";
+
+                this.dialog
+                    .reset_to_default()
+                    .set_title("Exchange Rate Not Found")
+                    .set_message(`No exchange rate found for currency ${this.aif.local_currency}. Please contact Admin.`)
+                    .set_true_action("Close")
+                    .show();
+
+                return;  // ⛔ Stop execution
+            }
+
+            const rate = parseFloat(data[0].conversion_rate);
+
+            if (isNaN(rate)) {
+                this.isLoading = false;
+
+                this.dialog
+                    .reset_to_default()
+                    .set_title("Invalid Exchange Rate")
+                    .set_message("Exchange rate value is invalid. Please contact Admin.")
+                    .set_true_action("Close")
+                    .show();
+
+                return;
+            }
+
+            this.aif.exchange_rate = rate.toFixed(2);
+
+            if (recalculate) {
+                this.recalculateAllLines();
+            }
+
+            this.isLoading = false;
+        })
+        .catch(err => {
+            this.display_error(err, "Failed to load exchange rate");
+            this.isLoading = false;
+        });
+},
+
+
+
+
+
 onNSOChange(event) {
     const nso = event.target.value;
     if (!nso) return;
