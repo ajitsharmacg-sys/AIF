@@ -1,4 +1,53 @@
+onNSOChange(event) {
+    const nso = event.target.value;
+    if (!nso) return;
 
+    this.isLoading = true;
+
+    const url = api_endpoints.nso_currency_opunit + "?nso=" + encodeURIComponent(nso);
+
+    fetch(url)
+        .then(res => {
+            if (!res.ok) return Promise.reject(res);
+            return res.json();
+        })
+        .then(data => {
+
+            // 🔴 NEW: If empty response
+            if (!data || data.length === 0) {
+                this.isLoading = false;
+
+                this.aif.local_currency = "";
+                this.aif.exchange_rate = "";
+
+                this.dialog
+                    .reset_to_default()
+                    .set_title("Configuration Missing")
+                    .set_message(`No NSO Currency / Operating Unit configuration found for ${nso}. Please contact Admin.`)
+                    .set_true_action("Close")
+                    .show();
+
+                return;  // ⛔ Stop execution
+            }
+
+            const config = data[0];
+            const currency = config.currency;
+
+            this.aif.local_currency = currency;
+
+            if (currency === "EUR") {
+                this.aif.exchange_rate = 1;
+                this.recalculateAllLines();
+                this.isLoading = false;
+            } else {
+                this.updateExchangeRate(true);
+            }
+        })
+        .catch(err => {
+            this.display_error(err, "Failed to load NSO configuration");
+            this.isLoading = false;
+        });
+},
 
 
 from openpyxl.utils import get_column_letter
