@@ -1,3 +1,32 @@
+canSelectAnyLine() {
+  if (!this.selected_aif?.aif_lines?.length) return false;
+
+  if (this.user_role.includes(this.admin_role)) {
+    return true;
+  }
+
+  return this.selected_aif.aif_lines.some(line =>
+    this.get_line_status(line)?.status === "AWAITING_APPROVAL" &&
+    this.canActOnLine(line)
+  );
+}
+<input
+    id="select_all_lines_checkbox"
+    title="Select all"
+    class="form-check-input border-secondary"
+    type="checkbox"
+    :disabled="!canSelectAnyLine"
+    @click="select_all_lines($event)"
+/>
+
+
+
+
+
+
+
+
+
 def prepare_open_orders_attachment(aif):
     mercury_codes = list(aif.aif_lines.values_list("mercury_code", flat=True))
     if not mercury_codes:
