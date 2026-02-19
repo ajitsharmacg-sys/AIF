@@ -1,3 +1,129 @@
+def build_om_email_body(aif: Aif) -> str:
+
+    # ---------------- Customers ----------------
+    customers_html = ""
+    if aif.aif_customer_lines.exists():
+        for cust in aif.aif_customer_lines.all():
+            customers_html += f"""
+                <tr>
+                    <td>{cust.oracle_cust_number}</td>
+                    <td>{cust.oracle_cust_name or ''}</td>
+                </tr>
+            """
+    else:
+        customers_html = """
+            <tr>
+                <td colspan="2" style="text-align:center;">
+                    All customers for selected NSO
+                </td>
+            </tr>
+        """
+
+    # ---------------- Products ----------------
+    lines_html = ""
+    for line in aif.aif_lines.all():
+        lines_html += f"""
+            <tr>
+                <td>{line.product_group or ''}</td>
+                <td>{line.mercury_code}</td>
+                <td>{line.product_description or ''}</td>
+                <td>{line.elp_eur}</td>
+                <td>{line.elp}</td>
+                <td>{line.promotional_elp}</td>
+            </tr>
+        """
+
+    return f"""
+    <div style="font-family: Arial, sans-serif; font-size: 14px;">
+
+        Dear OM Team,<br><br>
+
+        Please be advised the ONINVOICE promotion request has been implemented in Oracle.<br><br>
+
+        Kindly review the attached document for the list of impacted orders.<br><br>
+
+        If an order was booked prior to the implementation date of the AIF,
+        please refresh the order accordingly.<br><br>
+
+        <br>
+
+        <!-- ================= SINGLE OUTER TABLE ================= -->
+        <table border="1" cellpadding="8" cellspacing="0" width="100%" 
+               style="border-collapse: collapse;">
+
+            <!-- ======= TOP SECTION (2 Blocks) ======= -->
+            <tr>
+                <!-- Promotion Period Block -->
+                <td width="50%" valign="top">
+
+                    <strong>Promotion Period</strong><br><br>
+
+                    <table width="100%" border="0">
+                        <tr>
+                            <td><strong>Start Date:</strong></td>
+                            <td>{aif.start_date}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>End Date:</strong></td>
+                            <td>{aif.end_date}</td>
+                        </tr>
+                    </table>
+
+                </td>
+
+                <!-- Customer Block -->
+                <td width="50%" valign="top">
+
+                    <strong>Customer Details</strong><br><br>
+
+                    <table width="100%" border="1" 
+                           style="border-collapse: collapse;">
+                        <tr>
+                            <th>Customer No</th>
+                            <th>Customer Name</th>
+                        </tr>
+                        {customers_html}
+                    </table>
+
+                </td>
+            </tr>
+
+            <!-- ======= PRODUCT SECTION (FULL WIDTH) ======= -->
+            <tr>
+                <td colspan="2" valign="top">
+
+                    <br>
+                    <strong>Product Details</strong><br><br>
+
+                    <table width="100%" border="1" 
+                           style="border-collapse: collapse;">
+                        <tr>
+                            <th>Product Group</th>
+                            <th>Mercury Code</th>
+                            <th>Product Description</th>
+                            <th>ELP (EUR)</th>
+                            <th>Local ELP</th>
+                            <th>Promo ELP</th>
+                        </tr>
+                        {lines_html}
+                    </table>
+
+                </td>
+            </tr>
+
+        </table>
+
+        <br><br>
+
+        Thanks,<br>
+        Kind Regards,<br>
+        Rev Sales Ops Team
+
+    </div>
+    """
+
+
+
 if new_status == AifStatusChoices.AWAITING_VALIDATION:
     attachment = prepare_open_orders_attachment(aif)
     email_config = OMEmailsConfig.objects.filter(nso=aif.nso).first()
