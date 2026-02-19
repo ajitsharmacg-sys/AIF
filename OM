@@ -1,5 +1,127 @@
 if new_status == AifStatusChoices.AWAITING_VALIDATION:
     attachment = prepare_open_orders_attachment(aif)
+    email_config = OMEmailsConfig.objects.filter(nso=aif.nso).first()
+
+    email_body = build_om_email_body(aif)
+
+    if email_config and email_config.om_emails and attachment:
+        send_email_with_attachments(
+            to=email_config.om_emails,
+            subject=f"AIF {aif.aif_id} - Open Orders Report",
+            body=email_body,
+            cc=None,
+            attachments=[attachment],
+        )
+
+def build_om_email_body(aif: Aif) -> str:
+    customers_html = ""
+    if aif.aif_customer_lines.exists():
+        for cust in aif.aif_customer_lines.all():
+            customers_html += f"""
+                <tr>
+                    <td>{cust.oracle_cust_number}</td>
+                    <td>{cust.oracle_cust_name or ''}</td>
+                </tr>
+            """
+    else:
+        customers_html = """
+            <tr>
+                <td colspan="2" style="text-align:center;">
+                    All customers for selected NSO
+                </td>
+            </tr>
+        """
+
+    lines_html = ""
+    for line in aif.aif_lines.all():
+        lines_html += f"""
+            <tr>
+                <td>{line.product_group or ''}</td>
+                <td>{line.mercury_code}</td>
+                <td>{line.product_description or ''}</td>
+                <td>{line.elp_eur}</td>
+                <td>{line.elp}</td>
+                <td>{line.promotional_elp}</td>
+            </tr>
+        """
+
+    return f"""
+    <div style="font-family: Arial, sans-serif; font-size: 14px;">
+
+        <p>Dear OM Team,</p>
+
+        <p>
+            Please be advised the ONINVOICE promotion request has been implemented in Oracle.
+        </p>
+
+        <hr>
+
+        <h4>AIF Information</h4>
+        <p><strong>AIF Reference:</strong> {aif.aif_id}</p>
+        <p><strong>NSO:</strong> {aif.nso}</p>
+        <p><strong>Promotion Category:</strong> {aif.promotion_category}</p>
+
+        <br>
+
+        <h4>Promotion Period</h4>
+        <table border="1" cellpadding="6" cellspacing="0" width="50%">
+            <tr>
+                <th align="left">Start Date</th>
+                <td>{aif.start_date}</td>
+            </tr>
+            <tr>
+                <th align="left">End Date</th>
+                <td>{aif.end_date}</td>
+            </tr>
+        </table>
+
+        <br>
+
+        <h4>Customer Details</h4>
+        <table border="1" cellpadding="6" cellspacing="0" width="100%">
+            <tr>
+                <th>Customer No</th>
+                <th>Customer Name</th>
+            </tr>
+            {customers_html}
+        </table>
+
+        <br>
+
+        <h4>Product Details</h4>
+        <table border="1" cellpadding="6" cellspacing="0" width="100%">
+            <tr>
+                <th>Product Group</th>
+                <th>Mercury Code</th>
+                <th>Product Description</th>
+                <th>ELP (EUR)</th>
+                <th>Local ELP</th>
+                <th>Promo ELP</th>
+            </tr>
+            {lines_html}
+        </table>
+
+        <br>
+
+        <p>
+            Kindly review the attached document for the list of impacted orders.
+        </p>
+
+        <br>
+
+        <p>
+            Thanks,<br>
+            Kind Regards,<br>
+            <strong>Rev Sales Ops Team</strong>
+        </p>
+
+    </div>
+    """
+
+
+
+if new_status == AifStatusChoices.AWAITING_VALIDATION:
+    attachment = prepare_open_orders_attachment(aif)
 
     email_config = OMEmailsConfig.objects.filter(
         nso=aif.nso
