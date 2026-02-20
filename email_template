@@ -1,3 +1,57 @@
+def get_aif_email_body(request, aif, status, comment=None):
+
+    link = f"{request.build_absolute_uri('/aifmgmt/aif/')}{aif.aif_id}/"
+
+    if status == AifStatusChoices.AWAITING_VALIDATION:
+        return build_validation_request_body(aif, link)
+
+    elif status == AifStatusChoices.PLANNED:
+        return build_planned_body(aif, link)
+
+    elif status == AifStatusChoices.COMMERCIALLY_APPROVED:
+        return build_commercially_approved_body(aif, link)
+
+    elif status == AifStatusChoices.INVALID:
+        return build_invalid_body(aif, comment, link)
+
+    elif status == AifStatusChoices.CLOSED:
+        return build_closed_body(aif, link)
+
+    return ""
+
+
+def build_validation_request_body(aif, link: str) -> str:
+    content = f"""
+    <h4>Dear {aif.meta_created_by.first_name},</h4>
+
+    <p>
+    Please validate your ONINVOICE promotion request within 48 hours.
+    </p>
+
+    <p>
+    <strong>Promotion Reference:</strong> {aif.aif_id}<br>
+    <strong>Promotion Status:</strong> Closed<br>
+    <strong>Validation Status:</strong> Pending
+    </p>
+
+    <p>
+    <a href="{link}">View Promotion</a>
+    </p>
+    """
+
+    return base_html_wrapper(content)
+
+
+
+
+
+
+
+
+
+
+
+
 # aif/email_templates.py
 
 # =========================================================
