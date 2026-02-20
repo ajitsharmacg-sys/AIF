@@ -1,3 +1,60 @@
+def signature_user(first_name: str) -> str:
+    return f"""
+    <p>
+    Thanks,<br>
+    Kind regards,<br>
+    {first_name}
+    </p>
+    """
+
+
+ITCG_SIGNATURE = """
+<p>
+Thanks,<br>
+Kind regards,<br>
+ITCG Rev Sales Operations
+</p>
+"""
+
+
+AIF_FLOW_SIGNATURE = """
+<p>
+Thanks,<br>
+Kind regards,<br>
+AIF Flow
+</p>
+"""
+
+
+REV_SALES_OPS_SIGNATURE = """
+<p>
+Thanks,<br>
+Kind Regards,<br>
+Rev Sales Ops Team
+</p>
+"""
+
+def base_html_wrapper(content: str, signature: str) -> str:
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+    </head>
+    <body style="font-family: Arial, sans-serif; font-size:14px; color:#333;">
+        {content}
+        <br><br>
+        {signature}
+    </body>
+    </html>
+    """
+
+return base_html_wrapper(content, signature_user(aif.meta_created_by.first_name))
+return base_html_wrapper(content, ITCG_SIGNATURE)
+return base_html_wrapper(content, ITCG_SIGNATURE)
+
+
+
 def get_aif_email_body(request, aif, status, comment=None):
 
     link = f"{request.build_absolute_uri('/aifmgmt/aif/')}{aif.aif_id}/"
