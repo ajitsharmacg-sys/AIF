@@ -1,0 +1,334 @@
+# aif/email_templates.py
+
+# =========================================================
+# BASE LAYOUT
+# =========================================================
+
+def base_html_wrapper(content: str) -> str:
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+    </head>
+    <body style="font-family: Arial, sans-serif; font-size:14px; color:#333;">
+        {content}
+        <br><br>
+        <p>
+        Kind Regards,<br>
+        Revenue Sales Operations
+        </p>
+    </body>
+    </html>
+    """
+  def build_awaiting_validation_body(aif) -> str:
+    customers_html = ""
+
+    if aif.aif_customer_lines.exists():
+        for cust in aif.aif_customer_lines.all():
+            customers_html += f"""
+            <tr>
+                <td style="padding:6px;">{cust.oracle_cust_number}</td>
+                <td style="padding:6px;">{cust.oracle_cust_name or ''}</td>
+            </tr>
+            """
+    else:
+        customers_html = """
+        <tr>
+            <td colspan="2" style="padding:6px; text-align:center;">
+                All customers for selected NSO
+            </td>
+        </tr>
+        """
+
+    lines_html = ""
+    for line in aif.aif_lines.all():
+        lines_html += f"""
+        <tr>
+            <td style="padding:6px;">{line.product_group or ''}</td>
+            <td style="padding:6px;">{line.mercury_code}</td>
+            <td style="padding:6px;">{line.product_description or ''}</td>
+            <td style="padding:6px; text-align:right;">{line.elp_eur}</td>
+            <td style="padding:6px; text-align:right;">{line.elp}</td>
+            <td style="padding:6px; text-align:right;">{line.promotional_elp}</td>
+        </tr>
+        """
+
+    content = f"""
+    <h4>Dear OM Team,</h4>
+
+    <p>
+    Please be advised the ONINVOICE promotion request has been implemented in Oracle.
+    Kindly review the attached document for impacted orders.
+    </p>
+
+    <br>
+
+    <table width="100%" cellpadding="10" cellspacing="0"
+           style="border:1px solid #ddd; border-collapse:collapse;">
+
+        <tr>
+            <td width="50%" valign="top" style="border-right:1px solid #ddd;">
+                <strong>Promotion Period</strong><br><br>
+                <div><strong>Start Date:</strong> {aif.start_date}</div>
+                <div><strong>End Date:</strong> {aif.end_date}</div>
+            </td>
+
+            <td width="50%" valign="top">
+                <strong>Customer Details</strong><br><br>
+                <table width="100%">
+                    <tr style="background:#f4f6f8;">
+                        <th align="left">Customer No</th>
+                        <th align="left">Customer Name</th>
+                    </tr>
+                    {customers_html}
+                </table>
+            </td>
+        </tr>
+
+        <tr>
+            <td colspan="2" style="border-top:1px solid #ddd;">
+                <br>
+                <strong>Product Details</strong><br><br>
+                <table width="100%">
+                    <tr style="background:#f4f6f8;">
+                        <th align="left">Product Group</th>
+                        <th align="left">Mercury Code</th>
+                        <th align="left">Product Description</th>
+                        <th align="right">ELP (EUR)</th>
+                        <th align="right">Local ELP</th>
+                        <th align="right">Promo ELP</th>
+                    </tr>
+                    {lines_html}
+                </table>
+            </td>
+        </tr>
+
+    </table>
+    """
+
+    return base_html_wrapper(content)
+
+  def build_planned_body(aif, link: str) -> str:
+    content = f"""
+    <h4>Dear {aif.meta_created_by.first_name},</h4>
+
+    <p>
+    Your ONINVOICE promotion request has been submitted to the Commercial Planning Team.
+    </p>
+
+    <p>
+    <a href="{link}">View Promotion</a>
+    </p>
+    """
+
+    return base_html_wrapper(content)
+
+  def build_commercially_approved_body(aif, link: str) -> str:
+    content = f"""
+    <h4>Dear {aif.meta_created_by.first_name},</h4>
+
+    <p>
+    Your promotion request has received commercial approval
+    and has been forwarded to Revenue Operations.
+    </p>
+
+    <p>
+    <a href="{link}">View Promotion</a>
+    </p>
+    """
+
+    return base_html_wrapper(content)
+
+    def build_invalid_body(aif, comment: str, link: str) -> str:
+    content = f"""
+    <h4>Dear {aif.meta_created_by.first_name},</h4>
+
+    <p>
+    Your ONINVOICE promotion request has been rejected.
+    </p>
+
+    <p><strong>Reason:</strong> {comment or "-"}</p>
+
+    <p>
+    <a href="{link}">View Promotion</a>
+    </p>
+    """
+
+    return base_html_wrapper(content)
+
+    def build_closed_body(aif, link: str) -> str:
+    content = f"""
+    <h4>Dear Team,</h4>
+
+    <p>
+    The promotion request has been successfully completed.
+    </p>
+
+    <p>
+    <a href="{link}">View Promotion</a>
+    </p>
+    """
+
+    return base_html_wrapper(content)
+
+
+
+
+
+    from aif.email_templates import (
+    build_om_email_body,
+    build_validation_request_body,
+    build_planned_body,
+    build_commercially_approved_body,
+    build_invalid_body,
+    build_closed_body,
+)
+
+
+def send_aif_status_notification(
+    request: HttpRequest,
+    aif: Aif,
+    new_status: str,
+    comment: str,
+):
+    cc_mail = aif.email_cc or ""
+
+    if new_status == AifStatusChoices.AWAITING_VALIDATION:
+
+        attachment = prepare_open_orders_attachment(aif)
+        email_config = OMEmailsConfig.objects.filter(nso=aif.nso).first()
+
+        # ✅ OM Email Body from template file
+        if email_config and email_config.om_emails and attachment:
+            send_email_with_attachments(
+                to=email_config.om_emails,
+                subject=f"AIF {aif.aif_id} - Open Orders Report",
+                body=build_om_email_body(aif),
+                cc=None,
+                attachments=[attachment],
+            )
+
+        # ✅ Validation Email to creator
+        send_email(
+            to=aif.meta_created_by.email,
+            cc=cc_mail,
+            subject=f"Promotion Ref:{aif.aif_id} Validation Request",
+            body=build_validation_request_body(request, aif),
+        )
+
+    elif new_status == AifStatusChoices.PLANNED:
+
+        send_email(
+            to=aif.meta_created_by.email,
+            cc=cc_mail,
+            subject=f"Promotion Ref: {aif.aif_id} is now with Commercial Planning Team",
+            body=build_planned_body(request, aif),
+        )
+
+    elif new_status == AifStatusChoices.COMMERCIALLY_APPROVED:
+
+        send_email_to_group(
+            to=Group.objects.get(name=SALES_OPS_USER),
+            cc=aif.meta_created_by.email,
+            subject=f"Promotion Ref: {aif.aif_id} is now with Revenue Ops Team",
+            body=build_commercially_approved_body(request, aif),
+        )
+
+    elif new_status == AifStatusChoices.INVALID:
+
+        send_email(
+            to=aif.meta_created_by.email,
+            cc=cc_mail,
+            subject=f"Promotion Ref: {aif.aif_id} has been Rejected",
+            body=build_invalid_body(request, aif, comment),
+        )
+
+    elif new_status == AifStatusChoices.CLOSED:
+
+        send_email_to_group(
+            to=Group.objects.get(name=SALES_OPS_USER),
+            subject=f"Promotion Ref:{aif.aif_id} has been completed",
+            body=build_closed_body(request, aif),
+        )
+
+
+
+# email_templates.py
+
+from aif.models import AifStatusChoices
+
+
+def get_aif_email_body(request, aif, status, comment=None):
+    """
+    Central dispatcher for all AIF email bodies.
+    """
+
+    if status == AifStatusChoices.AWAITING_VALIDATION:
+        return build_validation_request_body(request, aif)
+
+    elif status == AifStatusChoices.PLANNED:
+        return build_planned_body(request, aif)
+
+    elif status == AifStatusChoices.COMMERCIALLY_APPROVED:
+        return build_commercially_approved_body(request, aif)
+
+    elif status == AifStatusChoices.INVALID:
+        return build_invalid_body(request, aif, comment)
+
+    elif status == AifStatusChoices.CLOSED:
+        return build_closed_body(request, aif)
+
+    return ""
+
+
+
+  from aif.email_templates import (
+    build_om_email_body,
+    get_aif_email_body,
+)
+
+
+
+def send_aif_status_notification(
+    request: HttpRequest,
+    aif: Aif,
+    new_status: str,
+    comment: str,
+):
+    cc_mail = aif.email_cc or ""
+
+    # ================= OM EMAIL =================
+    if new_status == AifStatusChoices.AWAITING_VALIDATION:
+        attachment = prepare_open_orders_attachment(aif)
+        email_config = OMEmailsConfig.objects.filter(nso=aif.nso).first()
+
+        if email_config and email_config.om_emails and attachment:
+            send_email_with_attachments(
+                to=email_config.om_emails,
+                subject=f"AIF {aif.aif_id} - Open Orders Report",
+                body=build_om_email_body(aif),
+                cc=None,
+                attachments=[attachment],
+            )
+
+    # ================= STANDARD STATUS EMAIL =================
+    body = get_aif_email_body(request, aif, new_status, comment)
+
+    if not body:
+        return
+
+    if new_status == AifStatusChoices.COMMERCIALLY_APPROVED:
+        send_email_to_group(
+            to=Group.objects.get(name=SALES_OPS_USER),
+            cc=aif.meta_created_by.email,
+            subject=f"Promotion Ref: {aif.aif_id}",
+            body=body,
+        )
+    else:
+        send_email(
+            to=aif.meta_created_by.email,
+            cc=cc_mail,
+            subject=f"Promotion Ref: {aif.aif_id}",
+            body=body,
+        )
