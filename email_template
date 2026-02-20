@@ -1,3 +1,24 @@
+def build_closed_for_revops_template(aif, link: str) -> str:
+    content = f"""
+    <h4>Dear Rev Ops Team,</h4>
+
+    <p>
+    The promotion request has been successfully completed.
+    </p>
+
+    <p>
+    Please click the link below to review the promotion details:<br>
+    <a href="{link}">{link}</a>
+    </p>
+
+    <p>
+    Please note that this promotion request is subject to SOX audit review.
+    </p>
+    """
+
+    return base_html_wrapper(content, ITCG_SIGNATURE)
+
+
 def signature_user(first_name: str) -> str:
     return f"""
     <p>
