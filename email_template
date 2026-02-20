@@ -1,6 +1,44 @@
 from aif.models import AifStatusChoices
 
 
+def get_aif_cc(aif, status):
+
+    # AWAITING VALIDATION
+    if status == AifStatusChoices.AWAITING_VALIDATION:
+        return aif.email_cc or None
+
+    # PLANNED
+    if status == AifStatusChoices.PLANNED:
+        return aif.email_cc or None
+
+    # COMMERCIALLY APPROVED
+    if status == AifStatusChoices.COMMERCIALLY_APPROVED:
+        return aif.meta_created_by.email
+
+    # INVALID
+    if status == AifStatusChoices.INVALID:
+        return aif.email_cc or None
+
+    # CLOSED
+    if status == AifStatusChoices.CLOSED:
+        return aif.email_cc or None
+
+    return None
+
+cc_mail = get_aif_cc(aif, new_status)
+
+
+
+
+
+
+
+
+
+
+from aif.models import AifStatusChoices
+
+
 # =====================================================
 # SIGNATURES
 # =====================================================
