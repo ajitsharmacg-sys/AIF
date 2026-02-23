@@ -1,3 +1,29 @@
+def clean_om_emails(self):
+    value = self.cleaned_data.get("om_emails")
+
+    if not value:
+        return value
+
+    # Split + strip spaces
+    emails = [email.strip() for email in value.split(";") if email.strip()]
+    invalid_emails = []
+
+    for email in emails:
+        try:
+            validate_email(email)
+        except ValidationError:
+            invalid_emails.append(email)
+
+    if invalid_emails:
+        raise forms.ValidationError(
+            f"Invalid email(s): {', '.join(invalid_emails)}"
+        )
+
+    # ✅ Return cleaned & normalized value
+    return ";".join(emails)
+
+
+
 from aif.models import AifStatusChoices
 
 
