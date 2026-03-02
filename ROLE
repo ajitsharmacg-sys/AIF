@@ -1,0 +1,8 @@
+function hasRole(roleKey) {
+    const roleName = ROLE_MAP.value[roleKey];
+    if (!USER_ROLE || !roleName) return false;
+
+    return ("," + USER_ROLE + ",")
+        .includes("," + roleName + ",");
+}
+v-if="hasRole('SALES_OPS')"
