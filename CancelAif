@@ -2,6 +2,8 @@ ssh -T git@bitbucket.org
 
 git push --progress origin aif_setup_request_dev
 
+git remote set-url origin https://bitbucket.org/canon-europe/itcg_azure_apps.git
+git push origin aif_setup_request_dev
 
 
 
