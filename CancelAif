@@ -1,3 +1,21 @@
+ssh -T git@bitbucket.org
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def get_queryset(self):
     user = self.request.user
 
