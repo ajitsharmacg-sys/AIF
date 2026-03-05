@@ -1,3 +1,47 @@
+validate_dates() {
+    if (!this.aif.start_date || !this.aif.end_date) {
+        return true; // let HTML required validation handle empty
+    }
+
+    const startDate = new Date(this.aif.start_date);
+    const endDate = new Date(this.aif.end_date);
+
+    if (endDate < startDate) {
+        this.dialog
+            .reset_to_default()
+            .set_title("Invalid Date Range")
+            .set_message("End Date cannot be earlier than Start Date. Please correct the dates.")
+            .set_true_action("Close")
+            .show();
+
+        return false;
+    }
+
+    return true;
+},
+
+validate_forms() {
+    if (this.aif.email_cc && this.aif.email_cc.trim() !== "") {
+        if (!this.validate_cc_emails(this.aif)) {
+            return false;
+        }
+    }
+
+    // ✅ DATE VALIDATION
+    if (!this.validate_dates()) {
+        return false;
+    }
+
+    if (this.customer_lines && this.customer_lines.length > 0) {
+        if (this.hasDuplicateCustomers()) {
+            return false;
+        }
+    }
+
+
+
+
+
 ssh -T git@bitbucket.org
 
 git push --progress origin aif_setup_request_dev
