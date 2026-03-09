@@ -1,3 +1,13 @@
+<label class="form-label mb-0">
+    {{ field.label }}
+    
+    {% if field.field.required %}
+        <span class="text-danger ms-1">*</span>
+    {% else %}
+        <span class="text-muted small ms-1">(optional)</span>
+    {% endif %}
+</label>
+
 validate_customer_lines() {
 
     // If All NSO is enabled → no customer validation required
