@@ -1,3 +1,27 @@
+if new_status == AifStatusChoices.AWAITING_VALIDATION:
+    attachment = prepare_open_orders_attachment(aif)
+    email_config = OMEmailsConfig.objects.filter(nso=aif.nso).first()
+
+    if email_config and email_config.om_emails:
+
+        if attachment:
+            send_email_with_attachments(
+                to=email_config.om_emails,
+                subject=get_om_email_subject(aif),
+                body=build_om_email_body(aif, link),
+                cc=None,
+                attachments=[attachment],
+            )
+        else:
+            send_email(
+                to=email_config.om_emails,
+                subject=get_om_email_subject(aif),
+                body=build_om_email_body(aif, link),
+                cc=None,
+            )
+
+
+
 <label class="form-label mb-0">
     {{ field.label }}
 
