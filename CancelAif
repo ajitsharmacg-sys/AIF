@@ -1,3 +1,64 @@
+validate_customer_lines() {
+
+    // If All NSO is enabled → no customer validation required
+    if (this.isAllNSOMarketEnabled) {
+        return true;
+    }
+
+    // If All NSO is false → customer must exist
+    if (!this.customer_lines || this.customer_lines.length === 0) {
+        this.dialog
+            .reset_to_default()
+            .set_title("Customer Required")
+            .set_message("At least one customer must be entered when 'All NSO Market' is disabled.")
+            .set_true_action("Close")
+            .show();
+
+        return false;
+    }
+
+    // Check blank customer numbers
+    for (const line of this.customer_lines) {
+        if (!line.oracle_cust_number || line.oracle_cust_number.trim() === "") {
+            this.dialog
+                .reset_to_default()
+                .set_title("Customer Required")
+                .set_message("Customer Number cannot be empty.")
+                .set_true_action("Close")
+                .show();
+
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+validate_forms() {
+
+    if (this.aif.email_cc && this.aif.email_cc.trim() !== "") {
+        if (!this.validate_cc_emails(this.aif)) {
+            return false;
+        }
+    }
+
+    if (!this.validate_dates()) {
+        return false;
+    }
+
+    // 🔴 NEW VALIDATION
+    if (!this.validate_customer_lines()) {
+        return false;
+    }
+
+    if (this.customer_lines && this.customer_lines.length > 0) {
+        if (this.hasDuplicateCustomers()) {
+            return false;
+        }
+    }
+
+
 validate_dates() {
     if (!this.aif.start_date || !this.aif.end_date) {
         return true; // let HTML required validation handle empty
