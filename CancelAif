@@ -1,3 +1,33 @@
+from django import forms
+from .models import OMEmailsConfig
+
+class OMEmailsConfigForm(forms.ModelForm):
+
+    class Meta:
+        model = OMEmailsConfig
+        fields = "__all__"
+
+    def clean_nso(self):
+        nso = self.cleaned_data.get("nso")
+
+        if OMEmailsConfig.objects.filter(nso=nso).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError(
+                "A configuration already exists for this NSO."
+            )
+
+        return nso
+
+
+
+
+
+
+
+
+
+
+
+
 from django.contrib import messages
 
 @admin.register(OMEmailsConfig)
