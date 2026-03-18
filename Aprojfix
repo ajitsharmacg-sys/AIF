@@ -1,3 +1,10 @@
+class AIFCustomerLines(models.Model):
+    ...
+
+    class Meta:
+        unique_together = ("aif", "oracle_cust_number")
+
+
 add_customer_line() {
     if (this.isAllNSOMarketEnabled) return;
 
