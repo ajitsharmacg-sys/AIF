@@ -1,4 +1,41 @@
 onNSOMarketSelect() {
+
+    if (this.isAllNSOMarketEnabled) {
+
+        // 🔥 Track all existing records for deletion
+        this.customer_lines.forEach(line => {
+            if (line.id && line.id !== "temp") {
+                this.customer_changes.deleted_cust_lines.add(line.id);
+            }
+        });
+
+        // 🔥 Clear UI
+        this.aif.aif_customer_lines = [];
+
+    } else {
+
+        if (!this.customer_lines || this.customer_lines.length === 0) {
+            this.aif.aif_customer_lines = [{}];
+        }
+    }
+
+    this.customer_changes.new_cust_lines_count = 0;
+    this.customer_changes.edited_cust_lines = new Set([]);
+}
+
+
+await this.delete_customer_lines();   // 🔥 FIRST
+await this.patch_customer_lines();
+await this.create_new_customer_lines();
+
+
+
+
+
+
+
+
+onNSOMarketSelect() {
     if (this.isAllNSOMarketEnabled) {
         this.aif.aif_customer_lines = [];
     } else {
