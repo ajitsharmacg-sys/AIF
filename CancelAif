@@ -1,3 +1,24 @@
+onNSOMarketSelect() {
+    if (this.isAllNSOMarketEnabled) {
+        this.aif.aif_customer_lines = [];
+    } else {
+        // 🔥 Ensure fresh state when re-enabling customer lines
+        if (!this.customer_lines || this.customer_lines.length === 0) {
+            this.aif.aif_customer_lines = [{}];
+        }
+    }
+
+    this.customer_changes = {
+        new_cust_lines_count: 0,
+        deleted_cust_lines: new Set([]),
+        edited_cust_lines: new Set([])
+    };
+}
+
+
+
+
+
 from django import forms
 from .models import OMEmailsConfig
 
