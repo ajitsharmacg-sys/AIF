@@ -10,7 +10,7 @@ add_customer_line() {
     this.customer_lines.push(newLine);
 }
 
-
+<template v-for="(line, lineIndex) in customer_lines" :key="line.id || lineIndex">
 v-model="customer_lines[lineIndex].oracle_cust_number"
 v-model="customer_lines[lineIndex].oracle_cust_name"
 
