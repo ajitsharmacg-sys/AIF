@@ -1,0 +1,102 @@
+add_customer_line() {
+    if (this.isAllNSOMarketEnabled) return;
+
+    const newLine = {
+        id: null,
+        oracle_cust_number: "",
+        oracle_cust_name: ""
+    };
+
+    this.customer_lines.push(newLine);
+}
+
+
+v-model="customer_lines[lineIndex].oracle_cust_number"
+v-model="customer_lines[lineIndex].oracle_cust_name"
+
+
+onNSOMarketSelect() {
+
+    if (this.isAllNSOMarketEnabled) {
+
+        this.customer_lines.forEach(line => {
+            if (line.id) {
+                this.customer_changes.deleted_cust_lines.add(line.id);
+            }
+        });
+
+        this.aif.aif_customer_lines = [];
+
+    } else {
+
+        if (!this.customer_lines || this.customer_lines.length === 0) {
+            this.aif.aif_customer_lines = [{
+                id: null,
+                oracle_cust_number: "",
+                oracle_cust_name: ""
+            }];
+        }
+    }
+
+    this.customer_changes.edited_cust_lines = new Set([]);
+}
+
+for (let i = 0; i < this.customer_lines.length; ++i)
+
+
+
+delete_customer_line(line) {
+    const index = this.customer_lines.indexOf(line);
+
+    if (line.id) {
+        this.customer_changes.deleted_cust_lines.add(line.id);
+    }
+
+    this.customer_lines.splice(index, 1);
+}
+
+create_new_customer_lines()
+
+if (line.id !== null) continue;
+
+patch_customer_lines()
+
+for (const lineid of this.customer_changes.edited_cust_lines) {
+
+    if (!lineid) continue; // skip new rows
+
+    if (this.customer_changes.deleted_cust_lines.has(lineid)) continue;
+
+    for (const line of this.customer_lines) {
+        if (lineid === line.id) {
+            await patchData(api_endpoints.aif_customer_line + lineid + "/", line)
+                .catch(error_response => {
+                    error_occured = true;
+                    this.display_error(error_response);
+                });
+        }
+    }
+}
+
+
+delete_customer_lines()
+
+async delete_customer_lines() {
+    for (const lineid of this.customer_changes.deleted_cust_lines) {
+        if (lineid) {
+            await deleteRequest(api_endpoints.aif_customer_line + lineid + "/")
+                .catch(error_response => {
+                    this.display_error(error_response);
+                });
+        }
+    }
+}
+
+get_aif()
+
+this.aif["aif_customer_lines"] = data.map(line => ({
+    id: line.id,
+    oracle_cust_number: line.oracle_cust_number || "",
+    oracle_cust_name: line.oracle_cust_name || ""
+}));
+
