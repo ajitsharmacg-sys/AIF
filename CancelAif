@@ -1,3 +1,84 @@
+SELECT DISTINCT TOP 5 a.aif_id
+FROM aif_aif a
+WHERE
+    a.nso = 'UK'
+    AND a.start_date <= '2016-03-06'   -- existing AIF starts before current start
+    AND a.end_date >= '2016-03-06'     -- existing AIF ends after current start
+    AND (
+        (
+            EXISTS (
+                SELECT 1 FROM aif_aifcustomerlines c
+                WHERE c.aif_id = a.aif_id
+                AND c.oracle_cust_number = '1384644'
+            )
+            AND
+            EXISTS (
+                SELECT 1 FROM aif_aiflines l
+                WHERE l.aif_id = a.aif_id
+                AND l.mercury_code = '4507C003'
+            )
+        )
+        OR
+        (
+            EXISTS (
+                SELECT 1 FROM aif_aifcustomerlines c
+                WHERE c.aif_id = a.aif_id
+                AND c.oracle_cust_number = '1384644'
+            )
+            AND
+            EXISTS (
+                SELECT 1 FROM aif_aiflines l
+                WHERE l.aif_id = a.aif_id
+                AND l.mercury_code = '0289C001'
+            )
+        )
+        OR
+        (
+            EXISTS (
+                SELECT 1 FROM aif_aifcustomerlines c
+                WHERE c.aif_id = a.aif_id
+                AND c.oracle_cust_number = '6556652'
+            )
+            AND
+            EXISTS (
+                SELECT 1 FROM aif_aiflines l
+                WHERE l.aif_id = a.aif_id
+                AND l.mercury_code = '4507C003'
+            )
+        )
+        OR
+        (
+            EXISTS (
+                SELECT 1 FROM aif_aifcustomerlines c
+                WHERE c.aif_id = a.aif_id
+                AND c.oracle_cust_number = '6556652'
+            )
+            AND
+            EXISTS (
+                SELECT 1 FROM aif_aiflines l
+                WHERE l.aif_id = a.aif_id
+                AND l.mercury_code = '0289C001'
+            )
+        )
+    );
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 onNSOMarketSelect() {
 
     if (this.isAllNSOMarketEnabled) {
