@@ -1,41 +1,75 @@
 from django.db import connection
 
-def get_conflicting_aif_ids(aif, limit=5):
-    # Get customer + mercury lists
-    customers = list(
-        aif.aif_customer_lines.values_list("oracle_cust_number", flat=True)
-    )
-
+def get_conflicting_aif_ids(aif):
     mercury_codes = list(
         aif.aif_lines.values_list("mercury_code", flat=True)
     )
 
-    # Safety check
-    if not customers or not mercury_codes:
+    if not mercury_codes:
         return []
 
-    sql = f"""
-        SELECT TOP {limit} DISTINCT a.aif_id
-        FROM aif_aif a
-        JOIN aif_aifcustomerlines c ON c.aif_id = a.aif_id
-        JOIN aif_aiflines l ON l.aif_id = a.aif_id
-        WHERE
-            a.nso = %s
-            AND a.aif_id != %s
-            AND a.start_date BETWEEN %s AND %s
-            AND c.oracle_cust_number IN %s
-            AND l.mercury_code IN %s
-    """
+    # =========================
+    # 🔹 SCENARIO 1: GLOBAL AIF
+    # =========================
+    if aif.is_all_nso_enabled:
 
-    params = [
-        aif.nso,
-        aif.aif_id,       # exclude current AIF
-        aif.start_date,   # range start
-        aif.end_date,     # range end
-        tuple(customers),
-        tuple(mercury_codes),
-    ]
+        sql = """
+            SELECT DISTINCT a.aif_id
+            FROM aif_aif a
+            JOIN aif_aiflines l ON l.aif_id = a.aif_id
+            WHERE
+                a.aif_id != %s
+                AND a.is_all_nso_enabled = 1   -- ✅ ONLY GLOBAL
+                AND a.start_date <= %s
+                AND a.end_date >= %s
+                AND l.mercury_code IN %s
+        """
 
+        params = [
+            aif.aif_id,
+            aif.end_date,
+            aif.start_date,
+            tuple(mercury_codes),
+        ]
+
+    # ===============================
+    # 🔹 SCENARIO 2: CUSTOMER-BASED
+    # ===============================
+    else:
+        customers = list(
+            aif.aif_customer_lines.values_list("oracle_cust_number", flat=True)
+        )
+
+        if not customers:
+            return []
+
+        sql = """
+            SELECT DISTINCT a.aif_id
+            FROM aif_aif a
+            JOIN aif_aiflines l ON l.aif_id = a.aif_id
+            LEFT JOIN aif_aifcustomerlines c ON c.aif_id = a.aif_id
+            WHERE
+                a.aif_id != %s
+                AND a.start_date <= %s
+                AND a.end_date >= %s
+                AND l.mercury_code IN %s
+                AND (
+                    a.is_all_nso_enabled = 1   -- ✅ GLOBAL AIF
+                    OR c.oracle_cust_number IN %s  -- ✅ SAME CUSTOMER
+                )
+        """
+
+        params = [
+            aif.aif_id,
+            aif.end_date,
+            aif.start_date,
+            tuple(mercury_codes),
+            tuple(customers),
+        ]
+
+    # =========================
+    # 🔹 EXECUTE
+    # =========================
     with connection.cursor() as cursor:
         cursor.execute(sql, params)
         rows = cursor.fetchall()
