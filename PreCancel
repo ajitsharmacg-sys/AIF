@@ -1,0 +1,89 @@
+from django.db import connection
+
+def get_conflicting_aif_ids(aif, limit=5):
+    mercury_codes = list(
+        aif.aif_lines.values_list("mercury_code", flat=True)
+    )
+
+    customers = list(
+        aif.aif_customer_lines.values_list("oracle_cust_number", flat=True)
+    )
+
+    if not mercury_codes or not customers:
+        return []
+
+    params = [
+        aif.nso,
+        aif.start_date,  # ✅ ONLY START DATE
+        aif.start_date,
+    ]
+
+    conditions = []
+
+    for cust in customers:
+        for mercury in mercury_codes:
+            conditions.append("""
+                (
+                    EXISTS (
+                        SELECT 1 FROM aif_aifcustomerlines c
+                        WHERE c.aif_id = a.aif_id
+                        AND c.oracle_cust_number = %s
+                    )
+                    AND
+                    EXISTS (
+                        SELECT 1 FROM aif_aiflines l
+                        WHERE l.aif_id = a.aif_id
+                        AND l.mercury_code = %s
+                    )
+                )
+            """)
+            params.extend([cust, mercury])
+
+    sql = f"""
+        SELECT DISTINCT a.aif_id
+        FROM aif_aif a
+        WHERE
+            a.nso = %s
+            AND a.start_date <= %s
+            AND a.end_date >= %s
+            AND (
+                {" OR ".join(conditions)}
+            )
+        LIMIT {limit}
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
+
+    return [row[0] for row in rows]
+
+
+
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
+@action(detail=True, methods=["get"])
+def conflicts(self, request, pk=None):
+    aif = self.get_object()
+
+    conflict_ids = get_conflicting_aif_ids(aif)
+
+    return Response({
+        "conflicting_aif_ids": conflict_ids
+    })
+
+
+async fetchConflictIds() {
+    const url = api_endpoints.aif + this.aif.aif_id + "/conflicts/";
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        console.log("Conflicting AIF IDs:", data.conflicting_aif_ids);
+
+    } catch (err) {
+        console.error("Error fetching conflicts:", err);
+    }
+}
