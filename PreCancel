@@ -1,3 +1,26 @@
+SELECT 
+    a.aif_id,
+    a.start_date,
+    a.end_date,
+    c.oracle_cust_number,
+    l.mercury_code
+FROM aif_aif a
+JOIN aif_aifcustomerlines c ON c.aif_id = a.aif_id
+JOIN aif_aiflines l ON l.aif_id = a.aif_id
+WHERE
+    a.nso = 'UK'
+    AND a.start_date <= '2016-03-06'
+    AND a.end_date >= '2016-03-06'
+    AND c.oracle_cust_number IN ('1384644', '6556652')
+    AND l.mercury_code IN ('4507C003', '0289C001')
+ORDER BY a.aif_id
+
+
+
+
+
+
+
 from django.db import connection
 
 def get_conflicting_aif_ids(aif, limit=5):
