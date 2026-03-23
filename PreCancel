@@ -12,51 +12,35 @@ def get_conflicting_aif_ids(aif, limit=5):
     if not mercury_codes or not customers:
         return []
 
-    params = [
-        aif.nso,
-        aif.start_date,  # range start
-        aif.end_date,    # range end
-    ]
-
-    conditions = []
-
-    for cust in customers:
-        for mercury in mercury_codes:
-            conditions.append("""
-                (
-                    EXISTS (
-                        SELECT 1 FROM aif_aifcustomerlines c
-                        WHERE c.aif_id = a.aif_id
-                        AND c.oracle_cust_number = %s
-                    )
-                    AND
-                    EXISTS (
-                        SELECT 1 FROM aif_aiflines l
-                        WHERE l.aif_id = a.aif_id
-                        AND l.mercury_code = %s
-                    )
-                )
-            """)
-            params.extend([cust, mercury])
-
     sql = f"""
         SELECT DISTINCT a.aif_id
         FROM aif_aif a
+        JOIN aif_aifcustomerlines c ON c.aif_id = a.aif_id
+        JOIN aif_aiflines l ON l.aif_id = a.aif_id
         WHERE
             a.nso = %s
-            AND a.start_date BETWEEN %s AND %s
-            AND (
-                {" OR ".join(conditions)}
-            )
+            AND a.start_date <= %s
+            AND a.end_date >= %s
+            AND a.aif_id != %s
+            AND c.oracle_cust_number IN %s
+            AND l.mercury_code IN %s
         LIMIT {limit}
     """
+
+    params = [
+        aif.nso,
+        aif.end_date,
+        aif.start_date,
+        aif.aif_id,
+        tuple(customers),
+        tuple(mercury_codes),
+    ]
 
     with connection.cursor() as cursor:
         cursor.execute(sql, params)
         rows = cursor.fetchall()
 
     return [row[0] for row in rows]
-
 
 
 
