@@ -8,28 +8,31 @@ def get_conflicting_aif_ids(aif):
     if not mercury_codes:
         return []
 
+    # ✅ Build dynamic placeholders for SQL Server
+    mercury_placeholders = ",".join(["%s"] * len(mercury_codes))
+
     # =========================
     # 🔹 SCENARIO 1: GLOBAL AIF
     # =========================
     if aif.is_all_nso_enabled:
 
-        sql = """
+        sql = f"""
             SELECT DISTINCT a.aif_id
             FROM aif_aif a
             JOIN aif_aiflines l ON l.aif_id = a.aif_id
             WHERE
                 a.aif_id != %s
-                AND a.is_all_nso_enabled = 1   -- ✅ ONLY GLOBAL
+                AND a.is_all_nso_enabled = 1
                 AND a.start_date <= %s
                 AND a.end_date >= %s
-                AND l.mercury_code IN %s
+                AND l.mercury_code IN ({mercury_placeholders})
         """
 
         params = [
             aif.aif_id,
             aif.end_date,
             aif.start_date,
-            tuple(mercury_codes),
+            *mercury_codes   # ✅ unpack list
         ]
 
     # ===============================
@@ -43,7 +46,9 @@ def get_conflicting_aif_ids(aif):
         if not customers:
             return []
 
-        sql = """
+        customer_placeholders = ",".join(["%s"] * len(customers))
+
+        sql = f"""
             SELECT DISTINCT a.aif_id
             FROM aif_aif a
             JOIN aif_aiflines l ON l.aif_id = a.aif_id
@@ -52,10 +57,10 @@ def get_conflicting_aif_ids(aif):
                 a.aif_id != %s
                 AND a.start_date <= %s
                 AND a.end_date >= %s
-                AND l.mercury_code IN %s
+                AND l.mercury_code IN ({mercury_placeholders})
                 AND (
-                    a.is_all_nso_enabled = 1   -- ✅ GLOBAL AIF
-                    OR c.oracle_cust_number IN %s  -- ✅ SAME CUSTOMER
+                    a.is_all_nso_enabled = 1
+                    OR c.oracle_cust_number IN ({customer_placeholders})
                 )
         """
 
@@ -63,12 +68,12 @@ def get_conflicting_aif_ids(aif):
             aif.aif_id,
             aif.end_date,
             aif.start_date,
-            tuple(mercury_codes),
-            tuple(customers),
+            *mercury_codes,   # ✅ unpack
+            *customers        # ✅ unpack
         ]
 
     # =========================
-    # 🔹 EXECUTE
+    # 🔹 EXECUTE QUERY
     # =========================
     with connection.cursor() as cursor:
         cursor.execute(sql, params)
