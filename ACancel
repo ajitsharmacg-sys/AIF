@@ -1,3 +1,14 @@
+const adjustedEndDate = new Date(this.selected_aif.start_date);
+adjustedEndDate.setDate(adjustedEndDate.getDate() - 1);
+
+await this.buildWebEDIHeaderRows({
+  sourceAIF: conflictAif,
+  effectiveAIF: this.selected_aif,
+  trxType: "UPDATE",
+  overrideEndDate: adjustedEndDate   // ✅ KEY
+});
+
+
 async buildWebEDIHeaderRows({
   sourceAIF,
   effectiveAIF,
