@@ -1,3 +1,4 @@
+
 from django.db import connection
 
 def get_conflicting_aif_rows(aif):
@@ -22,14 +23,9 @@ def get_conflicting_aif_rows(aif):
         WHERE
             a.aif_id != %s
             AND a.nso = %s
-            AND a.start_date <= %s
-            AND a.end_date >= %s
+            AND a.start_date BETWEEN %s AND %s
             {extra_condition}
     """
-
-    # --------------------------
-    # DYNAMIC PARTS
-    # --------------------------
 
     if aif.is_all_nso_enabled:
         customer_column = "NULL as customer"
@@ -37,11 +33,11 @@ def get_conflicting_aif_rows(aif):
         extra_condition = "AND a.is_all_nso_enabled = 1"
 
         params = [
-            aif.aif_id,        # current_l
-            aif.aif_id,        # exclude self
+            aif.aif_id,
+            aif.aif_id,
             aif.nso,
-            aif.end_date,
-            aif.start_date,
+            aif.start_date,   # BETWEEN start
+            aif.end_date,     # BETWEEN end
         ]
 
     else:
@@ -55,12 +51,12 @@ def get_conflicting_aif_rows(aif):
         extra_condition = ""
 
         params = [
-            aif.aif_id,        # current_l
-            aif.aif_id,        # current_c
-            aif.aif_id,        # exclude self
+            aif.aif_id,
+            aif.aif_id,
+            aif.aif_id,
             aif.nso,
-            aif.end_date,
             aif.start_date,
+            aif.end_date,
         ]
 
     sql = base_sql.format(
@@ -68,10 +64,6 @@ def get_conflicting_aif_rows(aif):
         customer_join=customer_join,
         extra_condition=extra_condition,
     )
-
-    # --------------------------
-    # EXECUTE
-    # --------------------------
 
     with connection.cursor() as cursor:
         cursor.execute(sql, params)
