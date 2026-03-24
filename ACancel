@@ -1,3 +1,96 @@
+async buildWebEDIHeaderRows({
+  sourceAIF,
+  effectiveAIF,
+  trxType,
+  overrideEndDate = null   // ✅ NEW PARAM
+}) {
+  if (!sourceAIF?.aif_lines?.length) return;
+
+  const opUnit = await this.getOperationUnitByNSO(effectiveAIF.nso);
+
+  const hasCustomers =
+    Array.isArray(sourceAIF.aif_customer_lines) &&
+    sourceAIF.aif_customer_lines.length > 0;
+
+  // ✅ decide end date once
+  const finalEndDate = overrideEndDate
+    ? overrideEndDate
+    : (trxType === "UPDATE"
+        ? effectiveAIF.start_date
+        : effectiveAIF.end_date);
+
+  // --------------------------
+  // CASE 1: NO CUSTOMERS
+  // --------------------------
+  if (!hasCustomers) {
+    sourceAIF.aif_lines.forEach(line => {
+      this.ws_data.push([
+        opUnit,
+        trxType,
+        this.buildModifierLineNo(line, sourceAIF),
+        "LINE",
+        "Discount",
+        this.formatExcelDates(effectiveAIF.start_date),
+        this.formatExcelDates(finalEndDate),   // ✅ UPDATED
+        "Y",
+        "N",
+        "List Line Adjustment",
+        "Level 4 Incompatibility",
+        1,
+        "First Layer",
+        line.mercury_code,
+        100,
+        "LOCAL",
+        "",
+        "New Price",
+        Number(line.promotional_elp) || 0,
+        "N"
+      ]);
+    });
+    return;
+  }
+
+  // --------------------------
+  // CASE 2: CUSTOMERS EXIST
+  // --------------------------
+  sourceAIF.aif_customer_lines.forEach(customer => {
+    const customerId = customer.oracle_cust_number;
+
+    sourceAIF.aif_lines.forEach(line => {
+      this.ws_data.push([
+        opUnit,
+        trxType,
+        this.buildModifierLineNo(line, sourceAIF, customerId),
+        "LINE",
+        "Discount",
+        this.formatExcelDates(effectiveAIF.start_date),
+        this.formatExcelDates(finalEndDate),   // ✅ UPDATED
+        "Y",
+        "N",
+        "List Line Adjustment",
+        "Level 4 Incompatibility",
+        1,
+        "First Layer",
+        line.mercury_code,
+        100,
+        "LOCAL",
+        "",
+        "New Price",
+        Number(line.promotional_elp) || 0,
+        "N"
+      ]);
+    });
+  });
+}
+
+
+
+
+
+
+
+
+
 
 from django.db import connection
 
