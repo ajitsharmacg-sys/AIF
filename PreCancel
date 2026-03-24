@@ -1,3 +1,121 @@
+from collections import defaultdict
+from django.db import connection
+
+def get_conflicting_aif_grouped(aif, limit=50):
+    mercury_codes = list(
+        aif.aif_lines.values_list("mercury_code", flat=True)
+    )
+
+    if not mercury_codes:
+        return []
+
+    mercury_placeholders = ",".join(["%s"] * len(mercury_codes))
+
+    if aif.is_all_nso_enabled:
+        sql = f"""
+            SELECT TOP {limit}
+                a.aif_id,
+                a.start_date,
+                a.end_date,
+                NULL AS oracle_cust_number,
+                l.mercury_code
+            FROM aif_aif a
+            JOIN aif_aiflines l ON l.aif_id = a.aif_id
+            WHERE
+                a.aif_id != %s
+                AND a.is_all_nso_enabled = 1
+                AND a.start_date <= %s
+                AND a.end_date >= %s
+                AND l.mercury_code IN ({mercury_placeholders})
+        """
+
+        params = [
+            aif.aif_id,
+            aif.end_date,
+            aif.start_date,
+            *mercury_codes
+        ]
+
+    else:
+        customers = list(
+            aif.aif_customer_lines.values_list("oracle_cust_number", flat=True)
+        )
+
+        if not customers:
+            return []
+
+        customer_placeholders = ",".join(["%s"] * len(customers))
+
+        sql = f"""
+            SELECT TOP {limit}
+                a.aif_id,
+                a.start_date,
+                a.end_date,
+                c.oracle_cust_number,
+                l.mercury_code
+            FROM aif_aif a
+            JOIN aif_aiflines l ON l.aif_id = a.aif_id
+            JOIN aif_aifcustomerlines c ON c.aif_id = a.aif_id
+            WHERE
+                a.aif_id != %s
+                AND a.start_date <= %s
+                AND a.end_date >= %s
+                AND l.mercury_code IN ({mercury_placeholders})
+                AND c.oracle_cust_number IN ({customer_placeholders})
+        """
+
+        params = [
+            aif.aif_id,
+            aif.end_date,
+            aif.start_date,
+            *mercury_codes,
+            *customers
+        ]
+
+    # =========================
+    # 🔹 EXECUTE
+    # =========================
+    with connection.cursor() as cursor:
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
+
+    # =========================
+    # 🔹 GROUPING LOGIC
+    # =========================
+    grouped = defaultdict(lambda: {
+        "aif_id": None,
+        "start_date": None,
+        "end_date": None,
+        "conflicts": []
+    })
+
+    for row in rows:
+        aif_id, start_date, end_date, customer, mercury = row
+
+        grouped[aif_id]["aif_id"] = aif_id
+        grouped[aif_id]["start_date"] = start_date
+        grouped[aif_id]["end_date"] = end_date
+
+        grouped[aif_id]["conflicts"].append({
+            "customer": customer,
+            "mercury_code": mercury
+        })
+
+    return list(grouped.values())
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 from django.db import connection
 
 def get_conflicting_aif_ids(aif):
