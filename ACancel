@@ -1,0 +1,227 @@
+from django.db import connection
+
+def get_conflicting_aif_rows(aif):
+
+    if aif.is_all_nso_enabled:
+        sql = """
+            SELECT 
+                a.aif_id,
+                a.start_date,
+                a.end_date,
+                l.mercury_code,
+                l.promotional_elp,
+                NULL as customer
+            FROM aif_aif a
+            INNER JOIN aif_aiflines l ON l.aif_id = a.aif_id
+
+            INNER JOIN aif_aiflines current_l
+                ON current_l.aif_id = %s
+                AND current_l.mercury_code = l.mercury_code
+
+            WHERE
+                a.aif_id != %s
+                AND a.is_all_nso_enabled = 1
+                AND a.nso = %s
+                AND a.start_date <= %s
+                AND a.end_date >= %s
+        """
+
+        params = [
+            aif.aif_id,
+            aif.aif_id,
+            aif.nso,
+            aif.end_date,
+            aif.start_date,
+        ]
+
+    else:
+        sql = """
+            SELECT 
+                a.aif_id,
+                a.start_date,
+                a.end_date,
+                l.mercury_code,
+                l.promotional_elp,
+                c.oracle_cust_number
+            FROM aif_aif a
+            INNER JOIN aif_aiflines l ON l.aif_id = a.aif_id
+            INNER JOIN aif_aifcustomerlines c ON c.aif_id = a.aif_id
+
+            INNER JOIN aif_aiflines current_l
+                ON current_l.aif_id = %s
+                AND current_l.mercury_code = l.mercury_code
+
+            INNER JOIN aif_aifcustomerlines current_c
+                ON current_c.aif_id = %s
+                AND current_c.oracle_cust_number = c.oracle_cust_number
+
+            WHERE
+                a.aif_id != %s
+                AND a.nso = %s
+                AND a.start_date <= %s
+                AND a.end_date >= %s
+        """
+
+        params = [
+            aif.aif_id,
+            aif.aif_id,
+            aif.aif_id,
+            aif.nso,
+            aif.end_date,
+            aif.start_date,
+        ]
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, params)
+        columns = [col[0] for col in cursor.description]
+        rows = cursor.fetchall()
+
+    # convert to dict
+    result = []
+    for row in rows:
+        result.append(dict(zip(columns, row)))
+
+    return result
+
+
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
+class AifView(viewsets.ModelViewSet):
+
+    @action(detail=True, methods=["get"])
+    def conflicts(self, request, pk=None):
+        aif = self.get_object()
+
+        rows = get_conflicting_aif_rows(aif)
+
+        return Response({
+            "conflicting_rows": rows
+        })
+
+
+async getConflictingRows(aifId) {
+  const res = await fetch(`/aifmgmt/api/v1/aif/${aifId}/conflicts/`);
+  const data = await res.json();
+  return data.conflicting_rows || [];
+}
+
+
+
+buildConflictAIFStructure(rows) {
+  const aifMap = {};
+
+  rows.forEach(row => {
+    const {
+      aif_id,
+      start_date,
+      end_date,
+      mercury_code,
+      promotional_elp,
+      customer
+    } = row;
+
+    if (!aifMap[aif_id]) {
+      aifMap[aif_id] = {
+        aif_id,
+        start_date,
+        end_date,
+        aif_lines: [],
+        aif_customer_lines: []
+      };
+    }
+
+    // add line (avoid duplicate)
+    const lineExists = aifMap[aif_id].aif_lines.some(
+      l =>
+        l.mercury_code === mercury_code &&
+        l.promotional_elp === promotional_elp
+    );
+
+    if (!lineExists) {
+      aifMap[aif_id].aif_lines.push({
+        mercury_code,
+        promotional_elp
+      });
+    }
+
+    // add customer
+    if (customer) {
+      const exists = aifMap[aif_id].aif_customer_lines.some(
+        c => c.oracle_cust_number === customer
+      );
+
+      if (!exists) {
+        aifMap[aif_id].aif_customer_lines.push({
+          oracle_cust_number: customer
+        });
+      }
+    }
+  });
+
+  return Object.values(aifMap);
+}
+
+
+async generateWebEDIHeaderFile(aif) {
+  this.ws_data = [];
+  this.ws_data.push(this.webedi_header);
+
+  // =========================
+  // 🔹 1. CANCELLED AIF
+  // =========================
+  const cancelledIds = (aif.aif_cancel_numbers || "")
+    .split(";")
+    .map(v => v.trim())
+    .filter(Boolean);
+
+  if (cancelledIds.length > 0) {
+    const cancelledAifs = await this.load_aifs_for_cancellation(cancelledIds);
+
+    for (const cancelledAif of cancelledAifs) {
+      await this.buildWebEDIHeaderRows({ sourceAIF: cancelledAif, effectiveAIF: aif, trxType: "UPDATE" });
+      await this.buildWebEDIHeaderRows({ sourceAIF: cancelledAif, effectiveAIF: aif, trxType: "INSERT" });
+    }
+  }
+
+  // =========================
+  // 🔥 2. CONFLICT AIF (NEW)
+  // =========================
+  const rows = await this.getConflictingRows(aif.aif_id);
+  const conflictAifs = this.buildConflictAIFStructure(rows);
+
+  for (const conflictAif of conflictAifs) {
+    await this.buildWebEDIHeaderRows({
+      sourceAIF: conflictAif,
+      effectiveAIF: aif,
+      trxType: "UPDATE"
+    });
+
+    await this.buildWebEDIHeaderRows({
+      sourceAIF: conflictAif,
+      effectiveAIF: aif,
+      trxType: "INSERT"
+    });
+  }
+
+  // =========================
+  // 🔹 3. CURRENT AIF
+  // =========================
+  await this.buildWebEDIHeaderRows({
+    sourceAIF: aif,
+    effectiveAIF: aif,
+    trxType: "INSERT"
+  });
+
+  // =========================
+  // EXPORT
+  // =========================
+  const wb = utils.book_new();
+  const ws = utils.aoa_to_sheet(this.ws_data);
+  utils.book_append_sheet(wb, ws, "Header");
+
+  writeFile(
+    wb,
+    `WebADI_AIF_${aif.aif_id}_Header_Set_${this.getCurrentDateTimeForFile()}.xlsx`
+  );
+}
