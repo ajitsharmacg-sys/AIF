@@ -1,3 +1,159 @@
+from django.db import connection
+
+def get_conflicting_aif_details(aif):
+
+    # =========================
+    # GLOBAL AIF (NO CUSTOMER)
+    # =========================
+    if aif.is_all_nso_enabled:
+
+        sql = """
+            SELECT 
+                a.aif_id,
+                a.start_date,
+                a.end_date,
+                l.mercury_code,
+                l.promotional_elp,
+                NULL as customer
+            FROM aif_aif a
+            INNER JOIN aif_aiflines l ON l.aif_id = a.aif_id
+
+            -- match mercury with current AIF
+            INNER JOIN aif_aiflines current_l
+                ON current_l.aif_id = %s
+                AND current_l.mercury_code = l.mercury_code
+
+            WHERE
+                a.aif_id != %s
+                AND a.is_all_nso_enabled = 1
+                AND a.nso = %s
+                AND a.start_date <= %s
+                AND a.end_date >= %s
+        """
+
+        params = [
+            aif.aif_id,
+            aif.aif_id,
+            aif.nso,
+            aif.end_date,
+            aif.start_date,
+        ]
+
+    # =========================
+    # CUSTOMER BASED AIF
+    # =========================
+    else:
+
+        sql = """
+            SELECT 
+                a.aif_id,
+                a.start_date,
+                a.end_date,
+                l.mercury_code,
+                l.promotional_elp,
+                c.oracle_cust_number
+            FROM aif_aif a
+            INNER JOIN aif_aiflines l ON l.aif_id = a.aif_id
+            INNER JOIN aif_aifcustomerlines c ON c.aif_id = a.aif_id
+
+            -- match mercury
+            INNER JOIN aif_aiflines current_l
+                ON current_l.aif_id = %s
+                AND current_l.mercury_code = l.mercury_code
+
+            -- match customer
+            INNER JOIN aif_aifcustomerlines current_c
+                ON current_c.aif_id = %s
+                AND current_c.oracle_cust_number = c.oracle_cust_number
+
+            WHERE
+                a.aif_id != %s
+                AND a.nso = %s
+                AND a.start_date <= %s
+                AND a.end_date >= %s
+        """
+
+        params = [
+            aif.aif_id,
+            aif.aif_id,
+            aif.aif_id,
+            aif.nso,
+            aif.end_date,
+            aif.start_date,
+        ]
+
+    # =========================
+    # EXECUTE
+    # =========================
+    with connection.cursor() as cursor:
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
+
+    if not rows:
+        return []
+
+    # =========================
+    # MAP → AIF STRUCTURE
+    # =========================
+    aif_map = {}
+
+    for row in rows:
+        aif_id, start_date, end_date, mercury_code, promotional_elp, customer = row
+
+        if aif_id not in aif_map:
+            aif_map[aif_id] = {
+                "aif_id": aif_id,
+                "start_date": start_date,
+                "end_date": end_date,
+                "aif_lines": [],
+                "aif_customer_lines": []
+            }
+
+        # add line
+        aif_map[aif_id]["aif_lines"].append({
+            "mercury_code": mercury_code,
+            "promotional_elp": promotional_elp
+        })
+
+        # add customer
+        if customer:
+            aif_map[aif_id]["aif_customer_lines"].append({
+                "oracle_cust_number": customer
+            })
+
+    # =========================
+    # REMOVE DUPLICATES
+    # =========================
+    for aif_data in aif_map.values():
+
+        # unique lines
+        seen_lines = set()
+        unique_lines = []
+        for line in aif_data["aif_lines"]:
+            key = (line["mercury_code"], line["promotional_elp"])
+            if key not in seen_lines:
+                seen_lines.add(key)
+                unique_lines.append(line)
+        aif_data["aif_lines"] = unique_lines
+
+        # unique customers
+        seen_customers = set()
+        unique_customers = []
+        for cust in aif_data["aif_customer_lines"]:
+            if cust["oracle_cust_number"] not in seen_customers:
+                seen_customers.add(cust["oracle_cust_number"])
+                unique_customers.append(cust)
+        aif_data["aif_customer_lines"] = unique_customers
+
+    return list(aif_map.values())
+
+
+
+
+
+
+
+
 from collections import defaultdict
 from django.db import connection
 
