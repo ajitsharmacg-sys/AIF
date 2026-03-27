@@ -1,3 +1,6 @@
+const [year, month, day] = this.selected_aif.start_date.split("-").map(Number);
+const adjustedEndDate = new Date(year, month - 1, day - 1);
+
 formatExcelDates(dateInput, type = "date") {
     if (!dateInput) return "";
 
