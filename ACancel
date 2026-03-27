@@ -1,3 +1,37 @@
+const rows = await this.getConflictingRows(aif.aif_id);
+const conflictAifs = this.buildConflictAIFStructure(rows);
+
+// ✅ remove duplicates with cancelled AIFs
+const cancelledSet = new Set(cancelledIds.map(id => String(id)));
+const filteredConflictAifs = conflictAifs.filter(aifObj =>
+    !cancelledSet.has(String(aifObj.aif_id))
+);
+
+const adjustedEndDate = new Date(this.selected_aif.start_date);
+adjustedEndDate.setDate(adjustedEndDate.getDate() - 1);
+
+for (const conflictAif of filteredConflictAifs) {
+    await this.buildWebEDIHeaderRows({
+        sourceAIF: conflictAif,
+        effectiveAIF: aif,
+        trxType: "UPDATE",
+        overrideEndDate: adjustedEndDate 
+    });
+
+    await this.buildWebEDIHeaderRows({
+        sourceAIF: conflictAif,
+        effectiveAIF: aif,
+        trxType: "INSERT"
+    });
+}
+
+
+
+
+
+
+
+
 SELECT name
 FROM sys.indexes
 WHERE name = 'aif_aifcustomerlines_aif_id_oracle_cust_number_a47ffafd_uniq';
