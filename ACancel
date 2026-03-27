@@ -1,3 +1,38 @@
+formatExcelDates(dateInput, type = "date") {
+    if (!dateInput) return "";
+
+    let date;
+
+    // ✅ Case 1: Already a Date object
+    if (dateInput instanceof Date) {
+        date = new Date(dateInput);
+    } 
+    // ✅ Case 2: String (YYYY-MM-DD)
+    else if (typeof dateInput === "string") {
+        const [year, month, day] = dateInput.split('-').map(Number);
+
+        // ❌ Invalid string safety
+        if (!year || !month || !day) return "";
+
+        date = new Date(year, month - 1, day);
+    } 
+    else {
+        return ""; // unknown format
+    }
+
+    // ✅ Apply -1 day
+    if (type === "prevDate") {
+        date.setDate(date.getDate() - 1);
+    }
+
+    const dd = String(date.getDate()).padStart(2, "0");
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const yyyy = date.getFullYear();
+
+    return `${dd}/${mm}/${yyyy}`;
+}
+
+
 formatExcelDates(dateInput) {
     if (!dateInput) return "";
 
