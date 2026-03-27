@@ -1,3 +1,12 @@
+SELECT name
+FROM sys.indexes
+WHERE name = 'aif_aifcustomerlines_aif_id_oracle_cust_number_a47ffafd_uniq';
+
+DROP INDEX aif_aifcustomerlines_aif_id_oracle_cust_number_a47ffafd_uniq
+ON aif_aifcustomerlines;
+
+
+
 const adjustedEndDate = new Date(this.selected_aif.start_date);
 adjustedEndDate.setDate(adjustedEndDate.getDate() - 1);
 
