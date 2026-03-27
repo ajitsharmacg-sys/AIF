@@ -1,0 +1,146 @@
+1. Update add_line()
+
+add_line() {
+    const newLine = {
+        id: null,   // ✅ instead of "temp"
+    };
+
+    this.lines.push(newLine);
+}
+
+2. Update copy_line()
+copy_line(line) {
+    const clone = { ...line };
+
+    // ✅ reset id so it becomes NEW record
+    clone.id = null;
+
+    this.lines.push(clone);
+}
+
+3. Update handle_line_change()
+
+async handle_line_change(lines, index, event) {
+    const line = this.lines[index];
+
+    // ✅ only track existing records
+    if (line.id) {
+        this.changes.edited_lines.add(line.id);
+    }
+
+    const model_column = event.target.getAttribute("name");
+    const value = event.target.value;
+
+    switch (model_column) {
+        case "mercury_code":
+            this.isLoading = true;
+            await this.handle_mercury_change(lines, index, value);
+            this.isLoading = false;
+            break;
+
+        case "promotional_qty":
+            line.promotional_qty = Number(value);
+            if (line.promotional_qty && line.promotional_elp) {
+                this.calculatePromotionValues(line);
+            }
+            break;
+
+        case "promotional_elp":
+            line.promotional_elp = Number(value);
+            if (line.promotional_elp && line.promotional_qty) {
+                this.calculatePromotionValues(line);
+            }
+            break;
+    }
+}
+
+4. Update patch_lines() (CRITICAL FIX)
+async patch_lines() {
+    this.dialog.reset_to_default()
+        .set_title("Progress")
+        .set_message("Editing lines, please wait...")
+        .set_true_action("Close")
+        .show();
+
+    let error_occured = false;
+
+    for (const lineid of this.changes.edited_lines) {
+
+        // ✅ skip new lines
+        if (!lineid) continue;
+
+        const line = this.lines.find(l => l.id === lineid);
+        if (!line) continue;
+
+        await patchData(api_endpoints.aif_lines + lineid + "/", line)
+            .catch(error_response => {
+                error_occured = true;
+                this.display_error(error_response);
+            });
+    }
+
+    if (!error_occured) {
+        this.dialog.reset_to_default()
+            .set_title("Success")
+            .set_message("Lines updated successfully!")
+            .set_true_action("Close")
+            .show();
+    }
+}
+
+5. Update create_new_lines() (VERY IMPORTANT)
+async create_new_lines() {
+    this.dialog.reset_to_default()
+        .set_title("Progress")
+        .set_message("Creating new lines, please wait...")
+        .set_true_action("Close")
+        .show();
+
+    let error_occured = false;
+
+    for (let line of this.lines) {
+
+        // ✅ only create NEW lines
+        if (line.id) continue;
+
+        line["aif"] = this.aif.aif_id;
+
+        await postData(api_endpoints.aif_lines, line)
+            .then(response => {
+                if (response.ok) return response.json();
+                return Promise.reject(response);
+            })
+            .then(data => {
+                // 🔥 IMPORTANT: assign real ID from backend
+                line.id = data.id;
+            })
+            .catch(error_response => {
+                error_occured = true;
+                this.display_error(error_response);
+            });
+    }
+
+    if (!error_occured) {
+        this.dialog.reset_to_default()
+            .set_title("Success")
+            .set_message("New lines created successfully!")
+            .set_true_action("Close")
+            .show();
+    }
+}
+6. Update delete_lines()
+async delete_lines() {
+    for (const lineid of this.changes.deleted_lines) {
+
+        // ✅ skip new lines
+        if (!lineid) continue;
+
+        await deleteRequest(api_endpoints.aif_lines + lineid + "/")
+            .catch(error_response => {
+                this.display_error(error_response);
+            });
+    }
+}
+7. Update Excel Paste Logic (IMPORTANT)
+row.id = "temp"; to
+row.id = null;
