@@ -1,3 +1,12 @@
+buildModifierLineNo(line, aif, customerId = null) {
+  const formattedElp = Number(line.promotional_elp || 0).toFixed(2); // ✅ fix
+
+  return customerId
+    ? `${line.mercury_code}_${customerId}_${aif.aif_id}_${formattedElp}`
+    : `${line.mercury_code}_${aif.aif_id}_${formattedElp}`;
+}
+
+
 const rows = await this.getConflictingRows(aif.aif_id);
 const conflictAifs = this.buildConflictAIFStructure(rows);
 
