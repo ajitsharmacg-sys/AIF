@@ -1,3 +1,8 @@
+const [year, month, day] = this.selected_aif.start_date.split("-").map(Number);
+
+const adjustedEndDate = new Date(year, month - 1, day);
+adjustedEndDate.setDate(adjustedEndDate.getDate() - 1);
+
 buildModifierLineNo(line, aif, customerId = null) {
   const formattedElp = Number(line.promotional_elp || 0).toFixed(2); // ✅ fix
 
