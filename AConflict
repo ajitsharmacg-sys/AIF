@@ -1,3 +1,56 @@
+<th>
+  <input
+    type="checkbox"
+    @change="toggleSelectAllConflicts($event)"
+  />
+</th>
+
+toggleSelectAllConflicts(event) {
+  if (event.target.checked) {
+    this.selectedConflictAifs = [...this.conflictingAifs];
+  } else {
+    this.selectedConflictAifs = [];
+  }
+}
+
+navigate(id, context = null) {
+  this.nav_state["aif_view"] = false;
+  this.nav_state.previous = "aif_view";
+  this.nav_state[id] = true;
+  this.nav_state.context = context;
+
+  // ✅ RESET CONFLICT TABLE
+  this.showConflictTable = false;
+  this.conflictingAifs = [];
+  this.selectedConflictAifs = [];
+}
+
+async confirmConflictSelection() {
+  this.showConflictTable = false;
+  this.isLoading = true;
+
+  await this.generateFinalExcel(
+    this.selected_aif,
+    this.selectedConflictAifs
+  );
+
+  // ✅ reset
+  this.selectedConflictAifs = [];
+  this.conflictingAifs = [];
+
+  this.isLoading = false;
+}
+
+<button
+  class="btn btn-success btn-sm"
+  :disabled="selectedConflictAifs.length === 0"
+  @click="confirmConflictSelection"
+>
+  Generate Excel
+</button>
+
+
+
 from django.db import connection
 
 def get_conflicting_aif_ids(aif, year=None):
