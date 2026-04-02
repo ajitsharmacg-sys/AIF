@@ -2,6 +2,14 @@ conflictingAifs: [],
 selectedConflictAifs: [],
 showConflictTable: false,
 
+const cancelledIds = (aif.aif_cancel_numbers || "")
+  .split(";")
+  .map(v => v.trim());
+
+this.conflictingAifs = conflictAifs.filter(a =>
+  !cancelledIds.includes(String(a.aif_id))
+);
+
 
 async export_to_excel(aif) {
   this.isLoading = true;
