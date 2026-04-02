@@ -1,0 +1,158 @@
+conflictingAifs: [],
+selectedConflictAifs: [],
+showConflictTable: false,
+
+
+async export_to_excel(aif) {
+  this.isLoading = true;
+  this.downloadStep = "Loading conflicting AIFs…";
+
+  const rows = await this.getConflictingRows(aif.aif_id);
+  const conflictAifs = this.buildConflictAIFStructure(rows);
+
+  // remove cancelled AIFs
+  const cancelledIds = (aif.aif_cancel_numbers || "")
+    .split(";")
+    .map(v => v.trim());
+
+  const cancelledSet = new Set(cancelledIds);
+
+  this.conflictingAifs = conflictAifs.filter(a =>
+    !cancelledSet.has(String(a.aif_id))
+  );
+
+  this.isLoading = false;
+
+  // 👇 show table instead of generating file
+  if (this.conflictingAifs.length > 0) {
+    this.showConflictTable = true;
+    return;
+  }
+
+  // fallback (no conflicts)
+  await this.generateFinalExcel(aif, []);
+}
+
+
+
+<div v-if="showConflictTable" class="mb-4">
+  <h5 class="card-title">Conflicting AIFs</h5>
+
+  <table class="table table-sm table-bordered">
+    <thead>
+      <tr>
+        <th>Select</th>
+        <th>AIF ID</th>
+        <th>Start Date</th>
+        <th>End Date</th>
+        <th>Customers</th>
+        <th>Mercury Codes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-for="aif in conflictingAifs" :key="aif.aif_id">
+        <td>
+          <input
+            type="checkbox"
+            v-model="selectedConflictAifs"
+            :value="aif"
+          />
+        </td>
+        <td>[[ aif.aif_id ]]</td>
+        <td>[[ aif.start_date ]]</td>
+        <td>[[ aif.end_date ]]</td>
+        <td>
+          [[ aif.aif_customer_lines.map(c => c.oracle_cust_number).join(', ') ]]
+        </td>
+        <td>
+          [[ aif.aif_lines.map(l => l.mercury_code).join(', ') ]]
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <button
+    class="btn btn-success btn-sm"
+    @click="confirmConflictSelection"
+  >
+    Generate Excel
+  </button>
+</div>
+
+
+async confirmConflictSelection() {
+  this.showConflictTable = false;
+  this.isLoading = true;
+  this.downloadStep = "Generating Header file…";
+
+  await this.generateFinalExcel(this.selected_aif, this.selectedConflictAifs);
+
+  this.selectedConflictAifs = [];
+  this.isLoading = false;
+}
+
+
+async generateFinalExcel(aif, selectedConflicts = []) {
+  this.ws_data = [];
+  this.ws_data.push(this.webedi_header);
+
+  const [year, month, day] = aif.start_date.split("-").map(Number);
+  const adjustedEndDate = new Date(year, month - 1, day - 1);
+
+  // CANCELLED AIFs
+  const cancelledIds = (aif.aif_cancel_numbers || "")
+    .split(";")
+    .map(v => v.trim())
+    .filter(Boolean);
+
+  if (cancelledIds.length > 0) {
+    const cancelledAifs = await this.load_aifs_for_cancellation(cancelledIds);
+
+    for (const cancelledAif of cancelledAifs) {
+      await this.buildWebEDIHeaderRows({
+        sourceAIF: cancelledAif,
+        effectiveAIF: aif,
+        trxType: "UPDATE"
+      });
+
+      await this.buildWebEDIHeaderRows({
+        sourceAIF: cancelledAif,
+        effectiveAIF: aif,
+        trxType: "INSERT"
+      });
+    }
+  }
+
+  // ✅ SELECTED CONFLICT AIFs ONLY
+  for (const conflictAif of selectedConflicts) {
+    await this.buildWebEDIHeaderRows({
+      sourceAIF: conflictAif,
+      effectiveAIF: aif,
+      trxType: "UPDATE",
+      overrideEndDate: adjustedEndDate
+    });
+
+    await this.buildWebEDIHeaderRows({
+      sourceAIF: conflictAif,
+      effectiveAIF: aif,
+      trxType: "INSERT"
+    });
+  }
+
+  // CURRENT AIF
+  await this.buildWebEDIHeaderRows({
+    sourceAIF: aif,
+    effectiveAIF: aif,
+    trxType: "INSERT"
+  });
+
+  const wb = utils.book_new();
+  const ws = utils.aoa_to_sheet(this.ws_data);
+  utils.book_append_sheet(wb, ws, "Header");
+
+  writeFile(
+    wb,
+    `WebADI_AIF_${aif.aif_id}_Header_Set_${this.getCurrentDateTimeForFile()}.xlsx`
+  );
+}
+
