@@ -1,3 +1,15 @@
+<th class="text-center">
+  <div class="d-flex flex-column align-items-center">
+    <span>Select ALL</span>
+    <input
+      type="checkbox"
+      :checked="allConflictsSelected"
+      @change="toggleSelectAllConflicts($event)"
+      class="form-check-input mt-1"
+    />
+  </div>
+</th>
+
 <th>
   <input
     type="checkbox"
