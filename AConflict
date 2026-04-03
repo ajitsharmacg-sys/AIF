@@ -16,15 +16,16 @@ def get_conflicting_aif_ids_from_payload(aif):
         WHERE
             a.nso = %s
             AND l.mercury_code IN %s
-            AND l.promotional_elp != %s   -- 🔥 different ELP
+            AND l.promotional_elp != %s
             AND a.end_date >= %s
             AND a.start_date <= %s
             {extra_condition}
             {customer_filter}
+            {exclude_cancelled}
     """
 
     # =========================
-    # EXTRACT DATA FROM PAYLOAD
+    # EXTRACT DATA
     # =========================
     mercury_codes = [l.get("mercury_code") for l in aif.get("aif_lines", []) if l.get("mercury_code")]
     elp_values = [l.get("promotional_elp") for l in aif.get("aif_lines", []) if l.get("promotional_elp") is not None]
@@ -43,11 +44,21 @@ def get_conflicting_aif_ids_from_payload(aif):
     end_date = aif.get("end_date")
     is_all_nso_enabled = aif.get("is_all_nso_enabled", False)
 
-    # ⚠️ using first elp (same style as your function)
     elp = elp_values[0]
 
     # =========================
-    # ALL NSO CASE
+    # CANCELLED AIFs
+    # =========================
+    cancelled_ids = aif.get("aif_cancel_numbers", "")
+    cancelled_ids = [i.strip() for i in cancelled_ids.split(";") if i.strip()]
+
+    if cancelled_ids:
+        exclude_cancelled = "AND a.aif_id NOT IN %s"
+    else:
+        exclude_cancelled = ""
+
+    # =========================
+    # ALL NSO
     # =========================
     if is_all_nso_enabled:
         customer_column = "NULL as customer"
@@ -62,6 +73,9 @@ def get_conflicting_aif_ids_from_payload(aif):
             start_date,
             end_date,
         ]
+
+        if cancelled_ids:
+            params.append(tuple(cancelled_ids))
 
     # =========================
     # CUSTOMER CASE
@@ -87,14 +101,18 @@ def get_conflicting_aif_ids_from_payload(aif):
             tuple(customers),
         ]
 
+        if cancelled_ids:
+            params.append(tuple(cancelled_ids))
+
     # =========================
-    # FINAL QUERY BUILD
+    # FINAL SQL
     # =========================
     sql = base_sql.format(
         customer_column=customer_column,
         customer_join=customer_join,
         extra_condition=extra_condition,
         customer_filter=customer_filter,
+        exclude_cancelled=exclude_cancelled,
     )
 
     # =========================
