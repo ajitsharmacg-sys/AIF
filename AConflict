@@ -1,3 +1,119 @@
+def get_conflicting_aif_ids_from_payload(aif):
+    base_sql = """
+        SELECT 
+            a.aif_id,
+            a.start_date,
+            a.end_date,
+            l.mercury_code,
+            l.promotional_elp,
+            {customer_column}
+        FROM aif_aif a
+        INNER JOIN aif_aiflines l 
+            ON l.aif_id = a.aif_id
+
+        {customer_join}
+
+        WHERE
+            a.nso = %s
+            AND l.mercury_code IN %s
+            AND l.promotional_elp != %s   -- 🔥 different ELP
+            AND a.end_date >= %s
+            AND a.start_date <= %s
+            {extra_condition}
+            {customer_filter}
+    """
+
+    # =========================
+    # EXTRACT DATA FROM PAYLOAD
+    # =========================
+    mercury_codes = [l.get("mercury_code") for l in aif.get("aif_lines", []) if l.get("mercury_code")]
+    elp_values = [l.get("promotional_elp") for l in aif.get("aif_lines", []) if l.get("promotional_elp") is not None]
+
+    customers = [
+        c.get("oracle_cust_number")
+        for c in aif.get("aif_customer_lines", [])
+        if c.get("oracle_cust_number")
+    ]
+
+    if not mercury_codes or not elp_values:
+        return []
+
+    nso = aif.get("nso")
+    start_date = aif.get("start_date")
+    end_date = aif.get("end_date")
+    is_all_nso_enabled = aif.get("is_all_nso_enabled", False)
+
+    # ⚠️ using first elp (same style as your function)
+    elp = elp_values[0]
+
+    # =========================
+    # ALL NSO CASE
+    # =========================
+    if is_all_nso_enabled:
+        customer_column = "NULL as customer"
+        customer_join = ""
+        customer_filter = ""
+        extra_condition = "AND a.is_all_nso_enabled = 1"
+
+        params = [
+            nso,
+            tuple(mercury_codes),
+            elp,
+            start_date,
+            end_date,
+        ]
+
+    # =========================
+    # CUSTOMER CASE
+    # =========================
+    else:
+        if not customers:
+            return []
+
+        customer_column = "c.oracle_cust_number as customer"
+        customer_join = """
+            INNER JOIN aif_aifcustomerlines c 
+                ON c.aif_id = a.aif_id
+        """
+        customer_filter = "AND c.oracle_cust_number IN %s"
+        extra_condition = ""
+
+        params = [
+            nso,
+            tuple(mercury_codes),
+            elp,
+            start_date,
+            end_date,
+            tuple(customers),
+        ]
+
+    # =========================
+    # FINAL QUERY BUILD
+    # =========================
+    sql = base_sql.format(
+        customer_column=customer_column,
+        customer_join=customer_join,
+        extra_condition=extra_condition,
+        customer_filter=customer_filter,
+    )
+
+    # =========================
+    # EXECUTION
+    # =========================
+    with connection.cursor() as cursor:
+        cursor.execute(sql, params)
+        columns = [col[0] for col in cursor.description]
+        rows = cursor.fetchall()
+
+    return [dict(zip(columns, row)) for row in rows]
+
+
+
+
+
+
+
+
 const rows = await this.getConflictingRows(aif.aif_id);
 
 if (rows.length > 0 && !this.conflictPopupShown) {
