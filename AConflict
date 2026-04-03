@@ -1,15 +1,15 @@
 const rows = await this.getConflictingRows(aif.aif_id);
 
-// 🔥 SHOW POPUP (non-blocking)
-if (rows.length > 0) {
+if (rows.length > 0 && !this.conflictPopupShown) {
   this.conflictingRows = rows;
+  this.conflictPopupShown = true;
 
   setTimeout(() => {
     this.show_modal("conflict_modal");
   }, 100);
 }
 
-const conflictAifs = this.buildConflictAIFStructure(rows);
+conflictPopupShown: false,
 
 
 conflictingRows: [],
