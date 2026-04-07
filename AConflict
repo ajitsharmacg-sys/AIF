@@ -1,3 +1,5 @@
+<td>[[ (parseFloat(row.promotional_elp) || 0).toFixed(2) ]]</td>
+
 let startDate = effectiveAIF.start_date;
   let endDate = effectiveAIF.end_date;
 
