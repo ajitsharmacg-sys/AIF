@@ -1,3 +1,28 @@
+let startDate = effectiveAIF.start_date;
+  let endDate = effectiveAIF.end_date;
+
+  // ✅ CANCELLED AIF LOGIC
+  if (isCancelled) {
+    startDate = sourceAIF.start_date;
+    endDate = sourceAIF.start_date; // same date
+  }
+
+  // ✅ CONFLICT AIF LOGIC (only for UPDATE)
+  else if (isConflict && trxType === "UPDATE") {
+    startDate = sourceAIF.start_date;
+    endDate = overrideEndDate;
+  }
+
+  // DEFAULT LOGIC
+  else {
+    startDate = effectiveAIF.start_date;
+    endDate = overrideEndDate
+      ? overrideEndDate
+      : (trxType === "UPDATE"
+          ? effectiveAIF.start_date
+          : effectiveAIF.end_date);
+  }
+
 def get_conflicting_aif_ids_from_payload(aif):
     base_sql = """
         SELECT 
