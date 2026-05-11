@@ -1,3 +1,77 @@
+const rules = [
+    { keys: ["pelp"], field: t_ticket.elp_start_date, label: "ELP" },
+    { keys: ["cee", "cea", "cme", "csa"], field: t_ticket.cif_start_date, label: "CIF" },
+    { keys: ["rsp_baseline", "rsp"], field: t_ticket.ecom_launch_date, label: "Ecom Launch" },
+    { keys: ["tp"], field: t_ticket.tp_launch_date, label: "Transfer Price" },
+
+    // ✅ ADD THIS
+    { keys: ["infl"], field: t_ticket.influencer_start_date, label: "INFL" }
+];
+
+const priceMap = {
+    pelp_price: "pelp",
+    cee_price: "cee",
+    cea_price: "cea",
+    cme_price: "cme",
+    csa_price: "csa",
+    tp_price: "tp",
+    rsp_baseline: "rsp_baseline",
+    rsp_price: "rsp",
+
+    // ✅ ADD THIS
+    infl_price: "infl"
+};
+
+const fields = [
+    "pelp_price", "cee_price", "cea_price", "cme_price",
+    "csa_price", "tp_price", "rsp_baseline", "rsp_price",
+
+    // ✅ ADD
+    "infl_price"
+];
+
+const priceFields = [
+    "pelp_price",
+    "cee_price",
+    "cea_price",
+    "cme_price",
+    "csa_price",
+    "tp_price",
+    "rsp_baseline",
+    "rsp_price",
+
+    // ✅ ADD
+    "infl_price"
+];
+
+
+const price_fields = [
+    "pelp_price", "cee_price", "cea_price",
+    "cme_price", "csa_price", "tp_price",
+    "rsp_baseline", "rsp_price",
+
+    // ✅ ADD
+    "infl_price"
+];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <tbody>
     <tr v-for="line in lines" :key="lines.indexOf(line)">
         <!-- Index -->
