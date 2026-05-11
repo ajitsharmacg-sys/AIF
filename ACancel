@@ -1,3 +1,15 @@
+if (!this.itcg_to_emails) {
+    this.dialog
+        .reset_to_default()
+        .set_title("Required Field")
+        .set_message("Please select DR Email before submitting.")
+        .set_true_action("Close")
+        .show();
+    return;
+}
+
+
+
 hasDuplicateMercuries() {
     const mercurySet = new Set();
 
