@@ -1,3 +1,29 @@
+hasDuplicateMercuries() {
+    const mercurySet = new Set();
+
+    for (const line of this.lines) {
+        const mercury = line.mercury?.toString().trim().toUpperCase();
+
+        if (!mercury) continue;
+
+        if (mercurySet.has(mercury)) {
+            this.dialog
+                .reset_to_default()
+                .set_title("Duplicate Mercury")
+                .set_message(`Mercury Code ${mercury} is entered more than once.`)
+                .set_true_action("Close")
+                .show();
+            return true;
+        }
+
+        mercurySet.add(mercury);
+    }
+
+    return false;
+}
+
+
+
 const ticketList = this.tickets.results || this.tickets;
 
 this.tickets.results = [
