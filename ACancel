@@ -1,3 +1,37 @@
+<tbody>
+    <tr v-for="line in lines" :key="lines.indexOf(line)">
+        
+        <!-- Wrap full row with form -->
+        <form :id="'tlineform' + lines.indexOf(line)" @submit.prevent="">
+            
+            <!-- Index -->
+            <td class="align-middle text-center">
+                [[ lines.indexOf(line) + 1 ]]
+            </td>
+
+            <!-- Fields -->
+            {% for field in ticket_line_form.visible_fields %}
+            <td class="align-middle p-1">
+                {{ field|add_attrs:":index=lines.indexOf(line); v-model=lines; class=form-control form-control-sm w-100; @change=handle_change_form(line, lines.indexOf(line), $event); @paste.prevent=paste_from_excel(lines,lines.indexOf(line), $event);" }}
+            </td>
+            {% endfor %}
+
+            <!-- Delete -->
+            <td class="align-middle text-center">
+                <button class="btn btn-danger btn-sm" @click="delete_line(line)">
+                    <i class="bi bi-x"></i>
+                </button>
+            </td>
+
+        </form>
+    </tr>
+</tbody>
+
+
+
+
+
+
 format_label(value) {
     if (!value) return "";
 
