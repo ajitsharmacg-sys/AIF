@@ -1,3 +1,40 @@
+<tbody>
+    <tr v-for="line in lines" :key="lines.indexOf(line)">
+        <!-- Index -->
+        <td>[[ lines.indexOf(line) + 1 ]]</td>
+
+        <!-- Wrap ALL inputs inside ONE FORM -->
+        <td :colspan="{{ ticket_line_form.visible_fields|length }}">
+            <form 
+                :id="'tlineform' + lines.indexOf(line)" 
+                class="d-flex flex-row flex-nowrap gap-2"
+                @submit.prevent=""
+            >
+                {% for field in ticket_line_form.visible_fields %}
+                    <div class="text-nowrap">
+                        {{ field|add_attrs:":index=lines.indexOf(line); v-model=lines; @change=handle_change_form(line, lines.indexOf(line), $event); @paste.prevent=paste_from_excel(lines,lines.indexOf(line), $event);" }}
+                    </div>
+                {% endfor %}
+            </form>
+        </td>
+
+        <!-- Delete -->
+        <td>
+            <button class="btn btn-danger btn-sm" @click="delete_line(line)">
+                <i class="bi bi-x"></i>
+            </button>
+        </td>
+    </tr>
+</tbody>
+
+
+
+
+
+
+
+
+
 async getConflictingRows(aifId) {
   let rows = [];
 
