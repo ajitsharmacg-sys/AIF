@@ -1,3 +1,18 @@
+const ticketList = this.tickets.results || this.tickets;
+
+this.tickets.results = [
+    this.ticket,
+    ...ticketList.filter(t => t.ticket_number != this.ticket.ticket_number)
+];
+
+if (this.tickets.results) {
+    this.tickets.results.splice(0, 0, this.ticket);
+} else {
+    this.tickets.splice(0, 0, this.ticket);
+}
+
+
+
 <tbody>
     <tr v-for="line in lines" :key="lines.indexOf(line)">
         
