@@ -1,3 +1,46 @@
+loading: false,
+itcg_to_email_error: false,
+
+
+<select 
+    class="form-select"
+    :class="{ 'is-invalid': itcg_to_email_error }"
+    id="itcg_emalis"
+    v-model="itcg_to_emails"
+    @change="itcg_to_email_error = false"
+>
+<select 
+    class="form-select"
+    :class="{ 'is-invalid': itcg_to_email_error }"
+    id="itcg_emalis"
+    v-model="itcg_to_emails"
+    @change="itcg_to_email_error = false"
+>
+    <option value="">-----------</option>
+
+    <option
+        v-for="contact in selected_ticket.user_contacts"
+        :key="contact.group_email"
+        :value="contact.group_email"
+    >
+        [[ contact.group_name ]]
+    </option>
+</select>
+
+<div class="invalid-feedback">
+    Please select DR Email before submitting.
+</div>
+this.itcg_to_email_error = !this.itcg_to_emails;
+
+if (this.itcg_to_email_error) {
+    this.loading = false;
+    return;
+}
+this.itcg_email_template= null;
+this.itcg_to_email_error = false;
+
+
+
 if (!this.itcg_to_emails) {
     this.dialog
         .reset_to_default()
