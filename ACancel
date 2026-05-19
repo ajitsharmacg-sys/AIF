@@ -1,3 +1,36 @@
+<thead class="sticky-top bg-light border-bottom">
+    <tr>
+
+        <th class="small text-muted fw-semibold text-nowrap py-3">
+            #
+        </th>
+
+        {% for field in ticket_line_form.visible_fields %}
+
+            <th class="small text-muted fw-semibold text-nowrap py-3">
+
+                <span v-if="'{{ field.name }}' === 'product_group'">
+                    Product<br>Group
+                </span>
+
+                <span v-else>
+                    {{ field.label }}
+                </span>
+
+            </th>
+
+        {% endfor %}
+
+        <th class="small text-muted fw-semibold text-nowrap py-3">
+        </th>
+
+    </tr>
+</thead>
+
+
+
+
+
 loading: false,
 itcg_to_email_error: false,
 
