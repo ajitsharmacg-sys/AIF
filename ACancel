@@ -1,3 +1,23 @@
+<div class="row">
+
+    <div class="col-lg-7 col-md-12 p-2">
+
+        <!-- Price Setup Details -->
+
+    </div>
+
+    <div class="col-lg-5 col-md-12 p-2">
+
+        <!-- Status History -->
+
+    </div>
+
+</div>
+
+
+
+
+
 <h5 class="card-title text-muted fw-semibold mb-3">
     Request Products Line Info
 </h5>
