@@ -1,3 +1,33 @@
+def get_queryset(self):
+
+    if self.request.user.groups.filter(name=NSO_USER).exists():
+        return Aif.objects.filter(
+            nso__in=Organization.objects.filter(
+                cluster=self.request.user.cluster
+            ).values_list("organization_name", flat=True)
+        )
+
+    elif self.request.user.groups.filter(name=PSBD_TEAM_USER).exists():
+
+        allowed_product_groups = AifApprover.objects.filter(
+            approver=self.request.user
+        ).values_list(
+            "product_group",
+            flat=True
+        )
+
+        return Aif.objects.filter(
+            aif_lines__product_group__in=allowed_product_groups
+        ).distinct()
+
+    return Aif.objects.all()
+
+
+
+
+
+
+
 if (
     price !== "" &&
     price !== null &&
