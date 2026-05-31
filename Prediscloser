@@ -38,3 +38,67 @@ Should account information be copied from previous requests?
 Are any fields different based on Disclosure Type or Product Category?
 Which fields are mandatory before submission?
 Which fields should be visible only for specific disclosure types?
+
+
+
+Header Information
+Region
+What are the available Region values? Is this a mandatory field? Will one request belong to only one Region?
+NSO
+Is NSO automatically derived from Region or selected by the user? What are the valid NSO values?
+Disclosure Type
+What are the available Disclosure Types? Is this field mandatory? Can multiple Disclosure Types be selected?
+Product Category
+What are the available Product Categories? Is this field mandatory? Can multiple Product Categories be selected?
+Attachment
+Is attachment mandatory? What file formats should be allowed? What is the maximum file size?
+
+Account Information
+Account Name
+Is Account Name selected from a predefined account master or entered manually? Is it mandatory?
+Account URL
+Should the URL be automatically populated from the Account Master? Can users modify it?
+NDA Signed
+Is NDA Signed mandatory? What are the valid values?
+Format of Disclosure
+What are the available values? Is this field mandatory?
+Reason for Pre-Disclosure
+Should this be a free-text field or a predefined dropdown? Is it mandatory?
+Product(s) to be Disclosed
+Can multiple products be entered? Is this field mandatory?
+SDA Partner List Confirmation
+What are the valid values? Is this field mandatory?
+NDA Partner List Confirmation
+What are the valid values? Is this field mandatory?
+Disclosure Meeting Date
+Is this field mandatory? Are past dates allowed?
+Disclosure Location
+Should this be free text or selected from predefined values? Is it mandatory?
+Responsible Person
+Should this be selected from employee master data or entered manually? Is it mandatory?
+Individuals Being Disclosed To
+What details are required (Name, Company, Email, etc.)? Is this field mandatory?
+Information to be Disclosed
+Should this be free text or selected from predefined values? Is it mandatory?
+Retailer Ranking
+What are the valid ranking values? Is this field mandatory?
+Volume Estimation
+Should this be numeric, text, or dropdown-based? Is it mandatory?
+B2B Opportunity
+What information should be captured? Is this field mandatory?
+Special Remarks
+Is this field optional or mandatory? Is there a character limit?
+Supporting Documents
+Can documents be uploaded at the account level? What file types should be allowed?
+
+General Questions
+Multiple Accounts
+How many accounts can be added under a single request?
+Duplicate Accounts
+Can the same account be added more than once in the same request?
+Mandatory Fields
+Which account fields must be completed before submission?
+Conditional Fields
+Are any fields required only for specific Disclosure Types or Product Categories?
+Workflow Trigger
+Is the approval workflow determined by Region, NSO, Disclosure Type, Product Category, or a combination of these fields?
