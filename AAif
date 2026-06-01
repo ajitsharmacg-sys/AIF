@@ -114,3 +114,30 @@ formatAmount(value) {
 :value="formatAmount(line.line_value)"
 
 [[ formatAmount(line.line_value) ]]
+
+<template v-for="key in line_columns">
+    <td>
+        <template v-if="key === 'promotional_qty'">
+            [[ line[key] ]]
+        </template>
+
+        <template v-else-if="
+            [
+                'elp_eur',
+                'elp',
+                'promotional_elp',
+                'promotional_elp_eur',
+                'promotion_support',
+                'promotion_support_eur',
+                'line_value',
+                'line_value_eur'
+            ].includes(key)
+        ">
+            [[ formatAmount(line[key]) ]]
+        </template>
+
+        <template v-else>
+            [[ line[key] ]]
+        </template>
+    </td>
+</template>
