@@ -46,3 +46,59 @@ class AifLines(MetaAbstract):
         default=0,
         verbose_name="Line Value (EUR)",
     )
+
+
+
+calculatePromotionValues(lineItem) {
+    const qty = parseInt(lineItem.promotional_qty || 0);
+
+    const promoElpLocal = parseFloat(lineItem.promotional_elp || 0);
+    const localElp = parseFloat(lineItem.elp || 0);
+
+    const promoElpEur = parseFloat(lineItem.promotional_elp_eur || 0);
+    const elpEur = parseFloat(lineItem.elp_eur || 0);
+
+    const rate = parseFloat(this.aif.exchange_rate || 1);
+
+    if (qty > 0 && promoElpLocal > 0) {
+
+        // Convert Promo ELP to EUR
+        lineItem.promotional_elp_eur =
+            this.aif.local_currency === "EUR"
+                ? Number(promoElpLocal.toFixed(2))
+                : Number((promoElpLocal / rate).toFixed(2));
+
+        // Local Currency Values
+        lineItem.promotion_support = Number(
+            ((localElp - promoElpLocal) * qty).toFixed(2)
+        );
+
+        lineItem.line_value = Number(
+            (promoElpLocal * qty).toFixed(2)
+        );
+
+        // EUR Values
+        lineItem.promotion_support_eur = Number(
+            ((elpEur - lineItem.promotional_elp_eur) * qty).toFixed(2)
+        );
+
+        lineItem.line_value_eur = Number(
+            (lineItem.promotional_elp_eur * qty).toFixed(2)
+        );
+
+    } else {
+        lineItem.promotional_elp_eur = 0;
+        lineItem.promotion_support = 0;
+        lineItem.promotion_support_eur = 0;
+        lineItem.line_value = 0;
+        lineItem.line_value_eur = 0;
+    }
+}
+
+
+promoValue() {
+    return (this.lines || []).reduce(
+        (sum, line) => sum + (parseFloat(line.line_value) || 0),
+        0
+    ).toFixed(2);
+}
