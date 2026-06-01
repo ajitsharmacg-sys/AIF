@@ -1,27 +1,48 @@
-migrations.AddField(
-    model_name='aiflines',
-    name='promotional_elp_eur',
-    field=models.DecimalField(
-        decimal_places=2,
+class AifLines(MetaAbstract):
+    aif = models.ForeignKey(
+        Aif, on_delete=models.CASCADE, blank=False, null=False, related_name="aif_lines"
+    )
+
+    # Existing fields
+    elp = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0, verbose_name="Local ELP"
+    )
+    elp_eur = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0, verbose_name="ELP (EUR)"
+    )
+
+    promotional_qty = models.PositiveIntegerField(default=0, verbose_name="Promo Qty")
+
+    promotional_elp = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0, verbose_name="Promo ELP"
+    )
+
+    promotion_support = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0, verbose_name="Promo Support"
+    )
+
+    line_value = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0, verbose_name="Line Value"
+    )
+
+    # New fields
+    promotional_elp_eur = models.DecimalField(
         max_digits=12,
-        default=0
-    ),
-),
-migrations.AddField(
-    model_name='aiflines',
-    name='promotion_support_eur',
-    field=models.DecimalField(
         decimal_places=2,
+        default=0,
+        verbose_name="Promo ELP (EUR)",
+    )
+
+    promotion_support_eur = models.DecimalField(
         max_digits=12,
-        default=0
-    ),
-),
-migrations.AddField(
-    model_name='aiflines',
-    name='line_value_eur',
-    field=models.DecimalField(
         decimal_places=2,
+        default=0,
+        verbose_name="Promo Support (EUR)",
+    )
+
+    line_value_eur = models.DecimalField(
         max_digits=12,
-        default=0
-    ),
-),
+        decimal_places=2,
+        default=0,
+        verbose_name="Line Value (EUR)",
+    )
