@@ -110,3 +110,7 @@ formatAmount(value) {
         maximumFractionDigits: 2
     });
 }
+
+:value="formatAmount(line.line_value)"
+
+[[ formatAmount(line.line_value) ]]
