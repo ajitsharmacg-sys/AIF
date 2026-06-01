@@ -141,3 +141,5 @@ formatAmount(value) {
         </template>
     </td>
 </template>
+
+:value="formatAmount(promoValue)"
