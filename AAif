@@ -1,0 +1,27 @@
+migrations.AddField(
+    model_name='aiflines',
+    name='promotional_elp_eur',
+    field=models.DecimalField(
+        decimal_places=2,
+        max_digits=12,
+        default=0
+    ),
+),
+migrations.AddField(
+    model_name='aiflines',
+    name='promotion_support_eur',
+    field=models.DecimalField(
+        decimal_places=2,
+        max_digits=12,
+        default=0
+    ),
+),
+migrations.AddField(
+    model_name='aiflines',
+    name='line_value_eur',
+    field=models.DecimalField(
+        decimal_places=2,
+        max_digits=12,
+        default=0
+    ),
+),
