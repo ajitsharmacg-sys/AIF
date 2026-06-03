@@ -1,3 +1,24 @@
+support_per_unit = models.DecimalField(
+    max_digits=5,
+    decimal_places=2,
+    default=0,
+    verbose_name="Support Per Unit (%)",
+)
+
+
+if (localElp > 0) {
+    lineItem.support_per_unit = Number(
+        (((localElp - promoElpLocal) / localElp) * 100).toFixed(2)
+    );
+} else {
+    lineItem.support_per_unit = 0;
+}
+
+
+
+
+
+
 class AifLines(MetaAbstract):
     aif = models.ForeignKey(
         Aif, on_delete=models.CASCADE, blank=False, null=False, related_name="aif_lines"
