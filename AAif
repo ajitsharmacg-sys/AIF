@@ -1,5 +1,7 @@
+
+
 <template v-else-if="key === 'support_per_unit'">
-    [[ line[key] ]]%
+    [[ parseInt(line.support_per_unit) ]]%
 </template>
 <template v-else>
     [[ line[key] ]]
