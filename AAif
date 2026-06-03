@@ -1,3 +1,10 @@
+<template v-else-if="key === 'support_per_unit'">
+    [[ line[key] ]]%
+</template>
+<template v-else>
+    [[ line[key] ]]
+</template>
+
 lineItem.support_per_unit =
     localElp > 0
         ? Number((((localElp - promoElpLocal) / localElp) * 100).toFixed(2))
