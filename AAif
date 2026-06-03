@@ -1,3 +1,12 @@
+lineItem.support_per_unit =
+    localElp > 0
+        ? Number((((localElp - promoElpLocal) / localElp) * 100).toFixed(2))
+        : 0;
+
+if (qty > 0 && promoElpLocal > 0 && localElp > 0) {
+    ...
+}
+
 support_per_unit = models.DecimalField(
     max_digits=5,
     decimal_places=2,
