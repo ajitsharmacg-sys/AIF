@@ -1,3 +1,35 @@
+validate_ecom_elp_rule(ticket) {
+    const hasEcomPrice =
+        this.pricelist.includes("rsp_baseline") ||
+        this.pricelist.includes("rsp");
+
+    const hasElpPrice =
+        this.pricelist.includes("pelp");
+
+    if (
+        ticket.ecom_launch_date &&
+        [ticket.elp_start_date,
+         ticket.cif_start_date,
+         ticket.tp_launch_date,
+         ticket.influencer_start_date]
+            .every(date => !date) &&
+        hasEcomPrice &&
+        !hasElpPrice
+    ) {
+        this.dialog
+            .reset_to_default()
+            .set_title("Failed")
+            .set_message(
+                "ELP date and ELP price are mandatory when only ECOM date and ECOM prices are requested."
+            )
+            .set_true_action("Close")
+            .show();
+
+        return false;
+    }
+
+    return true;
+}
 
 
 <template v-else-if="key === 'support_per_unit'">
