@@ -1,3 +1,59 @@
+validate_pricelist(line_item) {
+    const priceMap = {
+        pelp_price: "pelp",
+        cee_price: "cee",
+        cea_price: "cea",
+        cme_price: "cme",
+        csa_price: "csa",
+        tp_price: "tp",
+        rsp_baseline: "rsp_baseline",
+        rsp_price: "rsp",
+        influencer_price: "infl"
+    };
+
+    const isValid = val =>
+        val !== null && val !== "" && val !== undefined;
+
+    for (let i = 0; i < line_item.length; i++) {
+
+        const line = line_item[i];
+        let hasPrice = false;
+
+        for (const [field, type] of Object.entries(priceMap)) {
+
+            if (isValid(line[field])) {
+
+                hasPrice = true;
+
+                if (!this.pricelist.includes(type)) {
+                    this.pricelist.push(type);
+                }
+            }
+        }
+
+        if (!hasPrice) {
+            this.dialog
+                .reset_to_default()
+                .set_title("Failed")
+                .set_message(`Please enter at least one price in line ${i + 1}.`)
+                .set_true_action("Close")
+                .show();
+
+            return false;
+        }
+    }
+
+    return true;
+}
+
+if (!this.validate_pricelist(this.lines)) {
+    return false;
+}
+
+
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
