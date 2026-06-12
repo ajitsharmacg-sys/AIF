@@ -1,3 +1,69 @@
+is_date_valid_for_pricelist(t_ticket) {
+
+    const rules = [
+        {
+            fields: ["pelp_price"],
+            date: t_ticket.elp_start_date,
+            label: "ELP"
+        },
+        {
+            fields: ["cee_price", "cea_price", "cme_price", "csa_price"],
+            date: t_ticket.cif_start_date,
+            label: "CIF"
+        },
+        {
+            fields: ["rsp_baseline", "rsp_price"],
+            date: t_ticket.ecom_launch_date,
+            label: "Ecom Launch"
+        },
+        {
+            fields: ["tp_price"],
+            date: t_ticket.tp_launch_date,
+            label: "Transfer Price"
+        },
+        {
+            fields: ["influencer_price"],
+            date: t_ticket.influencer_start_date,
+            label: "INFL"
+        }
+    ];
+
+    const isValid = val =>
+        val !== null && val !== "" && val !== undefined;
+
+    for (let i = 0; i < this.lines.length; i++) {
+
+        const line = this.lines[i];
+
+        for (const { fields, date, label } of rules) {
+
+            const hasDate = isValid(date);
+
+            const hasPrice = fields.some(field =>
+                isValid(line[field])
+            );
+
+            if (hasDate !== hasPrice) {
+
+                this.dialog
+                    .reset_to_default()
+                    .set_title("Failed")
+                    .set_message(
+                        `${label} date field and price field do not match for line ${i + 1}.`
+                    )
+                    .set_true_action("Close")
+                    .show();
+
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+
+
 validate_pricelist(line_item) {
     const priceMap = {
         pelp_price: "pelp",
