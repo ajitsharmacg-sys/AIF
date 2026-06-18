@@ -1,3 +1,94 @@
+def get_conflicting_aif_ids(aif):
+    base_sql = """
+        SELECT
+            a.aif_id,
+            a.start_date,
+            a.end_date,
+            l.mercury_code,
+            l.promotional_elp,
+            {customer_column}
+        FROM aif_aif a
+        INNER JOIN aif_aiflines l
+            ON l.aif_id = a.aif_id
+
+        INNER JOIN aif_aiflines current_l
+            ON current_l.aif_id = %s
+            AND current_l.mercury_code = l.mercury_code
+
+        {customer_join}
+
+        WHERE
+            a.aif_id != %s
+            AND a.nso = %s
+            AND a.end_date >= %s
+            AND (
+                SELECT TOP 1 status
+                FROM aif_aifstatus s
+                WHERE s.aif_id = a.aif_id
+                ORDER BY s.id DESC
+            ) != %s
+            {extra_condition}
+    """
+
+    # ALL NSO CASE (NO CUSTOMER)
+    if aif.is_all_nso_enabled:
+        customer_column = "NULL as customer"
+        customer_join = ""
+        extra_condition = "AND a.is_all_nso_enabled = 1"
+
+        params = [
+            aif.aif_id,                    # current_l
+            aif.aif_id,                    # exclude self
+            aif.nso,
+            aif.start_date,
+            AifStatusChoices.INVALID,      # exclude invalid AIFs
+        ]
+
+    # CUSTOMER CASE
+    else:
+        customer_column = "c.oracle_cust_number as customer"
+        customer_join = """
+            INNER JOIN aif_aifcustomerlines c
+                ON c.aif_id = a.aif_id
+            INNER JOIN aif_aifcustomerlines current_c
+                ON current_c.aif_id = %s
+                AND current_c.oracle_cust_number = c.oracle_cust_number
+        """
+        extra_condition = ""
+
+        params = [
+            aif.aif_id,                    # current_l
+            aif.aif_id,                    # current_c
+            aif.aif_id,                    # exclude self
+            aif.nso,
+            aif.start_date,
+            AifStatusChoices.INVALID,      # exclude invalid AIFs
+        ]
+
+    sql = base_sql.format(
+        customer_column=customer_column,
+        customer_join=customer_join,
+        extra_condition=extra_condition,
+    )
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, params)
+        columns = [col[0] for col in cursor.description]
+        rows = cursor.fetchall()
+
+    return [dict(zip(columns, row)) for row in rows]
+
+
+
+
+
+
+
+
+
+
+
+
 is_date_valid_for_pricelist(t_ticket) {
 
     const rules = [
