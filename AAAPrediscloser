@@ -1,3 +1,35 @@
+product_group_text = ", ".join(sorted(product_groups))
+total_support = sum(
+    aif.aif_lines.values_list("promo_support", flat=True)
+)
+
+body=f"""
+    Dear PSBD Team,<br><br>
+
+    The ONINVOICE promotion request is awaiting Commercial Approval,
+    please approve within 24 hours.<br><br>
+
+    <b>NSO:</b> {aif.nso}<br>
+    <b>Product Group:</b> {product_group_text}<br>
+    <b>Requester:</b> {aif.meta_created_by.get_full_name()}<br>
+    <b>Promo Campaign:</b> {aif.promotion_name}<br>
+    <b>Promo Category:</b> {aif.promotion_category}<br>
+    <b>Activity:</b> {aif.activity}<br>
+    <b>TTL Support:</b> {total_support:,.2f}<br><br>
+
+    Please click the link below to review the promotion details:<br>
+    <a href="{aif_url(request, aif.aif_id)}">
+        {aif_url(request, aif.aif_id)}
+    </a>
+
+    <br><br>
+
+    Thanks<br>
+    Kind Regards<br>
+    Rev Sales Ops Team
+"""
+
+
 def get_conflicting_aif_ids(aif):
     base_sql = """
         SELECT
