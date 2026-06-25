@@ -1,3 +1,26 @@
+| Field                          | Help Text                                                                                                                                                  |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| account_name                   | Enter the retailer, dealer, account or partner name exactly as approved. If not available in the approved list, enter it manually.                         |
+| website                        | Enter the official website/URL of the account.                                                                                                             |
+| disclosed_last_2_years         | Confirm whether any item has been pre-disclosed to this account within the last 2 years.                                                                   |
+| b2b_business_type              | Applicable only for Trade requests. Select the B2B business type.                                                                                          |
+| nda_confirmed                  | Confirm that a valid Non-Disclosure Agreement (NDA) is in place before sharing confidential information.                                                   |
+| disclosure_format              | Select how the pre-disclosure meeting will be conducted (1:1 Online, 1:1 Face-to-face, Group Online, Group Face-to-face).                                  |
+| reason_for_disclosure          | Explain why the pre-disclosure meeting is required.                                                                                                        |
+| products_to_be_disclosed       | List all products or product families that will be disclosed during the meeting.                                                                           |
+| sda_partner_level              | Trade requests only. Select the retailer's SDA level according to the SDA Partner List (PIP, AIP1, AIP2 or SIP).                                           |
+| account_in_sda_partner_list    | Trade requests only. Confirm whether the account exists in the SDA Partner List.                                                                           |
+| meeting_date                   | Enter the planned date of the pre-disclosure meeting.                                                                                                      |
+| meeting_location               | Enter the physical location or online meeting platform.                                                                                                    |
+| canon_responsible_person       | Enter the Canon employee responsible for conducting the pre-disclosure meeting.                                                                            |
+| individuals_being_disclosed_to | Enter the names and roles of all attendees receiving the confidential information.                                                                         |
+| information_to_be_disclosed    | Describe the confidential information that will be shared (for example: product specifications, key selling points, launch information, pricing strategy). |
+| retailer_ranking               | Trade requests only. Enter the retailer ranking according to the Power BI report, if applicable.                                                           |
+| estimated_business             | B2B requests only. Enter the estimated business opportunity associated with the pre-disclosure.                                                            |
+| annual_sales                   | B2B requests only. Enter the estimated annual sales or business value related to the account.                                                              |
+
+
+
 class YesNoChoices(models.TextChoices):
     YES = "YES", "Yes"
     NO = "NO", "No"
