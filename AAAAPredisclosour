@@ -1,3 +1,231 @@
+
+```python
+"""
+Workflow configuration for Pre-Disclosure Approval Process
+"""
+
+from predisclosure.roles import (
+    ISB_MANAGER,
+    ISB_PM,
+    ICB_MANAGER,
+    ICB_PM,
+    PR_MANAGER,
+    MARKETING_PM,
+)
+
+from predisclosure.models import PreDisclosureLineStatus
+
+
+# ============================================================================
+# Disclosure Types
+# ============================================================================
+
+ISB = "ISB"
+ICB = "ICB"
+ISB_ICB = "ISB_ICB"
+PR_SOCIAL = "PR_SOCIAL"
+
+
+# ============================================================================
+# Header Status Graph
+# ============================================================================
+
+HEADER_STATUS_GRAPH = {
+    "DRAFT": [
+        "IN_PROGRESS",
+    ],
+    "IN_PROGRESS": [
+        "COMPLETED",
+        "REJECTED",
+    ],
+}
+
+
+# ============================================================================
+# Line Status Graph
+# ============================================================================
+
+LINE_STATUS_GRAPH = {
+
+    PreDisclosureLineStatus.DRAFT: [
+        PreDisclosureLineStatus.AWAITING_ISB_MANAGER_APPROVAL,
+        PreDisclosureLineStatus.AWAITING_ICB_MANAGER_APPROVAL,
+        PreDisclosureLineStatus.AWAITING_PR_MANAGER_APPROVAL,
+    ],
+
+    PreDisclosureLineStatus.AWAITING_ISB_MANAGER_APPROVAL: [
+        PreDisclosureLineStatus.APPROVED,
+        PreDisclosureLineStatus.REJECTED,
+    ],
+
+    PreDisclosureLineStatus.AWAITING_ICB_MANAGER_APPROVAL: [
+        PreDisclosureLineStatus.APPROVED,
+        PreDisclosureLineStatus.REJECTED,
+    ],
+
+    PreDisclosureLineStatus.AWAITING_ISB_PM_APPROVAL: [
+        PreDisclosureLineStatus.APPROVED,
+        PreDisclosureLineStatus.REJECTED,
+    ],
+
+    PreDisclosureLineStatus.AWAITING_ICB_PM_APPROVAL: [
+        PreDisclosureLineStatus.APPROVED,
+        PreDisclosureLineStatus.REJECTED,
+    ],
+
+    PreDisclosureLineStatus.AWAITING_PR_MANAGER_APPROVAL: [
+        PreDisclosureLineStatus.APPROVED,
+        PreDisclosureLineStatus.REJECTED,
+    ],
+
+    PreDisclosureLineStatus.AWAITING_MARKETING_PM_APPROVAL: [
+        PreDisclosureLineStatus.APPROVED,
+        PreDisclosureLineStatus.REJECTED,
+    ],
+}
+
+
+# ============================================================================
+# Workflow Matrix
+# Determines the next awaiting status based on disclosure type and step.
+# ============================================================================
+
+WORKFLOW_MATRIX = {
+
+    ISB: {
+
+        1: PreDisclosureLineStatus.AWAITING_ISB_MANAGER_APPROVAL,
+
+        2: PreDisclosureLineStatus.AWAITING_ISB_PM_APPROVAL,
+
+    },
+
+    ICB: {
+
+        1: PreDisclosureLineStatus.AWAITING_ICB_MANAGER_APPROVAL,
+
+        2: PreDisclosureLineStatus.AWAITING_ICB_PM_APPROVAL,
+
+    },
+
+    ISB_ICB: {
+
+        1: PreDisclosureLineStatus.AWAITING_ISB_MANAGER_APPROVAL,
+
+        2: PreDisclosureLineStatus.AWAITING_ICB_MANAGER_APPROVAL,
+
+        3: PreDisclosureLineStatus.AWAITING_ISB_PM_APPROVAL,
+
+        4: PreDisclosureLineStatus.AWAITING_ICB_PM_APPROVAL,
+
+    },
+
+    PR_SOCIAL: {
+
+        1: PreDisclosureLineStatus.AWAITING_PR_MANAGER_APPROVAL,
+
+        2: PreDisclosureLineStatus.AWAITING_MARKETING_PM_APPROVAL,
+
+    },
+
+}
+
+
+# ============================================================================
+# Status -> Role Mapping
+# Used for Notifications & Permission Check
+# ============================================================================
+
+LINE_STATUS_TO_ROLE = {
+
+    PreDisclosureLineStatus.AWAITING_ISB_MANAGER_APPROVAL: [
+        ISB_MANAGER,
+    ],
+
+    PreDisclosureLineStatus.AWAITING_ISB_PM_APPROVAL: [
+        ISB_PM,
+    ],
+
+    PreDisclosureLineStatus.AWAITING_ICB_MANAGER_APPROVAL: [
+        ICB_MANAGER,
+    ],
+
+    PreDisclosureLineStatus.AWAITING_ICB_PM_APPROVAL: [
+        ICB_PM,
+    ],
+
+    PreDisclosureLineStatus.AWAITING_PR_MANAGER_APPROVAL: [
+        PR_MANAGER,
+    ],
+
+    PreDisclosureLineStatus.AWAITING_MARKETING_PM_APPROVAL: [
+        MARKETING_PM,
+    ],
+
+}
+
+
+# ============================================================================
+# Role -> Awaiting Status Mapping
+# Used by frontend to determine action button visibility
+# ============================================================================
+
+ROLE_TO_LINE_STATUS = {
+
+    ISB_MANAGER: [
+        PreDisclosureLineStatus.AWAITING_ISB_MANAGER_APPROVAL,
+    ],
+
+    ISB_PM: [
+        PreDisclosureLineStatus.AWAITING_ISB_PM_APPROVAL,
+    ],
+
+    ICB_MANAGER: [
+        PreDisclosureLineStatus.AWAITING_ICB_MANAGER_APPROVAL,
+    ],
+
+    ICB_PM: [
+        PreDisclosureLineStatus.AWAITING_ICB_PM_APPROVAL,
+    ],
+
+    PR_MANAGER: [
+        PreDisclosureLineStatus.AWAITING_PR_MANAGER_APPROVAL,
+    ],
+
+    MARKETING_PM: [
+        PreDisclosureLineStatus.AWAITING_MARKETING_PM_APPROVAL,
+    ],
+
+}
+
+
+# ============================================================================
+# Helper Functions
+# ============================================================================
+
+def get_next_status(disclosure_type, current_step):
+    """
+    Returns the awaiting status for the given disclosure type and step.
+    """
+    return WORKFLOW_MATRIX[disclosure_type][current_step]
+
+
+def get_role_from_status(status):
+    """
+    Returns the group(s) responsible for a given awaiting status.
+    """
+    return LINE_STATUS_TO_ROLE.get(status, [])
+
+
+def get_role_status(role):
+    """
+    Returns the awaiting status assigned to the role.
+    """
+    return ROLE_TO_LINE_STATUS.get(role, [])
+```
+
+
+=======================================================
 ISB_MANAGER = "PreDisclosure ISB Manager"
 
 ISB_PM = "PreDisclosure ISB PM"
