@@ -1,6 +1,51 @@
 ```python
 from django.db import models
 
+
+class PreDisclosureLineStatus(models.TextChoices):
+    DRAFT = "DRAFT", "Draft"
+
+    AWAITING_ISB_MANAGER_APPROVAL = (
+        "AWAITING_ISB_MANAGER_APPROVAL",
+        "Awaiting ISB Manager Approval",
+    )
+
+    AWAITING_ICB_MANAGER_APPROVAL = (
+        "AWAITING_ICB_MANAGER_APPROVAL",
+        "Awaiting ICB Manager Approval",
+    )
+
+    AWAITING_ISB_PM_APPROVAL = (
+        "AWAITING_ISB_PM_APPROVAL",
+        "Awaiting ISB PM Approval",
+    )
+
+    AWAITING_ICB_PM_APPROVAL = (
+        "AWAITING_ICB_PM_APPROVAL",
+        "Awaiting ICB PM Approval",
+    )
+
+    AWAITING_PR_MANAGER_APPROVAL = (
+        "AWAITING_PR_MANAGER_APPROVAL",
+        "Awaiting PR Manager Approval",
+    )
+
+    AWAITING_MARKETING_PM_APPROVAL = (
+        "AWAITING_MARKETING_PM_APPROVAL",
+        "Awaiting Marketing PM Approval",
+    )
+
+    APPROVED = "APPROVED", "Approved"
+
+    REJECTED = "REJECTED", "Rejected"
+```
+
+
+
+
+```python
+from django.db import models
+
 from common.models import (
     MetaCreatedAbstract,
     MetaEditedAbstract,
