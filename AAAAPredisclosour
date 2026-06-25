@@ -1,0 +1,104 @@
+class PreDisclosureRequest(models.Model):
+    region = models.CharField(max_length=20)
+    predisclosure_type = models.CharField(max_length=20)
+    product_category = models.CharField(max_length=30)
+
+    attachment = models.FileField(
+        upload_to="predisclosure/",
+        blank=True,
+        null=True
+    )
+
+    submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class PreDisclosureAccount(models.Model):
+
+    request = models.ForeignKey(
+        PreDisclosureRequest,
+        related_name="accounts",
+        on_delete=models.CASCADE
+    )
+
+    # 1
+    account_name = models.CharField(max_length=255)
+
+    # 2
+    website = models.URLField(blank=True, null=True)
+
+    # 3
+    disclosed_last_2_years = models.BooleanField(default=False)
+
+    # 4
+    b2b_business_type = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+    # 5
+    nda_confirmed = models.BooleanField(default=False)
+
+    # 6
+    disclosure_format = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+    # 7
+    reason_for_disclosure = models.TextField()
+
+    # 8
+    products_to_be_disclosed = models.TextField()
+
+    # 9
+    sdia_partner_confirmed = models.BooleanField(default=False)
+
+    # 10
+    reseller_list_confirmed = models.BooleanField(default=False)
+
+    # 11
+    meeting_date = models.DateField()
+
+    # 12
+    meeting_location = models.CharField(max_length=255)
+
+    # 13
+    canon_responsible_person = models.CharField(max_length=255)
+
+    # 14
+    individuals_being_disclosed_to = models.TextField()
+
+    # 15
+    information_to_be_disclosed = models.TextField()
+
+    # 16
+    retailer_ranking = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+    # 17
+    estimated_business = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+    # 18
+    annual_sales = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+    class Meta:
+        ordering = ["id"]
