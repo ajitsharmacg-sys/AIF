@@ -1,3 +1,18 @@
+from django.contrib import admin
+
+from predisclosure.models import (
+    PreDisclosure,
+    PreDisclosureLine,
+    PreDisclosureStatus,
+    PreDisclosureLineStatus,
+)
+
+admin.site.register(PreDisclosure)
+admin.site.register(PreDisclosureLine)
+admin.site.register(PreDisclosureStatus)
+admin.site.register(PreDisclosureLineStatus)
+
+
 ```python
 from django.forms import Select, Textarea
 from common.forms import EnhancedModelForm
