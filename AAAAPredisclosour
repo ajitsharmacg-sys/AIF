@@ -1,3 +1,21 @@
+ISB_MANAGER = "PreDisclosure ISB Manager"
+
+ISB_PM = "PreDisclosure ISB PM"
+
+ICB_MANAGER = "PreDisclosure ICB Manager"
+
+ICB_PM = "PreDisclosure ICB PM"
+
+PR_MANAGER = "PreDisclosure PR Manager"
+
+MARKETING_PM = "PreDisclosure Marketing PM"
+
+ADMIN_ROLE = "PreDisclosure Admin"
+
+
+
+
+
 ```python
 from django.db import models
 
