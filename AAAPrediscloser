@@ -1,3 +1,26 @@
+if (model_column === "mercury") {
+    if (!value) {
+        return; // Let HTML required validation handle empty mercury
+    }
+
+    const mercury = value.trim().toUpperCase();
+    line.mercury = mercury;
+    this.handle_mercury_change(line, index, mercury);
+    return;
+}
+
+const mercury = (cells[0]?.trim() || "").toUpperCase();
+
+if (!mercury) {
+    this.dialog
+        .reset_to_default()
+        .set_title("Failed")
+        .set_message("The Mercury field in the excel template must not be empty.")
+        .set_true_action("Close")
+        .show();
+    return false;
+}
+
 product_group_text = ", ".join(sorted(product_groups))
 total_support = sum(
     aif.aif_lines.values_list("promo_support", flat=True)
