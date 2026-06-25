@@ -1,3 +1,45 @@
+class YesNoChoices(models.TextChoices):
+    YES = "YES", "Yes"
+    NO = "NO", "No"
+
+nda_in_place = models.CharField(
+    max_length=3,
+    choices=YesNoChoices.choices
+)
+
+class PreDisclosureFormat(models.TextChoices):
+    ONLINE_1_TO_1 = "ONLINE_1_TO_1", "1:1 Online"
+    FACE_TO_FACE_1_TO_1 = "FACE_TO_FACE_1_TO_1", "1:1 Face-to-face"
+    GROUP_ONLINE = "GROUP_ONLINE", "Group Online"
+    GROUP_FACE_TO_FACE = "GROUP_FACE_TO_FACE", "Group Face-to-face"
+
+predisclosure_format = models.CharField(
+    max_length=30,
+    choices=PreDisclosureFormat.choices
+)
+
+class SDALevel(models.TextChoices):
+    PIP = "PIP", "PIP"
+    AIP1 = "AIP1", "AIP1"
+    AIP2 = "AIP2", "AIP2"
+    SIP = "SIP", "SIP"
+
+sda_partner_level = models.CharField(
+    max_length=10,
+    choices=SDALevel.choices,
+    blank=True,
+    null=True
+)
+
+account_in_sda_partner_list = models.CharField(
+    max_length=3,
+    choices=YesNoChoices.choices,
+    blank=True,
+    null=True
+)
+
+
+
 class PreDisclosureType(models.TextChoices):
     PARTNER = "PARTNER", "Partner (Trade)"
     END_CUSTOMER = "END_CUSTOMER", "End Customer (B2B)"
