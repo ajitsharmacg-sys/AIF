@@ -1,4 +1,165 @@
 
+
+```python
+from rest_framework import serializers
+
+from predisclosure.models import (
+    PreDisclosure,
+    PreDisclosureLine,
+    PreDisclosureStatus,
+    PreDisclosureLineStatus,
+)
+
+
+class PreDisclosureStatusSerializer(serializers.ModelSerializer):
+
+    meta_created_by = serializers.StringRelatedField()
+
+    class Meta:
+        model = PreDisclosureStatus
+        fields = "__all__"
+        read_only_fields = [
+            "meta_created_by",
+            "meta_created_date",
+        ]
+
+
+class PreDisclosureLineStatusSerializer(serializers.ModelSerializer):
+
+    meta_created_by = serializers.StringRelatedField()
+
+    class Meta:
+        model = PreDisclosureLineStatus
+        fields = "__all__"
+        read_only_fields = [
+            "meta_created_by",
+            "meta_created_date",
+        ]
+
+
+class PreDisclosureLineReadSerializer(serializers.ModelSerializer):
+
+    predisclosure_line_status = serializers.SerializerMethodField()
+
+    class Meta:
+
+        model = PreDisclosureLine
+
+        fields = "__all__"
+
+        read_only_fields = [
+            "meta_created_date",
+            "meta_created_by",
+            "meta_edited_date",
+            "meta_edited_by",
+        ]
+
+    def get_predisclosure_line_status(self, obj):
+
+        latest = (
+            obj.predisclosure_line_status
+            .order_by("-meta_created_date")
+            .first()
+        )
+
+        return latest.status if latest else None
+
+
+class PreDisclosureLineWriteSerializer(
+    serializers.ModelSerializer
+):
+
+    predisclosure_line_status = (
+        PreDisclosureLineStatusSerializer(
+            many=True,
+            read_only=True,
+        )
+    )
+
+    class Meta:
+
+        model = PreDisclosureLine
+
+        fields = "__all__"
+
+        read_only_fields = [
+            "meta_created_date",
+            "meta_created_by",
+            "meta_edited_date",
+            "meta_edited_by",
+        ]
+
+
+class PreDisclosureReadSerializer(
+    serializers.ModelSerializer
+):
+
+    predisclosure_status = serializers.SerializerMethodField()
+
+    class Meta:
+
+        model = PreDisclosure
+
+        fields = "__all__"
+
+        read_only_fields = [
+            "predisclosure_id",
+            "link",
+            "meta_created_date",
+            "meta_created_by",
+            "meta_edited_date",
+            "meta_edited_by",
+        ]
+
+    def get_predisclosure_status(self, obj):
+
+        latest = (
+            obj.predisclosure_status
+            .order_by("-meta_created_date")
+            .first()
+        )
+
+        return latest.status if latest else None
+
+
+class PreDisclosureWriteSerializer(
+    serializers.ModelSerializer
+):
+
+    class Meta:
+
+        model = PreDisclosure
+
+        fields = "__all__"
+
+        read_only_fields = [
+            "predisclosure_id",
+            "link",
+            "meta_created_date",
+            "meta_created_by",
+            "meta_edited_date",
+            "meta_edited_by",
+        ]
+
+    def validate(self, data):
+
+        #
+        # Example validation
+        #
+
+        if (
+            data.get("predisclosure_type") == "PARTNER"
+            and not data.get("product_category")
+        ):
+
+            raise serializers.ValidationError(
+                "Product Category is mandatory."
+            )
+
+        return data
+```
+
+=======================================================
 ```python
 """
 Workflow configuration for Pre-Disclosure Approval Process
