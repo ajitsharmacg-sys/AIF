@@ -1,3 +1,255 @@
+```python
+from django.forms import Select, Textarea
+from common.forms import EnhancedModelForm
+from common.models import Organization
+
+from predisclosure.models import (
+    PreDisclosure,
+    PreDisclosureLine,
+)
+
+
+class PreDisclosureForm(EnhancedModelForm):
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        orgs = (
+            Organization.objects.exclude(
+                organization_name__in=["CENV", "CEL"]
+            )
+            .values_list(
+                "organization_name",
+                flat=True,
+            )
+        )
+
+        org_choices = [
+            ("", "---------")
+        ] + [
+            (org, org)
+            for org in orgs
+        ]
+
+        #
+        # Region
+        #
+
+        field = self.fields["region"]
+
+        field.choices = org_choices
+
+        field.widget = Select(
+            attrs={
+                "class": "form-select form-select-sm",
+                "required": field.required,
+            },
+            choices=org_choices,
+        )
+
+        #
+        # Pre-disclosure Type
+        #
+
+        self.fields["predisclosure_type"].widget = Select(
+            attrs={
+                "class": "form-select form-select-sm",
+            },
+            choices=self.fields[
+                "predisclosure_type"
+            ].choices,
+        )
+
+        #
+        # Product Category
+        #
+
+        self.fields["product_category"].widget = Select(
+            attrs={
+                "class": "form-select form-select-sm",
+            },
+            choices=self.fields[
+                "product_category"
+            ].choices,
+        )
+
+        #
+        # Read Only
+        #
+
+        self.fields["link"].disabled = True
+
+        self.fields["link"].widget.attrs.update(
+            {
+                "placeholder": "SharePoint link will be generated after saving."
+            }
+        )
+
+    class Meta:
+
+        model = PreDisclosure
+
+        fields = [
+            "region",
+            "predisclosure_type",
+            "product_category",
+            "link",
+        ]
+
+
+class PreDisclosureLineForm(EnhancedModelForm):
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        #
+        # Dropdowns
+        #
+
+        self.fields["disclosed_last_2_years"].widget = Select(
+            attrs={
+                "class": "form-select form-select-sm",
+            },
+            choices=self.fields[
+                "disclosed_last_2_years"
+            ].choices,
+        )
+
+        self.fields["nda_confirmed"].widget = Select(
+            attrs={
+                "class": "form-select form-select-sm",
+            },
+            choices=self.fields[
+                "nda_confirmed"
+            ].choices,
+        )
+
+        self.fields["disclosure_format"].widget = Select(
+            attrs={
+                "class": "form-select form-select-sm",
+            },
+            choices=self.fields[
+                "disclosure_format"
+            ].choices,
+        )
+
+        self.fields["sda_partner_level"].widget = Select(
+            attrs={
+                "class": "form-select form-select-sm",
+            },
+            choices=self.fields[
+                "sda_partner_level"
+            ].choices,
+        )
+
+        self.fields["account_in_sda_partner_list"].widget = Select(
+            attrs={
+                "class": "form-select form-select-sm",
+            },
+            choices=self.fields[
+                "account_in_sda_partner_list"
+            ].choices,
+        )
+
+        #
+        # TextArea fields
+        #
+
+        textarea_fields = {
+
+            "reason_for_disclosure":
+                "Enter reason for disclosure",
+
+            "products_to_be_disclosed":
+                "Enter products to be disclosed",
+
+            "meeting_location":
+                "Enter meeting location",
+
+            "canon_responsible_person":
+                "Enter Canon responsible person",
+
+            "individuals_being_disclosed_to":
+                "Enter individuals receiving disclosure",
+
+            "information_to_be_disclosed":
+                "Enter information to be disclosed",
+
+        }
+
+        for field, placeholder in textarea_fields.items():
+
+            self.fields[field].widget = Textarea(
+                attrs={
+                    "rows": 3,
+                    "placeholder": placeholder,
+                }
+            )
+
+        #
+        # Bootstrap styling
+        #
+
+        for field in self.fields.values():
+
+            if isinstance(field.widget, Textarea):
+                continue
+
+            if isinstance(field.widget, Select):
+                continue
+
+            field.widget.attrs.update(
+                {
+                    "class": "form-control form-control-sm",
+                }
+            )
+
+    class Meta:
+
+        model = PreDisclosureLine
+
+        fields = [
+
+            "account_name",
+
+            "website",
+
+            "disclosed_last_2_years",
+
+            "b2b_business_type",
+
+            "nda_confirmed",
+
+            "disclosure_format",
+
+            "reason_for_disclosure",
+
+            "products_to_be_disclosed",
+
+            "sda_partner_level",
+
+            "account_in_sda_partner_list",
+
+            "meeting_date",
+
+            "meeting_location",
+
+            "canon_responsible_person",
+
+            "individuals_being_disclosed_to",
+
+            "information_to_be_disclosed",
+
+            "retailer_ranking",
+
+            "estimated_business",
+
+            "annual_sales",
+
+        ]
+```
 
 
 ```python
