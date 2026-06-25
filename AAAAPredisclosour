@@ -1,3 +1,25 @@
+class PreDisclosureType(models.TextChoices):
+    PARTNER = "PARTNER", "Partner (Trade)"
+    END_CUSTOMER = "END_CUSTOMER", "End Customer (B2B)"
+    PR_SOCIAL = "PR_SOCIAL", "PR & Social"
+
+predisclosure_type = models.CharField(
+    max_length=20,
+    choices=PreDisclosureType.choices
+)
+
+class ProductCategory(models.TextChoices):
+    BCTV = "BCTV", "BCTV"
+    VIDEO_PTZ = "VIDEO_PTZ", "VIDEO / PTZ"
+    ICB = "ICB", "ICB"
+    ISB_ICB = "ISB_ICB", "ISB & ICB"
+
+product_category = models.CharField(
+    max_length=20,
+    choices=ProductCategory.choices
+)
+
+
 class PreDisclosureRequest(models.Model):
     region = models.CharField(max_length=20)
     predisclosure_type = models.CharField(max_length=20)
