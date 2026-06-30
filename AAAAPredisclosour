@@ -1,3 +1,53 @@
+def get_initial_status(predisclosure):
+    pd_type = predisclosure.predisclosure_type
+    category = predisclosure.product_category
+
+    if pd_type in (
+        PreDisclosureTypeChoices.PARTNER,
+        PreDisclosureTypeChoices.END_CUSTOMER,
+    ):
+        if category in (
+            ProductCategoryChoices.BCTV,
+            ProductCategoryChoices.VIDEO_PTZ,
+        ):
+            return PreDisclosureLineStatusChoices.AWAITING_ISB_MANAGER_APPROVAL
+
+        if category == ProductCategoryChoices.ICB:
+            return PreDisclosureLineStatusChoices.AWAITING_ICB_MANAGER_APPROVAL
+
+    elif pd_type == PreDisclosureTypeChoices.PR_SOCIAL:
+        if category == ProductCategoryChoices.ISB_ICB:
+            return PreDisclosureLineStatusChoices.AWAITING_ISB_MANAGER_APPROVAL
+
+        if category in (
+            ProductCategoryChoices.BCTV,
+            ProductCategoryChoices.VIDEO_PTZ,
+            ProductCategoryChoices.ICB,
+        ):
+            return PreDisclosureLineStatusChoices.AWAITING_PR_MANAGER_APPROVAL
+
+    return None
+
+
+def set_initial_line_status(predisclosure, request):
+    status = get_initial_status(predisclosure)
+
+    if not status:
+        return
+
+    PreDisclosureLineStatus.objects.bulk_create(
+        [
+            PreDisclosureLineStatus(
+                line=line,
+                status=status,
+                meta_created_by=request.user,
+            )
+            for line in PreDisclosureLine.objects.filter(predisclosure=predisclosure)
+        ]
+    )
+
+
+
 from django.contrib import admin
 
 from predisclosure.models import (
