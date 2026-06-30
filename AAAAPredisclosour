@@ -1,3 +1,35 @@
+Draft
+Awaiting ISB Manager Approval
+Awaiting ICB Manager Approval
+Awaiting ISB PM Approval
+Awaiting ICB PM Approval
+Awaiting PR Manager Approval
+Awaiting Marketing PM Approval
+Approved
+Rejected
+
+
+Draft
+Awaiting ISB Admin Approval
+Awaiting ICB Admin Approval
+Awaiting ISB PM Approval
+Awaiting ICB PM Approval
+Awaiting PR Admin Approval
+Awaiting Marketing PM Approval
+Approved
+Rejected
+
+
+
+
+
+
+
+
+
+
+
+
 def get_initial_status(predisclosure):
     pd_type = predisclosure.predisclosure_type
     category = predisclosure.product_category
