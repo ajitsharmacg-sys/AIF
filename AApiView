@@ -1,3 +1,132 @@
+class PreDisclosureLineView(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+
+    queryset = PreDisclosureLine.objects.all()
+
+    pagination_class = StandardPagination
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+
+    filterset_fields = {
+        "id": ["exact"],
+        "predisclosure": ["exact"],
+    }
+
+    search_fields = [
+        "account_name",
+        "website",
+        "account_number",
+    ]
+
+    ordering_fields = "__all__"
+
+    ordering = ("id",)
+
+    def get_serializer_class(self):
+
+        if self.action in [
+            "create",
+            "update",
+            "partial_update",
+            "destroy",
+        ]:
+            return PreDisclosureLineWriteSerializer
+
+        return PreDisclosureLineReadSerializer
+
+    def perform_create(self, serializer):
+
+        instance = serializer.save(
+            meta_created_by=self.request.user,
+        )
+
+        PreDisclosureLineStatus.objects.create(
+            line=instance,
+            status=PreDisclosureLineStatusChoices.DRAFT,
+            meta_created_by=self.request.user,
+        )
+
+        return instance
+
+    def perform_update(self, serializer):
+
+        predisclosure_status = get_predisclosure_status(
+            serializer.instance.predisclosure.predisclosure_id
+        )
+
+        if predisclosure_status.status != PreDisclosureStatusChoices.DRAFT:
+            raise PermissionDenied(
+                "Lines can only be modified while request is in Draft."
+            )
+
+        return serializer.save(
+            meta_edited_by=self.request.user,
+            meta_edited_date=timezone.now(),
+        )
+
+    def perform_destroy(self, instance):
+
+        predisclosure_status = get_predisclosure_status(
+            instance.predisclosure.predisclosure_id
+        )
+
+        if predisclosure_status.status != PreDisclosureStatusChoices.DRAFT:
+            raise PermissionDenied(
+                "Lines can only be deleted while request is in Draft."
+            )
+
+        return super().perform_destroy(instance)
+
+
+class PreDisclosureLineStatusView(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+
+    queryset = PreDisclosureLineStatus.objects.all()
+
+    serializer_class = PreDisclosureLineStatusSerializer
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+
+    ordering_fields = "__all__"
+
+    ordering = ("-meta_created_date",)
+
+    filterset_fields = {
+        "line": ["exact"],
+    }
+
+    def perform_create(self, serializer):
+
+        instance = serializer.save(
+            meta_created_by=self.request.user,
+        )
+
+        process_line_approval(
+            request=self.request,
+            line_status=instance,
+        )
+
+        return instance
+
+    def perform_update(self, serializer):
+        raise PermissionDenied(
+            "Line status history cannot be modified."
+        )
+
+    def perform_destroy(self, instance):
+        raise PermissionDenied(
+            "Line status history cannot be deleted."
+        )
+===============================================
+
 class PreDisclosureView(viewsets.ModelViewSet):
     permission_classes = [IsApplicationUser]
 
