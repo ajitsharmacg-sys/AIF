@@ -1,18 +1,161 @@
-Workflow.py
+ApiView
+------------------
+from predisclosure.workflow import (
+    WORKFLOW_MATRIX,
+    get_next_status,
+)
+
+
+# =============================================================================
+# Workflow Helper Methods
+# =============================================================================
+
+def get_workflow_type(predisclosure: PreDisclosure) -> str:
+    """
+    Returns the workflow type based on the PreDisclosure.
+    """
+
+    if predisclosure.predisclosure_type == PreDisclosureTypeChoices.PR_SOCIAL:
+        return "PR_SOCIAL"
+
+    if predisclosure.product_category == ProductCategoryChoices.ISB:
+        return "ISB"
+
+    if predisclosure.product_category == ProductCategoryChoices.ICB:
+        return "ICB"
+
+    if predisclosure.product_category == ProductCategoryChoices.ISB_ICB:
+        return "ISB_ICB"
+
+    raise ValueError("Invalid workflow configuration.")
+
+
+def get_current_line_status(line: PreDisclosureLine):
+    """
+    Returns latest status of a line.
+    """
+    return (
+        PreDisclosureLineStatus.objects.filter(line=line)
+        .latest("meta_created_date")
+    )
+
+
+def get_current_step(predisclosure: PreDisclosure):
+    """
+    Returns current workflow step.
+    """
+
+    workflow = WORKFLOW_MATRIX[get_workflow_type(predisclosure)]
+
+    latest_status = (
+        PreDisclosureLineStatus.objects.filter(
+            line__predisclosure=predisclosure
+        )
+        .latest("meta_created_date")
+    )
+
+    for step, status in workflow.items():
+        if latest_status.status == status:
+            return step
+
+    return None
+
+
+def get_all_current_line_statuses(predisclosure: PreDisclosure):
+    """
+    Returns latest status object for every line.
+    """
+
+    statuses = []
+
+    for line in PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    ):
+        statuses.append(get_current_line_status(line))
+
+    return statuses
+
+
+# =============================================================================
+# Line Status Helpers
+# =============================================================================
+
+def update_all_lines_status(
+    status: str,
+    predisclosure: PreDisclosure,
+    request: HttpRequest,
+):
+    """
+    Creates the same status for every line.
+    """
+
+    statuses = []
+
+    for line in PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    ):
+        statuses.append(
+            PreDisclosureLineStatus(
+                line=line,
+                status=status,
+                meta_created_by=request.user,
+            )
+        )
+
+    PreDisclosureLineStatus.objects.bulk_create(statuses)
+
+
+def set_initial_line_status(
+    predisclosure: PreDisclosure,
+    request: HttpRequest,
+):
+    """
+    Creates the first workflow status for every line.
+    """
+
+    workflow_type = get_workflow_type(predisclosure)
+
+    initial_status = get_next_status(
+        workflow_type,
+        1,
+    )
+
+    statuses = []
+
+    for line in PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    ):
+        statuses.append(
+            PreDisclosureLineStatus(
+                line=line,
+                status=initial_status,
+                meta_created_by=request.user,
+            )
+        )
+
+    PreDisclosureLineStatus.objects.bulk_create(statuses)
+
+
+================================================
+"""
+Workflow configuration for Pre-Disclosure Approval Process.
+"""
 
 from predisclosure.roles import (
-    ISB_MANAGER,
+    ISB_ADMIN,
     ISB_PM,
-    ICB_MANAGER,
+    ICB_ADMIN,
     ICB_PM,
-    PR_MANAGER,
+    PR_ADMIN,
     MARKETING_PM,
 )
 
-from predisclosure.models import PreDisclosureLineStatusChoices
+from predisclosure.models import (
+    PreDisclosureLineStatusChoices,
+)
 
 # =============================================================================
-# Disclosure Types
+# Workflow Types
 # =============================================================================
 
 ISB = "ISB"
@@ -38,24 +181,23 @@ HEADER_STATUS_GRAPH = {
 
 # =============================================================================
 # Line Status Graph
-# These are the valid actions for each workflow stage.
-# Progression to the next stage is controlled by WORKFLOW_MATRIX.
+# Valid actions from each workflow state.
 # =============================================================================
 
 LINE_STATUS_GRAPH = {
 
     PreDisclosureLineStatusChoices.DRAFT: [
-        PreDisclosureLineStatusChoices.AWAITING_ISB_MANAGER_APPROVAL,
-        PreDisclosureLineStatusChoices.AWAITING_ICB_MANAGER_APPROVAL,
+        PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL,
+        PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL,
         PreDisclosureLineStatusChoices.AWAITING_PR_MANAGER_APPROVAL,
     ],
 
-    PreDisclosureLineStatusChoices.AWAITING_ISB_MANAGER_APPROVAL: [
+    PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL: [
         PreDisclosureLineStatusChoices.APPROVED,
         PreDisclosureLineStatusChoices.REJECTED,
     ],
 
-    PreDisclosureLineStatusChoices.AWAITING_ICB_MANAGER_APPROVAL: [
+    PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL: [
         PreDisclosureLineStatusChoices.APPROVED,
         PreDisclosureLineStatusChoices.REJECTED,
     ],
@@ -84,32 +226,41 @@ LINE_STATUS_GRAPH = {
 
 # =============================================================================
 # Workflow Matrix
-# Defines the approval sequence for each disclosure type.
+# Approval sequence for each workflow.
 # =============================================================================
 
 WORKFLOW_MATRIX = {
 
     ISB: {
-        1: PreDisclosureLineStatusChoices.AWAITING_ISB_MANAGER_APPROVAL,
+
+        1: PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL,
         2: PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL,
+
     },
 
     ICB: {
-        1: PreDisclosureLineStatusChoices.AWAITING_ICB_MANAGER_APPROVAL,
+
+        1: PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL,
         2: PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL,
+
     },
 
     ISB_ICB: {
-        1: PreDisclosureLineStatusChoices.AWAITING_ISB_MANAGER_APPROVAL,
-        2: PreDisclosureLineStatusChoices.AWAITING_ICB_MANAGER_APPROVAL,
+
+        1: PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL,
+        2: PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL,
         3: PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL,
         4: PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL,
+
     },
 
     PR_SOCIAL: {
+
         1: PreDisclosureLineStatusChoices.AWAITING_PR_MANAGER_APPROVAL,
         2: PreDisclosureLineStatusChoices.AWAITING_MARKETING_PM_APPROVAL,
+
     },
+
 }
 
 
@@ -119,16 +270,16 @@ WORKFLOW_MATRIX = {
 
 LINE_STATUS_TO_ROLE = {
 
-    PreDisclosureLineStatusChoices.AWAITING_ISB_MANAGER_APPROVAL: [
-        ISB_MANAGER,
+    PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL: [
+        ISB_ADMIN,
     ],
 
     PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL: [
         ISB_PM,
     ],
 
-    PreDisclosureLineStatusChoices.AWAITING_ICB_MANAGER_APPROVAL: [
-        ICB_MANAGER,
+    PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL: [
+        ICB_ADMIN,
     ],
 
     PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL: [
@@ -136,12 +287,13 @@ LINE_STATUS_TO_ROLE = {
     ],
 
     PreDisclosureLineStatusChoices.AWAITING_PR_MANAGER_APPROVAL: [
-        PR_MANAGER,
+        PR_ADMIN,
     ],
 
     PreDisclosureLineStatusChoices.AWAITING_MARKETING_PM_APPROVAL: [
         MARKETING_PM,
     ],
+
 }
 
 
@@ -151,68 +303,69 @@ LINE_STATUS_TO_ROLE = {
 
 ROLE_TO_LINE_STATUS = {
 
-    ISB_MANAGER: [
-        PreDisclosureLineStatusChoices.AWAITING_ISB_MANAGER_APPROVAL,
+    ISB_ADMIN: [
+        PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL,
     ],
 
     ISB_PM: [
         PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL,
     ],
 
-    ICB_MANAGER: [
-        PreDisclosureLineStatusChoices.AWAITING_ICB_MANAGER_APPROVAL,
+    ICB_ADMIN: [
+        PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL,
     ],
 
     ICB_PM: [
         PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL,
     ],
 
-    PR_MANAGER: [
+    PR_ADMIN: [
         PreDisclosureLineStatusChoices.AWAITING_PR_MANAGER_APPROVAL,
     ],
 
     MARKETING_PM: [
         PreDisclosureLineStatusChoices.AWAITING_MARKETING_PM_APPROVAL,
     ],
+
 }
 
 
 # =============================================================================
-# Helper Methods
+# Helper Functions
 # =============================================================================
 
-def get_next_status(disclosure_type, current_step):
+def get_workflow(disclosure_type):
     """
-    Returns the next awaiting status for the given disclosure type and step.
-    Returns None if the workflow is complete.
-    """
-    return WORKFLOW_MATRIX.get(disclosure_type, {}).get(current_step)
-
-
-def get_workflow_steps(disclosure_type):
-    """
-    Returns the workflow definition for the disclosure type.
+    Returns workflow definition.
     """
     return WORKFLOW_MATRIX.get(disclosure_type, {})
 
 
+def get_next_status(disclosure_type, step):
+    """
+    Returns the awaiting status for the given workflow step.
+    Returns None if workflow is complete.
+    """
+    return WORKFLOW_MATRIX.get(disclosure_type, {}).get(step)
+
+
 def get_total_steps(disclosure_type):
     """
-    Returns the total number of approval steps.
+    Returns total approval steps.
     """
     return len(WORKFLOW_MATRIX.get(disclosure_type, {}))
 
 
 def get_role_from_status(status):
     """
-    Returns the role responsible for the given awaiting status.
+    Returns the role responsible for the current awaiting status.
     """
     return LINE_STATUS_TO_ROLE.get(status, [])
 
 
 def get_role_status(role):
     """
-    Returns the awaiting status(s) assigned to the role.
+    Returns the awaiting status assigned to the role.
     """
     return ROLE_TO_LINE_STATUS.get(role, [])
 =================================================
