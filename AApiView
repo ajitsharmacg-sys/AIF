@@ -1,3 +1,93 @@
+class PreDisclosureLineView(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+
+    queryset = PreDisclosureLine.objects.all()
+
+    pagination_class = StandardPagination
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+
+    filterset_fields = {
+        "id": ["exact"],
+        "predisclosure": ["exact"],
+        "account_name": ["icontains"],
+    }
+
+    search_fields = [
+        "account_name",
+        "website",
+        "canon_responsible_person",
+    ]
+
+    ordering_fields = "__all__"
+
+    ordering = ("id",)
+
+    def get_serializer_class(self):
+        if self.action in [
+            "create",
+            "update",
+            "partial_update",
+        ]:
+            return PreDisclosureLineWriteSerializer
+
+        return PreDisclosureLineReadSerializer
+
+    def perform_create(self, serializer):
+
+        instance = serializer.save(
+            meta_created_by=self.request.user,
+        )
+
+        PreDisclosureLineStatus.objects.create(
+            line=instance,
+            status=PreDisclosureLineStatusChoices.DRAFT,
+            meta_created_by=self.request.user,
+        )
+
+        return instance
+
+    def perform_update(self, serializer):
+
+        latest_status = (
+            PreDisclosureStatus.objects.filter(
+                predisclosure=serializer.instance.predisclosure
+            )
+            .latest("meta_created_date")
+        )
+
+        if latest_status.status != PreDisclosureStatusChoices.DRAFT:
+            raise PermissionDenied(
+                "Lines can only be edited while the request is in Draft."
+            )
+
+        serializer.save(
+            meta_edited_by=self.request.user,
+            meta_edited_date=timezone.now(),
+        )
+
+    def perform_destroy(self, instance):
+
+        latest_status = (
+            PreDisclosureStatus.objects.filter(
+                predisclosure=instance.predisclosure
+            )
+            .latest("meta_created_date")
+        )
+
+        if latest_status.status != PreDisclosureStatusChoices.DRAFT:
+            raise PermissionDenied(
+                "Lines can only be deleted while the request is in Draft."
+            )
+
+        instance.delete()
+
+
+
 class PreDisclosureStatusView(viewsets.ModelViewSet):
     permission_classes = [IsApplicationUser]
 
