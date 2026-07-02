@@ -1,7 +1,5 @@
-class PreDisclosureLineView(viewsets.ModelViewSet):
+class PreDisclosureView(viewsets.ModelViewSet):
     permission_classes = [IsApplicationUser]
-
-    queryset = PreDisclosureLine.objects.all()
 
     pagination_class = StandardPagination
 
@@ -9,33 +7,51 @@ class PreDisclosureLineView(viewsets.ModelViewSet):
         DjangoFilterBackend,
         filters.SearchFilter,
         filters.OrderingFilter,
+        PreDisclosureByStatusFilter,
     ]
 
     filterset_fields = {
-        "id": ["exact"],
-        "predisclosure": ["exact"],
-        "account_name": ["icontains"],
+        "predisclosure_id": ["exact"],
+        "region": ["exact"],
+        "predisclosure_type": ["exact"],
+        "product_category": ["exact"],
+        "meta_created_date": ["exact", "gt", "lt", "gte", "lte"],
     }
 
     search_fields = [
-        "account_name",
-        "website",
-        "canon_responsible_person",
+        "predisclosure_id",
+        "region",
     ]
 
     ordering_fields = "__all__"
 
-    ordering = ("id",)
+    ordering = ("predisclosure_id",)
 
     def get_serializer_class(self):
         if self.action in [
             "create",
             "update",
             "partial_update",
+            "destroy",
         ]:
-            return PreDisclosureLineWriteSerializer
+            return PreDisclosureWriteSerializer
 
-        return PreDisclosureLineReadSerializer
+        return PreDisclosureReadSerializer
+
+    def get_queryset(self):
+
+        if self.request.user.groups.filter(name=NSO_USER).exists():
+
+            return PreDisclosure.objects.filter(
+                region__in=Organization.objects.filter(
+                    cluster=self.request.user.cluster
+                ).values_list(
+                    "organization_name",
+                    flat=True,
+                )
+            )
+
+        return PreDisclosure.objects.all()
 
     def perform_create(self, serializer):
 
@@ -43,9 +59,9 @@ class PreDisclosureLineView(viewsets.ModelViewSet):
             meta_created_by=self.request.user,
         )
 
-        PreDisclosureLineStatus.objects.create(
-            line=instance,
-            status=PreDisclosureLineStatusChoices.DRAFT,
+        PreDisclosureStatus.objects.create(
+            predisclosure=instance,
+            status=PreDisclosureStatusChoices.DRAFT,
             meta_created_by=self.request.user,
         )
 
@@ -53,39 +69,63 @@ class PreDisclosureLineView(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
 
-        latest_status = (
-            PreDisclosureStatus.objects.filter(
-                predisclosure=serializer.instance.predisclosure
-            )
-            .latest("meta_created_date")
+        predisclosure_status = get_predisclosure_status(
+            self.kwargs["pk"]
         )
 
-        if latest_status.status != PreDisclosureStatusChoices.DRAFT:
+        if predisclosure_status.status not in [
+            PreDisclosureStatusChoices.DRAFT,
+            PreDisclosureStatusChoices.REJECTED,
+        ]:
             raise PermissionDenied(
-                "Lines can only be edited while the request is in Draft."
+                "You cannot edit this request."
             )
 
-        serializer.save(
+        instance = serializer.save(
             meta_edited_by=self.request.user,
             meta_edited_date=timezone.now(),
         )
 
+        # Reset rejected request back to Draft
+        if (
+            predisclosure_status.status
+            == PreDisclosureStatusChoices.REJECTED
+        ):
+
+            PreDisclosureStatus.objects.create(
+                predisclosure=instance,
+                status=PreDisclosureStatusChoices.DRAFT,
+                meta_created_by=self.request.user,
+            )
+
+            update_all_lines_status(
+                status=PreDisclosureLineStatusChoices.DRAFT,
+                predisclosure=instance,
+                request=self.request,
+            )
+
+        return instance
+
     def perform_destroy(self, instance):
 
-        latest_status = (
-            PreDisclosureStatus.objects.filter(
-                predisclosure=instance.predisclosure
-            )
-            .latest("meta_created_date")
+        predisclosure_status = get_predisclosure_status(
+            instance.predisclosure_id
         )
 
-        if latest_status.status != PreDisclosureStatusChoices.DRAFT:
-            raise PermissionDenied(
-                "Lines can only be deleted while the request is in Draft."
-            )
+        if predisclosure_status.status in [
+            PreDisclosureStatusChoices.DRAFT,
+            PreDisclosureStatusChoices.REJECTED,
+        ]:
+            return super().perform_destroy(instance)
 
-        instance.delete()
+        if self.request.user.groups.filter(
+            name=ADMIN_ROLE
+        ).exists():
+            return super().perform_destroy(instance)
 
+        raise PermissionDenied(
+            f"Only {ADMIN_ROLE} can delete this request."
+        )
 
 
 class PreDisclosureStatusView(viewsets.ModelViewSet):
@@ -103,170 +143,36 @@ class PreDisclosureStatusView(viewsets.ModelViewSet):
 
     ordering_fields = "__all__"
 
-    ordering = [
-        "-meta_created_date",
-    ]
+    ordering = ("-meta_created_date",)
 
     filterset_fields = {
         "predisclosure": ["exact"],
-        "status": ["exact"],
     }
 
     def perform_create(self, serializer):
 
-        predisclosure = serializer.validated_data["predisclosure"]
-
-        latest_status = (
-            PreDisclosureStatus.objects.filter(
-                predisclosure=predisclosure
-            )
-            .order_by("-meta_created_date")
-            .first()
-        )
-
-        if latest_status:
-
-            if (
-                latest_status.status
-                == PreDisclosureStatusChoices.COMPLETED
-            ):
-                raise PermissionDenied(
-                    "Completed request cannot be modified."
-                )
-
-        serializer.save(
-            meta_created_by=self.request.user,
-        )
-
-    def perform_update(self, serializer):
-        raise PermissionDenied(
-            "Header status cannot be updated."
-        )
-
-    def perform_destroy(self, instance):
-        raise PermissionDenied(
-            "Header status cannot be deleted."
-        )
-
-
-
-
-
-
-
-
-
-
-
-class PreDisclosureView(viewsets.ModelViewSet):
-    permission_classes = [IsApplicationUser]
-
-    pagination_class = StandardPagination
-
-    queryset = PreDisclosure.objects.all()
-
-    filter_backends = [
-        DjangoFilterBackend,
-        filters.SearchFilter,
-        filters.OrderingFilter,
-        PreDisclosureByStatusFilter,
-    ]
-
-    filterset_fields = {
-        "predisclosure_id": ["exact"],
-        "region": ["exact"],
-        "predisclosure_type": ["exact"],
-        "product_category": ["exact"],
-        "meta_created_date": ["exact", "gte", "lte"],
-    }
-
-    search_fields = [
-        "predisclosure_id",
-        "region",
-    ]
-
-    ordering_fields = "__all__"
-
-    ordering = ("predisclosure_id",)
-
-    def get_serializer_class(self):
-        if self.action in [
-            "create",
-            "update",
-            "partial_update",
-        ]:
-            return PreDisclosureWriteSerializer
-
-        return PreDisclosureReadSerializer
-
-    def get_queryset(self):
-        if self.request.user.groups.filter(name=NSO_USER).exists():
-            return PreDisclosure.objects.filter(
-                region__in=Organization.objects.filter(
-                    cluster=self.request.user.cluster
-                ).values_list(
-                    "organization_name",
-                    flat=True,
-                )
-            )
-
-        return PreDisclosure.objects.all()
-
-    def perform_create(self, serializer):
         instance = serializer.save(
             meta_created_by=self.request.user,
         )
 
-        PreDisclosureStatus.objects.create(
-            predisclosure=instance,
-            status=PreDisclosureStatusChoices.DRAFT,
-            meta_created_by=self.request.user,
-        )
+        # User submits the request
+        if instance.status == PreDisclosureStatusChoices.IN_PROGRESS:
 
+            set_initial_line_status(
+                instance.predisclosure,
+                self.request,
+            )
+
+        # COMPLETED and REJECTED are created
+        # automatically by the workflow engine.
         return instance
 
     def perform_update(self, serializer):
-
-        latest_status = (
-            PreDisclosureStatus.objects.filter(
-                predisclosure=self.get_object()
-            ).latest("meta_created_date")
-        )
-
-        if latest_status.status not in (
-            PreDisclosureStatusChoices.DRAFT,
-            PreDisclosureStatusChoices.REJECTED,
-        ):
-            raise PermissionDenied(
-                "Only Draft or Rejected requests can be edited."
-            )
-
-        serializer.save(
-            meta_edited_by=self.request.user,
-            meta_edited_date=timezone.now(),
+        raise PermissionDenied(
+            "Status history cannot be updated."
         )
 
     def perform_destroy(self, instance):
-
-        latest_status = (
-            PreDisclosureStatus.objects.filter(
-                predisclosure=instance
-            ).latest("meta_created_date")
-        )
-
-        if latest_status.status in (
-            PreDisclosureStatusChoices.DRAFT,
-            PreDisclosureStatusChoices.REJECTED,
-        ):
-            instance.delete()
-            return
-
-        if self.request.user.groups.filter(
-            name=ADMIN_ROLE
-        ).exists():
-            instance.delete()
-            return
-
         raise PermissionDenied(
-            f"Only {ADMIN_ROLE} can delete this request."
+            "Status history cannot be deleted."
         )
