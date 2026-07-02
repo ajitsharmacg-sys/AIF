@@ -1,3 +1,73 @@
+class PreDisclosureStatusView(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+
+    queryset = PreDisclosureStatus.objects.all()
+
+    serializer_class = PreDisclosureStatusSerializer
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+
+    ordering_fields = "__all__"
+
+    ordering = [
+        "-meta_created_date",
+    ]
+
+    filterset_fields = {
+        "predisclosure": ["exact"],
+        "status": ["exact"],
+    }
+
+    def perform_create(self, serializer):
+
+        predisclosure = serializer.validated_data["predisclosure"]
+
+        latest_status = (
+            PreDisclosureStatus.objects.filter(
+                predisclosure=predisclosure
+            )
+            .order_by("-meta_created_date")
+            .first()
+        )
+
+        if latest_status:
+
+            if (
+                latest_status.status
+                == PreDisclosureStatusChoices.COMPLETED
+            ):
+                raise PermissionDenied(
+                    "Completed request cannot be modified."
+                )
+
+        serializer.save(
+            meta_created_by=self.request.user,
+        )
+
+    def perform_update(self, serializer):
+        raise PermissionDenied(
+            "Header status cannot be updated."
+        )
+
+    def perform_destroy(self, instance):
+        raise PermissionDenied(
+            "Header status cannot be deleted."
+        )
+
+
+
+
+
+
+
+
+
+
+
 class PreDisclosureView(viewsets.ModelViewSet):
     permission_classes = [IsApplicationUser]
 
