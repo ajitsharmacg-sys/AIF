@@ -1,3 +1,240 @@
+# =============================================================================
+# Workflow Helper Methods
+# =============================================================================
+
+def get_predisclosure_status(predisclosure_id):
+    """
+    Returns latest header status.
+    """
+
+    return (
+        PreDisclosureStatus.objects.filter(
+            predisclosure_id=predisclosure_id
+        )
+        .latest("meta_created_date")
+    )
+
+
+def get_workflow_type(predisclosure):
+    """
+    Determines workflow based on disclosure type
+    and product category.
+    """
+
+    if (
+        predisclosure.predisclosure_type
+        == PreDisclosureTypeChoices.PR_SOCIAL
+    ):
+        return PR_SOCIAL
+
+    if (
+        predisclosure.product_category
+        == ProductCategoryChoices.ISB
+    ):
+        return ISB
+
+    if (
+        predisclosure.product_category
+        == ProductCategoryChoices.ICB
+    ):
+        return ICB
+
+    return ISB_ICB
+
+
+def update_all_lines_status(
+    status,
+    predisclosure,
+    request,
+):
+
+    for line in PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    ):
+
+        PreDisclosureLineStatus.objects.create(
+            line=line,
+            status=status,
+            meta_created_by=request.user,
+        )
+
+
+def set_initial_line_status(
+    predisclosure,
+    request,
+):
+    """
+    Called when request is submitted.
+    """
+
+    workflow = WORKFLOW_MATRIX[
+        get_workflow_type(predisclosure)
+    ]
+
+    first_status = workflow[1]
+
+    update_all_lines_status(
+        first_status,
+        predisclosure,
+        request,
+    )
+
+def get_current_stage(predisclosure):
+    """
+    Returns workflow stage.
+    """
+
+    workflow = WORKFLOW_MATRIX[
+        get_workflow_type(predisclosure)
+    ]
+
+    latest = (
+        PreDisclosureLineStatus.objects.filter(
+            line__predisclosure=predisclosure,
+            status__startswith="AWAITING",
+        )
+        .latest("meta_created_date")
+    )
+
+    for step, status in workflow.items():
+
+        if latest.status == status:
+            return step
+
+    return None
+
+def is_stage_completed(
+    predisclosure,
+):
+    """
+    Returns True only when every line has
+    Approved or Rejected.
+    """
+
+    for line in PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    ):
+
+        latest = (
+            PreDisclosureLineStatus.objects.filter(
+                line=line
+            )
+            .latest("meta_created_date")
+        )
+
+        if latest.status not in [
+            PreDisclosureLineStatusChoices.APPROVED,
+            PreDisclosureLineStatusChoices.REJECTED,
+        ]:
+            return False
+
+    return True
+
+def advance_workflow(
+    predisclosure,
+    request,
+):
+
+    workflow = WORKFLOW_MATRIX[
+        get_workflow_type(predisclosure)
+    ]
+
+    current_stage = get_current_stage(
+        predisclosure
+    )
+
+    next_status = workflow.get(
+        current_stage + 1
+    )
+
+    if not next_status:
+        return False
+
+    update_all_lines_status(
+        next_status,
+        predisclosure,
+        request,
+    )
+
+    return True
+def finalize_workflow(
+    predisclosure,
+    request,
+):
+
+    total = 0
+    rejected = 0
+
+    for line in PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    ):
+
+        total += 1
+
+        latest = (
+            PreDisclosureLineStatus.objects.filter(
+                line=line
+            ).latest("meta_created_date")
+        )
+
+        if (
+            latest.status
+            == PreDisclosureLineStatusChoices.REJECTED
+        ):
+            rejected += 1
+
+    if total == rejected:
+
+        status = PreDisclosureStatusChoices.REJECTED
+
+    else:
+
+        status = PreDisclosureStatusChoices.COMPLETED
+
+    PreDisclosureStatus.objects.create(
+        predisclosure=predisclosure,
+        status=status,
+        meta_created_by=request.user,
+    )
+
+def process_line_approval(
+    request,
+    line_status,
+):
+    """
+    Central approval engine.
+    """
+
+    predisclosure = (
+        line_status.line.predisclosure
+    )
+
+    if not is_stage_completed(
+        predisclosure
+    ):
+        return
+
+    moved = advance_workflow(
+        predisclosure,
+        request,
+    )
+
+    if moved:
+        return
+
+    finalize_workflow(
+        predisclosure,
+        request,
+    )
+
+
+
+
+
+
+
+
+
 class PreDisclosureLineView(viewsets.ModelViewSet):
     permission_classes = [IsApplicationUser]
 
