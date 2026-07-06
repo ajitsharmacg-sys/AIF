@@ -1,3 +1,190 @@
+
+class PreDisclosureProduct(MetaEditedAbstract):
+    product_category = models.CharField(
+        max_length=20,
+        choices=[
+            ("ISB", "ISB"),
+            ("ICB", "ICB"),
+        ],
+    )
+
+    product_name = models.CharField(
+        max_length=200,
+        unique=True,
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+    )
+
+    display_order = models.PositiveIntegerField(
+        default=1,
+    )
+
+    def __str__(self):
+        return self.product_name
+
+
+products = models.ManyToManyField(
+    PreDisclosureProduct,
+    related_name="predisclosures",
+    blank=False,
+)
+
+class PreDisclosureProductView(viewsets.ReadOnlyModelViewSet):
+
+    serializer_class = PreDisclosureProductSerializer
+
+    def get_queryset(self):
+
+        category = self.request.query_params.get(
+            "product_category"
+        )
+
+        queryset = PreDisclosureProduct.objects.filter(
+            is_active=True,
+        )
+
+        if category == ProductCategoryChoices.ISB:
+            return queryset.filter(
+                product_category=ProductCategoryChoices.ISB
+            )
+
+        if category == ProductCategoryChoices.ICB:
+            return queryset.filter(
+                product_category=ProductCategoryChoices.ICB
+            )
+
+        if category == ProductCategoryChoices.ISB_ICB:
+            return queryset.filter(
+                product_category__in=[
+                    ProductCategoryChoices.ISB,
+                    ProductCategoryChoices.ICB,
+                ]
+            )
+
+        return queryset.none()
+
+
+from predisclosure.models import (
+    PreDisclosure,
+    PreDisclosureLine,
+    PreDisclosureStatus,
+    PreDisclosureLineStatus,
+    PreDisclosureApprover,
+    PreDisclosureProduct,
+)
+
+class PreDisclosureProductSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = PreDisclosureProduct
+        fields = "__all__"
+
+class PreDisclosureReadSerializer(serializers.ModelSerializer):
+
+    predisclosure_status = serializers.SerializerMethodField()
+
+    products = PreDisclosureProductSerializer(
+        many=True,
+        read_only=True,
+    )
+
+    class Meta:
+
+        model = PreDisclosure
+
+        fields = "__all__"
+
+        read_only_fields = [
+            "predisclosure_id",
+            "link",
+            "meta_created_date",
+            "meta_created_by",
+            "meta_edited_date",
+            "meta_edited_by",
+        ]
+
+    def get_predisclosure_status(self, obj):
+
+        latest = (
+            obj.predisclosure_status
+            .order_by("-meta_created_date")
+            .first()
+        )
+
+        return latest.status if latest else None
+
+class PreDisclosureWriteSerializer(serializers.ModelSerializer):
+
+    products = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=PreDisclosureProduct.objects.filter(
+            is_active=True
+        ),
+    )
+
+    class Meta:
+
+        model = PreDisclosure
+
+        fields = "__all__"
+
+        read_only_fields = [
+            "predisclosure_id",
+            "link",
+            "meta_created_date",
+            "meta_created_by",
+            "meta_edited_date",
+            "meta_edited_by",
+        ]
+
+class PreDisclosureProductSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = PreDisclosureProduct
+        fields = "__all__"
+
+
+
+
+from django.forms import (
+    Select,
+    SelectMultiple,
+    Textarea,
+)
+
+from predisclosure.models import (
+    PreDisclosure,
+    PreDisclosureLine,
+    PreDisclosureProduct,
+)
+
+
+self.fields["products"].queryset = (
+    PreDisclosureProduct.objects.none()
+)
+
+self.fields["products"].widget = SelectMultiple(
+    attrs={
+        "class": "form-select form-select-sm",
+    }
+)
+
+
+class Meta:
+    model = PreDisclosure
+
+    fields = [
+        "region",
+        "predisclosure_type",
+        "product_category",
+        "products",
+    ]
+=======================================================
+
+
+
 def perform_create(self, serializer):
 
     line = serializer.validated_data["line"]
