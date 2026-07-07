@@ -1,3 +1,223 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light" translate="no">
+
+<head>
+    <title class="app_name"></title>
+
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+
+    {% load static %}
+    {% load common_tags %}
+
+    {% include 'common/components/vuejs.html' %}
+    {% include 'common/components/bootstrap.html' %}
+
+    <script src="{% static 'common/js/force_graph.js' %}"></script>
+
+    <script>
+
+        const app_name = "predisclosure_mgm";
+
+        const screens = {
+
+            list_of_predisclosures: {
+                verbose_name: "PreDisclosure List",
+                icon_class: "bi bi-list-check",
+                show_in_sidebar: true,
+            },
+
+            predisclosure_view: {
+                verbose_name: "PreDisclosure View",
+                icon_class: "bi bi-list-check",
+                show_in_sidebar: false,
+            },
+
+            predisclosure_app: {
+                verbose_name: "Create PreDisclosure",
+                icon_class: "bi bi-file-earmark-plus",
+                show_in_sidebar: false,
+            },
+
+            workflow: {
+                verbose_name: "Workflow",
+                icon_class: "bi bi-diagram-2",
+                show_in_sidebar: true,
+            },
+
+            contacts: {
+                verbose_name: "Contacts & Links",
+                icon_class: "bi bi-envelope",
+                show_in_sidebar: true,
+            },
+
+            faq: {
+                verbose_name: "F.A.Q. & Wiki",
+                icon_class: "bi bi-question-circle",
+                show_in_sidebar: true,
+            },
+
+        };
+
+        let start_screen =
+            "{{ start_screen|escapejs }}" ||
+            "list_of_predisclosures";
+
+        const api_endpoints = {
+
+            predisclosure:
+                "/predisclosure/api/v1/predisclosure/",
+
+            predisclosure_status:
+                "/predisclosure/api/v1/predisclosure_status/",
+
+            predisclosure_line:
+                "/predisclosure/api/v1/predisclosure_line/",
+
+            predisclosure_line_status:
+                "/predisclosure/api/v1/predisclosure_line_status/",
+
+            predisclosure_products:
+                "/predisclosure/api/v1/predisclosure_products/",
+
+            predisclosure_approver:
+                "/predisclosure/api/v1/predisclosure_approver/",
+
+        };
+
+
+        /* ==========================================================
+           Workflow Configuration
+        ========================================================== */
+
+        const ROLES = Vue.ref({});
+
+        const HEADER_STATUS_GRAPH = Vue.ref({});
+
+        const LINE_STATUS_GRAPH = Vue.ref({});
+
+        const WORKFLOW_MATRIX = Vue.ref({});
+
+        const LINE_STATUS_TO_ROLE = Vue.ref({});
+
+        const ROLE_TO_LINE_STATUS = Vue.ref({});
+
+        const ADMIN_ROLE = Vue.ref("");
+
+
+        /* ==========================================================
+           Selected PreDisclosure
+        ========================================================== */
+
+        const selected_predisclosure = Vue.ref({
+
+            predisclosure_line: [],
+
+            predisclosure_status: [],
+
+            predisclosure_id:
+                "{{ predisclosure_id|escapejs }}",
+
+        });
+
+
+        /* ==========================================================
+           Load Workflow Configuration
+        ========================================================== */
+
+        fetch("/predisclosure/workflow/")
+            .then(response => {
+
+                if (!response.ok) {
+
+                    return Promise.reject(response);
+
+                }
+
+                return response.json();
+
+            })
+            .then(data => {
+
+                HEADER_STATUS_GRAPH.value =
+                    data["HEADER_STATUS_GRAPH"];
+
+                LINE_STATUS_GRAPH.value =
+                    data["LINE_STATUS_GRAPH"];
+
+                WORKFLOW_MATRIX.value =
+                    data["WORKFLOW_MATRIX"];
+
+                LINE_STATUS_TO_ROLE.value =
+                    data["LINE_STATUS_TO_ROLE"];
+
+                ROLE_TO_LINE_STATUS.value =
+                    data["ROLE_TO_LINE_STATUS"];
+
+                ROLES.value =
+                    data["ROLES"];
+
+                ADMIN_ROLE.value =
+                    data["ADMIN_ROLE"];
+
+            });
+
+    </script>
+
+</head>
+
+<body>
+
+    {% include 'common/components/canon_app_header.html' %}
+    {% include 'common/components/session_timeout.html' %}
+    {% include 'common/components/sidebar.html' %}
+
+    <main id="main" class="main">
+
+        {% csrf_token %}
+
+        {% include 'predisclosure/predisclosure_app.html' %}
+
+        {% include 'predisclosure/list_of_predisclosures.html' %}
+
+        {% include 'predisclosure/predisclosure_view.html' %}
+
+        {% include 'common/faq.html' %}
+
+        {% include 'common/contacts.html' %}
+
+    </main>
+
+</body>
+
+<script>
+
+    const metadata = {
+
+        app_name: "PreDisclosure Tool",
+
+    };
+
+    for (const [key, value] of Object.entries(metadata)) {
+
+        const items =
+            document.getElementsByClassName(key);
+
+        for (const item of items) {
+
+            item.innerHTML = value;
+
+        }
+
+    }
+
+</script>
+
+</html>
+
+
+
+
 
 class PreDisclosureProduct(MetaEditedAbstract):
     product_category = models.CharField(
