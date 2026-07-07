@@ -1,0 +1,1509 @@
+{% load static %}
+{% load common_tags %}
+
+{% block predisclosure_app %}
+
+<section class="section" id="predisclosure_app">
+
+    <div v-if="nav_state.predisclosure_app">
+
+        <!-- ========================================================= -->
+        <!-- Back Button -->
+        <!-- ========================================================= -->
+
+        <div class="fs-4 mb-3">
+
+            <a href="#">
+
+                <i class="bi bi-arrow-left-circle-fill"
+                    @click="navigate(nav_state.previous)">
+                </i>
+
+            </a>
+
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- Breadcrumb -->
+        <!-- ========================================================= -->
+
+        <nav aria-label="breadcrumb">
+
+            <ol class="breadcrumb">
+
+                <li class="breadcrumb-item">
+
+                    <a href="#"
+                        @click="navigate('list_of_predisclosures')">
+
+                        PreDisclosures
+
+                    </a>
+
+                </li>
+
+                <li
+                    v-if="nav_state.context == 'edit'"
+                    class="breadcrumb-item active">
+
+                    [[ selected_predisclosure.predisclosure_id ]]
+
+                </li>
+
+                <li
+                    v-if="nav_state.context == 'template'"
+                    class="breadcrumb-item active">
+
+                    Generate Template
+
+                </li>
+
+            </ol>
+
+        </nav>
+
+        <!-- ========================================================= -->
+        <!-- Header Card -->
+        <!-- ========================================================= -->
+
+        <div class="card">
+
+            <div class="card-header">
+
+                <div class="row">
+
+                    <div class="col">
+
+                        <h5 class="mb-0">
+
+                            PreDisclosure Details
+
+                        </h5>
+
+                    </div>
+
+                    <div
+                        class="col-auto"
+                        v-if="selected_predisclosure.current_status">
+
+                        <span
+                            class="badge fs-6"
+                            :class="custom_format.current_status[selected_predisclosure.current_status]">
+
+                            [[ selected_predisclosure.current_status ]]
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="card-body">
+
+                <!-- Loading Spinner -->
+
+                <div
+                    class="position-absolute top-50 start-50 translate-middle">
+
+                    <span
+                        class="spinner-border text-primary"
+                        role="status"
+                        :style="loading ? 'display:inline-block;' : 'display:none;'">
+
+                    </span>
+
+                </div>
+
+                <!-- ================================================= -->
+                <!-- Header Form -->
+                <!-- ================================================= -->
+
+                <form
+                    id="predisclosure_form"
+                    class="mt-2"
+                    @submit.prevent="">
+
+                    <fieldset
+                        class="row"
+                        :disabled="loading">
+
+                        {% for field in predisclosure_form.visible_fields %}
+
+                        <div
+                            class="col-md-3 mb-2"
+                            id="field_group_{{ field.name }}"
+                            v-if="field_group_{{ field.name }}_show ?? true">
+
+                            {{ field.errors }}
+
+                            <label
+                                class="form-label"
+                                for="{{ field.id_for_label }}">
+
+                                {{ field.label }}
+
+                            </label>
+
+                            {{ field|add_attrs:"v-model=selected_predisclosure; @change=handle_change($event); :disabled=is_disabled_field" }}
+
+                            {% if field.help_text %}
+
+                            <small
+                                class="form-text text-muted">
+
+                                {{ field.help_text|safe }}
+
+                            </small>
+
+                            {% endif %}
+
+                        </div>
+
+                        {% endfor %}
+
+                    </fieldset>
+
+                </form>
+
+            </div>
+
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- Attachments -->
+        <!-- ========================================================= -->
+
+        <div class="card mt-3">
+
+            <div class="card-header">
+
+                <h6 class="mb-0">
+
+                    Attachments
+
+                </h6>
+
+            </div>
+
+            <div class="card-body">
+
+                <div class="row">
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+
+                            NDA / Meeting Documents
+
+                        </label>
+
+                        <input
+                            id="file_predisclosure"
+                            type="file"
+                            class="form-control form-control-sm"
+                            multiple
+                            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg">
+
+                        <small class="form-text text-muted">
+
+                            Files will be uploaded to
+
+                            <a
+                                :href="encodeURI('{{ site_address|safe }}{{ library }}')"
+                                target="_blank">
+
+                                SharePoint
+
+                            </a>
+
+                        </small>
+
+                    </div>
+
+                    <div
+                        class="col-md-6"
+                        v-if="selected_predisclosure.link">
+
+                        <label class="form-label">
+
+                            SharePoint Folder
+
+                        </label>
+
+                        <br>
+
+                        <a
+                            :href="selected_predisclosure.link"
+                            target="_blank">
+
+                            [[ selected_predisclosure.link ]]
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- Chunk 2 starts here -->
+        <!-- Line Item Grid -->
+        <!-- ========================================================= -->
+<!-- ========================================================= -->
+<!-- PreDisclosure Line Items -->
+<!-- ========================================================= -->
+
+<div class="card mt-3">
+
+    <div class="card-header">
+
+        <div class="row">
+
+            <div class="col">
+
+                <h5 class="mb-0">
+
+                    PreDisclosure Line Details
+
+                </h5>
+
+            </div>
+
+            <div class="col-auto">
+
+                <button
+                    type="button"
+                    class="btn btn-sm btn-success"
+                    @click="add_line()">
+
+                    <i class="bi bi-plus-circle"></i>
+
+                    Add Line
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="card-body">
+
+        <form
+            id="predisclosure_line_form"
+            @submit.prevent="">
+
+            <div class="table-responsive">
+
+                <table
+                    class="table table-bordered table-hover table-sm align-middle">
+
+                    <thead>
+
+                        <tr>
+
+                            {% for field in predisclosure_line_form.visible_fields %}
+
+                            <th
+                                class="text-bg-secondary text-nowrap">
+
+                                {{ field.label }}
+
+                                {% if field.help_text %}
+
+                                <br>
+
+                                <small>
+
+                                    {{ field.help_text|safe }}
+
+                                </small>
+
+                                {% endif %}
+
+                            </th>
+
+                            {% endfor %}
+
+                            <th
+                                class="text-bg-secondary text-center">
+
+                                Actions
+
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        <template
+                            v-for="(line,index) in lines">
+
+                            <tr>
+
+                                {% for field in predisclosure_line_form.visible_fields %}
+
+                                <td>
+
+                                    {{ field|add_attrs:":index=index; v-model=lines; @change=handle_line_change($event,index);" }}
+
+                                </td>
+
+                                {% endfor %}
+
+                                <td class="text-center">
+
+                                    <div
+                                        class="btn-group">
+
+                                        <template-button
+                                            @click="copy_line(line,index)">
+                                        </template-button>
+
+                                        <delete-button
+                                            @delete-confirm="delete_line(line,index)">
+                                        </delete-button>
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                        </template>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+<!-- ========================================================= -->
+<!-- Footer Buttons -->
+<!-- ========================================================= -->
+
+<div class="text-center mt-3 mb-3">
+
+    <div class="btn-group">
+
+        <button
+            v-if="nav_state.context=='edit'"
+            type="button"
+            class="btn btn-primary"
+            @click="save()">
+
+            Save Changes
+
+        </button>
+
+        <button
+            v-else
+            type="button"
+            class="btn btn-primary"
+            @click="create_predisclosure()">
+
+            Create Draft
+
+        </button>
+
+        <button
+            type="button"
+            class="btn btn-success"
+            @click="submit_predisclosure()"
+            v-if="
+                nav_state.context=='edit' &&
+                selected_predisclosure.current_status=='DRAFT'
+            ">
+
+            Submit
+
+        </button>
+
+    </div>
+
+</div>
+
+<!-- ========================================================= -->
+<!-- Notification Dialog -->
+<!-- ========================================================= -->
+
+<notification-dialog
+    v-model="show_notification_dialog"
+    :message="notification_message">
+
+</notification-dialog>
+
+    </div>
+
+</section>
+<script type="module">
+
+import {
+    postData,
+    patchData,
+    deleteRequest,
+    upload_files_to_sharepoint,
+} from "{% static 'common/modules/common.js' %}";
+
+import * as vuejs_components
+from "{% static 'common/modules/components.js' %}";
+
+
+const predisclosure_app = Vue.createApp({
+
+    delimiters: ["[[", "]]"],
+
+    data() {
+
+        return {
+
+            nav_state: init_nav_state,
+
+            selected_predisclosure: selected_predisclosure,
+
+            loading: false,
+
+            show_notification_dialog: false,
+
+            notification_message: "",
+
+            products: [],
+
+            approvers: [],
+
+            changes: {
+
+                new_lines_count: 0,
+
+                deleted_lines: new Set([]),
+
+                edited_lines: new Set([]),
+
+            },
+
+        };
+
+    },
+
+    watch: {
+
+        nav_state: {
+
+            handler(newVal) {
+
+                if (
+                    newVal.predisclosure_app &&
+                    newVal.context === "new"
+                ) {
+
+                    this.reset_form();
+
+                }
+
+                if (
+                    newVal.predisclosure_app &&
+                    (
+                        newVal.context === "edit" ||
+                        newVal.context === "template"
+                    )
+                ) {
+
+                    this.setup_edit_context();
+
+                    this.get_predisclosure_lines(
+                        this.selected_predisclosure.predisclosure_id
+                    );
+
+                    this.load_products();
+
+                }
+
+            },
+
+            deep: true,
+
+        },
+
+    },
+
+    computed: {
+
+        lines() {
+
+            return (
+                this.selected_predisclosure
+                    ?.predisclosure_line ?? []
+            );
+
+        },
+
+        has_lines() {
+
+            return this.lines.length > 0;
+
+        },
+
+        is_edit_mode() {
+
+            return (
+                this.nav_state.context === "edit"
+            );
+
+        },
+
+        is_template_mode() {
+
+            return (
+                this.nav_state.context === "template"
+            );
+
+        },
+
+        is_new_mode() {
+
+            return (
+                this.nav_state.context === "new"
+            );
+
+        },
+
+    },
+
+    methods: {
+// ===========================================================
+// Create PreDisclosure
+// ===========================================================
+
+async create_predisclosure() {
+
+    if (!this.validate_forms()) {
+        return;
+    }
+
+    this.show_notification(
+        "Creating PreDisclosure..."
+    );
+
+    await postData(
+        api_endpoints.predisclosure,
+        this.selected_predisclosure,
+    )
+
+    .then(response => {
+
+        if (response.ok) {
+            return response.json();
+        }
+
+        return Promise.reject(response);
+
+    })
+
+    .then(async predisclosure => {
+
+        this.selected_predisclosure =
+            predisclosure;
+
+        await this.create_lines();
+
+        await this.upload_to_sharepoint(
+            predisclosure
+        );
+
+        this.show_notification(
+            "PreDisclosure created successfully."
+        );
+
+    })
+
+    .catch(error => {
+
+        this.display_error(error);
+
+    });
+
+},
+
+
+// ===========================================================
+// Create Line Items
+// ===========================================================
+
+async create_lines() {
+
+    for (const line of this.lines) {
+
+        line.predisclosure =
+            this.selected_predisclosure
+                .predisclosure_id;
+
+        await postData(
+            api_endpoints.predisclosure_line,
+            line,
+        )
+
+        .then(response => {
+
+            if (response.ok) {
+                return response.json();
+            }
+
+            return Promise.reject(response);
+
+        })
+
+        .catch(error => {
+
+            this.display_error(error);
+
+        });
+
+    }
+
+},
+
+
+// ===========================================================
+// Save Changes
+// ===========================================================
+
+async save() {
+
+    if (!this.validate_forms()) {
+        return;
+    }
+
+    await this.patch_predisclosure();
+
+    await this.create_new_lines();
+
+    await this.patch_lines();
+
+    await this.delete_lines();
+
+    await this.upload_to_sharepoint(
+        this.selected_predisclosure
+    );
+
+    this.reset_changes();
+
+    this.show_notification(
+        "Changes saved successfully."
+    );
+
+},
+
+
+// ===========================================================
+// Patch Header
+// ===========================================================
+
+async patch_predisclosure() {
+
+    await patchData(
+
+        api_endpoints.predisclosure +
+        this.selected_predisclosure
+            .predisclosure_id +
+        "/",
+
+        this.selected_predisclosure,
+
+    )
+
+    .then(response => {
+
+        if (response.ok) {
+            return response.json();
+        }
+
+        return Promise.reject(response);
+
+    })
+
+    .catch(error => {
+
+        this.display_error(error);
+
+    });
+
+},
+
+
+// ===========================================================
+// Create Newly Added Lines
+// ===========================================================
+
+async create_new_lines() {
+
+    for (const line of this.lines) {
+
+        if (line.id !== "temp") {
+            continue;
+        }
+
+        delete line.id;
+
+        line.predisclosure =
+            this.selected_predisclosure
+                .predisclosure_id;
+
+        await postData(
+
+            api_endpoints.predisclosure_line,
+
+            line,
+
+        )
+
+        .catch(error => {
+
+            this.display_error(error);
+
+        });
+
+    }
+
+},
+
+
+// ===========================================================
+// Patch Edited Lines
+// ===========================================================
+
+async patch_lines() {
+
+    for (const id of this.changes.edited_lines) {
+
+        const line = this.lines.find(
+            l => l.id == id
+        );
+
+        if (!line) {
+            continue;
+        }
+
+        await patchData(
+
+            api_endpoints.predisclosure_line +
+            id +
+            "/",
+
+            line,
+
+        )
+
+        .catch(error => {
+
+            this.display_error(error);
+
+        });
+
+    }
+
+},
+
+
+// ===========================================================
+// Delete Lines
+// ===========================================================
+
+async delete_lines() {
+
+    for (const id of this.changes.deleted_lines) {
+
+        if (id == "temp") {
+            continue;
+        }
+
+        await deleteRequest(
+
+            api_endpoints.predisclosure_line +
+            id +
+            "/"
+
+        )
+
+        .catch(error => {
+
+            this.display_error(error);
+
+        });
+
+    }
+
+},
+// ===========================================================
+// Add New Line
+// ===========================================================
+
+add_line() {
+
+    if (this.is_edit_mode) {
+
+        this.lines.push({
+            id: "temp",
+        });
+
+        this.changes.new_lines_count++;
+
+    } else {
+
+        this.lines.push({});
+
+    }
+
+},
+
+// ===========================================================
+// Copy Line
+// ===========================================================
+
+copy_line(line, index) {
+
+    const clone = {
+
+        ...line,
+
+    };
+
+    if (this.is_edit_mode) {
+
+        clone.id = "temp";
+
+        this.changes.new_lines_count++;
+
+    }
+
+    this.lines.push(clone);
+
+},
+
+// ===========================================================
+// Delete Line
+// ===========================================================
+
+delete_line(line, index) {
+
+    if (this.is_edit_mode) {
+
+        this.changes.deleted_lines.add(
+            line.id
+        );
+
+    }
+
+    this.lines.splice(index, 1);
+
+},
+
+// ===========================================================
+// Load Existing Lines
+// ===========================================================
+
+async get_predisclosure_lines(
+    predisclosure_id
+) {
+
+    await fetch(
+
+        api_endpoints.predisclosure_line +
+        "?predisclosure=" +
+        predisclosure_id +
+        "&page=1&page_size=1000"
+
+    )
+
+    .then(response => {
+
+        if (response.ok) {
+
+            return response.json();
+
+        }
+
+        return Promise.reject(response);
+
+    })
+
+    .then(data => {
+
+        this.selected_predisclosure
+            .predisclosure_line =
+            data.results;
+
+    })
+
+    .catch(error => {
+
+        this.display_error(error);
+
+    });
+
+},
+
+// ===========================================================
+// Reset Change Tracking
+// ===========================================================
+
+reset_changes() {
+
+    this.changes = {
+
+        new_lines_count: 0,
+
+        deleted_lines: new Set([]),
+
+        edited_lines: new Set([]),
+
+    };
+
+},
+
+// ===========================================================
+// Reset Form
+// ===========================================================
+
+reset_form() {
+
+    this.selected_predisclosure = {
+
+        predisclosure_line: [],
+
+        predisclosure_status: [],
+
+    };
+
+    this.products = [];
+
+    this.reset_changes();
+
+},
+
+// ===========================================================
+// Edit Context
+// ===========================================================
+
+setup_edit_context() {
+
+    this.reset_changes();
+
+},
+
+// ===========================================================
+// Handle Header Changes
+// ===========================================================
+
+handle_change(event) {
+
+    const field = event.target.name;
+
+    switch (field) {
+
+        case "product_category":
+
+            this.load_products();
+
+            break;
+
+    }
+
+},
+
+// ===========================================================
+// Handle Line Changes
+// ===========================================================
+
+handle_line_change(
+    event,
+    index,
+) {
+
+    if (this.lines[index].id) {
+
+        this.changes.edited_lines.add(
+
+            this.lines[index].id
+
+        );
+
+    }
+
+},
+// ===========================================================
+// Submit PreDisclosure
+// ===========================================================
+
+async submit_predisclosure() {
+
+    if (!this.validate_forms()) {
+
+        return;
+
+    }
+
+    this.show_notification(
+        "Submitting PreDisclosure..."
+    );
+
+    await postData(
+
+        api_endpoints.predisclosure_status,
+
+        {
+
+            predisclosure:
+                this.selected_predisclosure
+                    .predisclosure_id,
+
+            status: "IN_PROGRESS",
+
+        }
+
+    )
+
+    .then(response => {
+
+        if (response.ok) {
+
+            return response.json();
+
+        }
+
+        return Promise.reject(response);
+
+    })
+
+    .then(() => {
+
+        this.show_notification(
+            "PreDisclosure submitted successfully."
+        );
+
+        this.refresh_header();
+
+    })
+
+    .catch(error => {
+
+        this.display_error(error);
+
+    });
+
+},
+
+
+// ===========================================================
+// Approve Selected Lines
+// ===========================================================
+
+async approve_lines(lines) {
+
+    if (!lines.length) {
+
+        this.show_notification(
+            "Please select at least one line."
+        );
+
+        return;
+
+    }
+
+    for (const line of lines) {
+
+        await postData(
+
+            api_endpoints.predisclosure_line_status,
+
+            {
+
+                line: line.id,
+
+                status: "APPROVED",
+
+            }
+
+        )
+
+        .catch(error => {
+
+            this.display_error(error);
+
+        });
+
+    }
+
+    this.refresh_header();
+
+},
+
+
+// ===========================================================
+// Reject Selected Lines
+// ===========================================================
+
+async reject_lines(lines) {
+
+    if (!lines.length) {
+
+        this.show_notification(
+            "Please select at least one line."
+        );
+
+        return;
+
+    }
+
+    for (const line of lines) {
+
+        await postData(
+
+            api_endpoints.predisclosure_line_status,
+
+            {
+
+                line: line.id,
+
+                status: "REJECTED",
+
+            }
+
+        )
+
+        .catch(error => {
+
+            this.display_error(error);
+
+        });
+
+    }
+
+    this.refresh_header();
+
+},
+
+
+// ===========================================================
+// Refresh Header
+// ===========================================================
+
+async refresh_header() {
+
+    await fetch(
+
+        api_endpoints.predisclosure +
+        this.selected_predisclosure
+            .predisclosure_id +
+        "/"
+
+    )
+
+    .then(response => {
+
+        if (response.ok) {
+
+            return response.json();
+
+        }
+
+        return Promise.reject(response);
+
+    })
+
+    .then(data => {
+
+        this.selected_predisclosure = data;
+
+    });
+
+},
+
+
+// ===========================================================
+// Load Products
+// ===========================================================
+
+async load_products() {
+
+    this.products = [];
+
+    if (
+        !this.selected_predisclosure
+            .product_category
+    ) {
+
+        return;
+
+    }
+
+    await fetch(
+
+        api_endpoints.predisclosure_products +
+
+        "?product_category=" +
+
+        encodeURIComponent(
+
+            this.selected_predisclosure
+                .product_category
+
+        )
+
+    )
+
+    .then(response => {
+
+        if (response.ok) {
+
+            return response.json();
+
+        }
+
+        return Promise.reject(response);
+
+    })
+
+    .then(data => {
+
+        this.products = data;
+
+    })
+
+    .catch(error => {
+
+        this.display_error(error);
+
+    });
+
+},
+
+
+// ===========================================================
+// Upload Attachments
+// ===========================================================
+
+async upload_to_sharepoint(
+    predisclosure
+) {
+
+    if (!predisclosure.link) {
+
+        return;
+
+    }
+
+    const base_url =
+        "{{ site_address|escapejs }}{{ library|escapejs }}";
+
+    const path =
+        predisclosure.link.substring(
+            base_url.length + 1
+        );
+
+    await upload_files_to_sharepoint(
+
+        "file_predisclosure",
+
+        "{{ sharepoint_upload_endpoint|escapejs }}",
+
+        "{{ site_address|escapejs }}",
+
+        "{{ library|escapejs }}",
+
+        path,
+
+    );
+
+},
+// ===========================================================
+// Validate Forms
+// ===========================================================
+
+validate_forms() {
+
+    for (const id of [
+
+        "predisclosure_form",
+
+        "predisclosure_line_form",
+
+    ]) {
+
+        const form = document.getElementById(id);
+
+        form.requestSubmit();
+
+        if (!form.reportValidity()) {
+
+            return false;
+
+        }
+
+    }
+
+    if (this.lines.length === 0) {
+
+        this.show_notification(
+
+            "Please add at least one line."
+
+        );
+
+        return false;
+
+    }
+
+    return true;
+
+},
+
+
+// ===========================================================
+// Enable / Disable Header Fields
+// ===========================================================
+
+is_disabled_field(field_name) {
+
+    if (this.is_edit_mode) {
+
+        return [
+
+            "region",
+
+        ].includes(field_name);
+
+    }
+
+    return false;
+
+},
+
+
+// ===========================================================
+// Notification
+// ===========================================================
+
+show_notification(message) {
+
+    this.notification_message = message;
+
+    this.show_notification_dialog = true;
+
+},
+
+
+// ===========================================================
+// Error Handler
+// ===========================================================
+
+display_error(error_response) {
+
+    try {
+
+        error_response.json().then(data => {
+
+            this.show_notification(data);
+
+        });
+
+    }
+
+    catch {
+
+        this.show_notification(
+
+            "Unknown error occurred. Please contact the Support Team."
+
+        );
+
+    }
+
+},
+
+
+// ===========================================================
+// Navigation
+// ===========================================================
+
+navigate(id, context = null) {
+
+    this.nav_state.predisclosure_app = false;
+
+    this.nav_state[id] = true;
+
+    this.nav_state.current = id;
+
+    this.nav_state.previous = "predisclosure_app";
+
+    this.nav_state.context = context;
+
+},
+
+
+// ===========================================================
+// Lifecycle
+// ===========================================================
+
+mounted() {
+
+    this.reset_changes();
+
+},
+
+beforeUnmount() {
+
+    this.reset_changes();
+
+},
+
+});
+
+
+// ===========================================================
+// Register Shared Components
+// ===========================================================
+
+Object.entries(vuejs_components).forEach(
+
+    item => {
+
+        predisclosure_app.component(
+
+            item[0],
+
+            item[1],
+
+        );
+
+    }
+
+);
+
+
+// ===========================================================
+// Mount Application
+// ===========================================================
+
+predisclosure_app.mount(
+
+    "#predisclosure_app"
+
+);
+
+</script>
+
+{% endblock %}
