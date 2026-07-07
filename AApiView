@@ -1,3 +1,69 @@
+class PreDisclosureLineForm(EnhancedModelForm):
+
+    row1 = [
+        "account_name",
+        "website",
+        "b2b_business_type",
+        "nda_confirmed",
+        "disclosure_format",
+    ]
+
+    row2 = [
+        "disclosed_last_2_years",
+        "sda_partner_level",
+        "account_in_sda_partner_list",
+        "meeting_date",
+        "meeting_location",
+    ]
+
+    row3 = [
+        "canon_responsible_person",
+        "retailer_ranking",
+        "estimated_business",
+        "annual_sales",
+    ]
+
+@property
+def grouped_fields(self):
+
+    return [
+
+        [self[f] for f in self.row1],
+
+        [self[f] for f in self.row2],
+
+        [self[f] for f in self.row3],
+
+    ]
+
+
+
+{% for row in predisclosure_line_form.grouped_fields %}
+
+<div class="row g-2">
+
+{% for field in row %}
+
+<div class="col">
+
+<label>{{ field.label }}</label>
+
+{{ field }}
+
+</div>
+
+{% endfor %}
+
+</div>
+
+{% endfor %}
+
+
+
+
+
+
+
 <!-- ========================================================= -->
 <!-- PreDisclosure Line Details -->
 <!-- ========================================================= -->
