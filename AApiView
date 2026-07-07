@@ -1,3 +1,45 @@
+{% for field in predisclosure_form.visible_fields %}
+
+<div class="col-md-3 mb-2">
+
+    <label class="form-label">
+
+        {{ field.label }}
+
+    </label>
+
+    {% if field.name == "products" %}
+
+        <select
+            multiple
+            class="form-select form-select-sm"
+            v-model="selected_predisclosure.products">
+
+            <option
+                v-for="product in products"
+                :key="product.id"
+                :value="product.id">
+
+                [[ product.product_name ]]
+
+            </option>
+
+        </select>
+
+    {% else %}
+
+        {{ field|add_attrs:"v-model=selected_predisclosure; @change=handle_change($event)" }}
+
+    {% endif %}
+
+</div>
+
+{% endfor %}
+
+========================================
+
+
+
 {% load static %}
 {% load common_tags %}
 
