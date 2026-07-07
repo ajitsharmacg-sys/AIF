@@ -1,6 +1,263 @@
+<div class="card mt-3">
+
+    <div class="card-header d-flex justify-content-between align-items-center">
+
+        <h5 class="mb-0">
+            Account Details
+        </h5>
+
+        <button
+            type="button"
+            class="btn btn-success btn-sm"
+            @click="add_line()">
+
+            <i class="bi bi-plus-circle"></i>
+            Add Account
+
+        </button>
+
+    </div>
+
+    <div class="card-body">
+
+        <template
+            v-for="(line,index) in lines"
+            :key="index">
+
+            <div class="card border-secondary mb-3">
+
+                <div class="card-header py-2">
+
+                    <div class="d-flex justify-content-between align-items-center">
+
+                        <strong>
+
+                            Account [[ index + 1 ]]
+
+                            <span v-if="line.account_name">
+
+                                - [[ line.account_name ]]
+
+                            </span>
+
+                        </strong>
+
+                        <div class="btn-group">
+
+                            <template-button
+                                @click="copy_line(line,index)">
+                            </template-button>
+
+                            <delete-button
+                                @delete-confirm="delete_line(line,index)">
+                            </delete-button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="card-body py-2">
+
+                    <!-- ===================== -->
+                    <!-- Row 1 -->
+                    <!-- ===================== -->
+
+                    <div class="row g-2">
+
+                        {% for field in predisclosure_line_form.visible_fields %}
+
+                            {% if field.name in predisclosure_line_form.row1_fields %}
+
+                                <div class="col">
+
+                                    <label class="form-label mb-1">
+
+                                        {{ field.label }}
+
+                                    </label>
+
+                                    {{ field|add_attrs:"v-model=line; @change=handle_line_change($event,index)" }}
+
+                                </div>
+
+                            {% endif %}
+
+                        {% endfor %}
+
+                    </div>
+
+                    <!-- ===================== -->
+                    <!-- Row 2 -->
+                    <!-- ===================== -->
+
+                    <div class="row g-2 mt-1">
+
+                        {% for field in predisclosure_line_form.visible_fields %}
+
+                            {% if field.name in predisclosure_line_form.row2_fields %}
+
+                                <div class="col">
+
+                                    <label class="form-label mb-1">
+
+                                        {{ field.label }}
+
+                                    </label>
+
+                                    {{ field|add_attrs:"v-model=line; @change=handle_line_change($event,index)" }}
+
+                                </div>
+
+                            {% endif %}
+
+                        {% endfor %}
+
+                    </div>
+
+                    <!-- ===================== -->
+                    <!-- Row 3 -->
+                    <!-- ===================== -->
+
+                    <div class="row g-2 mt-1">
+
+                        {% for field in predisclosure_line_form.visible_fields %}
+
+                            {% if field.name in predisclosure_line_form.row3_fields %}
+
+                                <div class="col">
+
+                                    <label class="form-label mb-1">
+
+                                        {{ field.label }}
+
+                                    </label>
+
+                                    {{ field|add_attrs:"v-model=line; @change=handle_line_change($event,index)" }}
+
+                                </div>
+
+                            {% endif %}
+
+                        {% endfor %}
+
+                    </div>
+
+                    <!-- ===================== -->
+                    <!-- Full Width -->
+                    <!-- ===================== -->
+
+                    {% for field in predisclosure_line_form.visible_fields %}
+
+                        {% if field.name in predisclosure_line_form.full_width_fields %}
+
+                            <div class="mt-2">
+
+                                <label class="form-label mb-1">
+
+                                    {{ field.label }}
+
+                                </label>
+
+                                {{ field|add_attrs:"v-model=line; @change=handle_line_change($event,index)" }}
+
+                            </div>
+
+                        {% endif %}
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+        </template>
+
+    </div>
+
+</div>
+
+====================================
+from django.forms import Select, SelectMultiple, Textarea
+from common.forms import EnhancedModelForm
+from common.models import Organization
+from predisclosure.models import (
+    PreDisclosure,
+    PreDisclosureLine,
+    PreDisclosureProduct,
+)
+
+
+class PreDisclosureForm(EnhancedModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        orgs = (
+            Organization.objects.exclude(
+                organization_name__in=["CENV", "CEL"]
+            ).values_list(
+                "organization_name",
+                flat=True,
+            )
+        )
+
+        org_choices = [
+            ("", "---------"),
+            *[(org, org) for org in orgs],
+        ]
+
+        self.fields["region"].widget = Select(
+            attrs={
+                "class": "form-select form-select-sm",
+            },
+            choices=org_choices,
+        )
+
+        self.fields["region"].choices = org_choices
+
+        self.fields["predisclosure_type"].widget = Select(
+            attrs={
+                "class": "form-select form-select-sm",
+            }
+        )
+
+        self.fields["product_category"].widget = Select(
+            attrs={
+                "class": "form-select form-select-sm",
+            }
+        )
+
+        self.fields["products"].queryset = (
+            PreDisclosureProduct.objects.none()
+        )
+
+        self.fields["products"].widget = SelectMultiple(
+            attrs={
+                "class": "form-select form-select-sm",
+                "size": 6,
+            }
+        )
+
+    class Meta:
+        model = PreDisclosure
+
+        fields = [
+            "region",
+            "predisclosure_type",
+            "product_category",
+            "products",
+        ]
+
+
 class PreDisclosureLineForm(EnhancedModelForm):
 
-    row1 = [
+    # ==========================================================
+    # Layout groups (used in HTML)
+    # ==========================================================
+
+    row1_fields = [
         "account_name",
         "website",
         "b2b_business_type",
@@ -8,7 +265,7 @@ class PreDisclosureLineForm(EnhancedModelForm):
         "disclosure_format",
     ]
 
-    row2 = [
+    row2_fields = [
         "disclosed_last_2_years",
         "sda_partner_level",
         "account_in_sda_partner_list",
@@ -16,47 +273,99 @@ class PreDisclosureLineForm(EnhancedModelForm):
         "meeting_location",
     ]
 
-    row3 = [
+    row3_fields = [
         "canon_responsible_person",
         "retailer_ranking",
         "estimated_business",
         "annual_sales",
     ]
 
-@property
-def grouped_fields(self):
-
-    return [
-
-        [self[f] for f in self.row1],
-
-        [self[f] for f in self.row2],
-
-        [self[f] for f in self.row3],
-
+    full_width_fields = [
+        "reason_for_disclosure",
+        "products_to_be_disclosed",
+        "individuals_being_disclosed_to",
+        "information_to_be_disclosed",
     ]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
+        select_fields = [
+            "disclosed_last_2_years",
+            "nda_confirmed",
+            "disclosure_format",
+            "sda_partner_level",
+            "account_in_sda_partner_list",
+        ]
 
-{% for row in predisclosure_line_form.grouped_fields %}
+        for field in select_fields:
 
-<div class="row g-2">
+            self.fields[field].widget = Select(
+                attrs={
+                    "class": "form-select form-select-sm",
+                },
+                choices=self.fields[field].choices,
+            )
 
-{% for field in row %}
+        textarea_fields = {
+            "reason_for_disclosure":
+                "Enter reason for disclosure",
 
-<div class="col">
+            "products_to_be_disclosed":
+                "Enter products to be disclosed",
 
-<label>{{ field.label }}</label>
+            "individuals_being_disclosed_to":
+                "Enter individuals receiving disclosure",
 
-{{ field }}
+            "information_to_be_disclosed":
+                "Enter information to be disclosed",
+        }
 
-</div>
+        for field, placeholder in textarea_fields.items():
 
-{% endfor %}
+            self.fields[field].widget = Textarea(
+                attrs={
+                    "rows": 2,
+                    "class": "form-control form-control-sm",
+                    "placeholder": placeholder,
+                }
+            )
 
-</div>
+        for name, field in self.fields.items():
 
-{% endfor %}
+            if isinstance(field.widget, (Textarea, Select)):
+                continue
+
+            field.widget.attrs.update(
+                {
+                    "class": "form-control form-control-sm",
+                }
+            )
+
+    class Meta:
+        model = PreDisclosureLine
+
+        fields = [
+            "account_name",
+            "website",
+            "disclosed_last_2_years",
+            "b2b_business_type",
+            "nda_confirmed",
+            "disclosure_format",
+            "reason_for_disclosure",
+            "products_to_be_disclosed",
+            "sda_partner_level",
+            "account_in_sda_partner_list",
+            "meeting_date",
+            "meeting_location",
+            "canon_responsible_person",
+            "individuals_being_disclosed_to",
+            "information_to_be_disclosed",
+            "retailer_ranking",
+            "estimated_business",
+            "annual_sales",
+        ]
+
 
 
 
