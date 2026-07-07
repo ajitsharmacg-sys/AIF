@@ -1,3 +1,317 @@
+{% load static %}
+{% load common_tags %}
+
+{% block list_of_predisclosures %}
+
+<section class="section" id="list_of_predisclosures">
+
+    <div v-if="nav_state.list_of_predisclosures">
+
+        <django-paged-table
+            api_endpoint="/predisclosure/api/v1/predisclosure/"
+            :columns="columns"
+            ordering="-meta_created_date"
+            @export-excel="(items) => { export_to_excel(items); }"
+            :init_query_filter="query_filter"
+            v-model:data_refresh_trigger="update_triggered"
+            title="List of PreDisclosures"
+            :filter_items="filter_items"
+            :custom_format="custom_format">
+
+            <template #header>
+
+                <add-button
+                    @click="selected_predisclosure = { predisclosure_line: [], predisclosure_status: [] }; navigate('predisclosure_app', 'new');">
+                </add-button>
+
+            </template>
+
+            <template #actions="actionProps">
+
+                <div class="btn-group">
+
+                    <edit-button
+                        v-if="['DRAFT', 'REJECTED'].includes(actionProps.predisclosure_status)"
+                        @click="select_predisclosure_and_navigate(actionProps, 'predisclosure_app', 'edit')">
+                    </edit-button>
+
+                    <delete-button
+                        v-if="['DRAFT', 'REJECTED'].includes(actionProps.predisclosure_status)"
+                        @delete-confirm="delete_predisclosure(actionProps);">
+                    </delete-button>
+
+                    <view-button
+                        @click="select_predisclosure_and_navigate(actionProps, 'predisclosure_view');">
+                    </view-button>
+
+                    <template-button
+                        @click="select_predisclosure_and_navigate(actionProps, 'predisclosure_app', 'template')">
+                    </template-button>
+
+                </div>
+
+            </template>
+
+        </django-paged-table>
+
+        <notification-dialog
+            v-model="show_notification_dialog"
+            :message="notification_message">
+        </notification-dialog>
+
+    </div>
+
+</section>
+
+<script type="module">
+
+import { deleteRequest } from "{% static 'common/modules/common.js' %}";
+import { utils, writeFile } from "{% static 'common/modules/xlsx.mjs' %}";
+import * as vuejs_components from "{% static 'common/modules/components.js' %}";
+
+const list_of_predisclosures = Vue.createApp({
+
+    delimiters: ['[[', ']]'],
+
+    data() {
+
+        return {
+
+            nav_state: init_nav_state,
+
+            query_filter: "",
+
+            columns: [
+                "meta_created_date",
+                "predisclosure_id",
+                "region",
+                "predisclosure_type",
+                "product_category",
+                "link",
+                "predisclosure_status",
+            ],
+
+            selected_predisclosure: selected_predisclosure,
+
+            show_notification_dialog: false,
+
+            notification_message: "",
+
+            update_triggered: false,
+
+        };
+
+    },
+
+    computed: {
+
+        filter_items() {
+
+            const res = [];
+
+            res.push({
+                label: "ALL",
+                expression: "&predisclosure_status="
+            });
+
+            for (const status of [
+                "DRAFT",
+                "IN_PROGRESS",
+                "REJECTED",
+                "COMPLETED"
+            ]) {
+
+                res.push({
+                    label: status,
+                    expression:
+                        "&predisclosure_status=" + status,
+                });
+
+            }
+
+            return res;
+
+        },
+
+        custom_format() {
+
+            return {
+
+                predisclosure_status: {
+
+                    DRAFT: "text-bg-secondary",
+
+                    IN_PROGRESS: "text-bg-warning",
+
+                    REJECTED: "text-bg-danger",
+
+                    COMPLETED: "text-bg-success",
+
+                }
+
+            };
+
+        },
+
+    },
+
+    methods: {
+
+        show_notification(message) {
+
+            this.notification_message = message;
+
+            this.show_notification_dialog = true;
+
+        },
+
+        display_error(error_response) {
+
+            try {
+
+                error_response.json().then(data => {
+
+                    this.show_notification(data);
+
+                });
+
+            }
+
+            catch {
+
+                this.show_notification(
+                    "Unknown error occurred. Please contact the Support Team."
+                );
+
+            }
+
+        },
+
+        delete_predisclosure(item) {
+
+            deleteRequest(
+                api_endpoints.predisclosure +
+                item.predisclosure_id +
+                "/"
+            )
+
+            .then(response => {
+
+                if (response.ok) {
+
+                    return response;
+
+                }
+
+                return Promise.reject(response);
+
+            })
+
+            .then(() => {
+
+                this.update_triggered = true;
+
+                this.show_notification(
+                    "PreDisclosure deleted successfully."
+                );
+
+            })
+
+            .catch(error_response => {
+
+                this.display_error(error_response);
+
+            });
+
+        },
+
+        navigate(id, context = null) {
+
+            this.nav_state.list_of_predisclosures = false;
+
+            this.nav_state.current = id;
+
+            this.nav_state[id] = true;
+
+            this.nav_state.previous =
+                "list_of_predisclosures";
+
+            this.nav_state.context = context;
+
+        },
+
+        async select_predisclosure_and_navigate(
+            item,
+            next_view_id,
+            context = null
+        ) {
+
+            if (context === "template") {
+
+                this.selected_predisclosure = {
+                    ...item,
+                };
+
+            }
+
+            else {
+
+                this.selected_predisclosure = item;
+
+            }
+
+            this.navigate(
+                next_view_id,
+                context,
+            );
+
+        },
+
+        async export_to_excel(items) {
+
+            this.show_notification(
+                "Only current page has been exported."
+            );
+
+            const workbook = utils.book_new();
+
+            const worksheet =
+                utils.json_to_sheet(items?.results);
+
+            utils.book_append_sheet(
+                workbook,
+                worksheet,
+                "PreDisclosures",
+            );
+
+            writeFile(
+                workbook,
+                "PreDisclosures.xlsx",
+            );
+
+        },
+
+    },
+
+});
+
+Object.entries(vuejs_components).forEach((item) => {
+
+    list_of_predisclosures.component(
+        item[0],
+        item[1],
+    );
+
+});
+
+list_of_predisclosures.mount(
+    "#list_of_predisclosures"
+);
+
+</script>
+
+{% endblock %}
+======================================================
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="light" translate="no">
 
