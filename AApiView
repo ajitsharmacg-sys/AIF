@@ -1,3 +1,444 @@
+<!-- ========================================================= -->
+<!-- PreDisclosure Line Details -->
+<!-- ========================================================= -->
+
+<div class="card mt-3">
+
+    <div class="card-header">
+
+        <div class="d-flex justify-content-between align-items-center">
+
+            <h5 class="mb-0">
+
+                Account Details
+
+            </h5>
+
+            <button
+                type="button"
+                class="btn btn-success btn-sm"
+                @click="add_line()">
+
+                <i class="bi bi-plus-circle"></i>
+
+                Add Account
+
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="card-body">
+
+        <template
+            v-for="(line,index) in lines"
+            :key="index">
+
+            <div class="card border-primary mb-3">
+
+                <div
+                    class="card-header bg-light">
+
+                    <div class="d-flex justify-content-between">
+
+                        <strong>
+
+                            Account [[ index + 1 ]]
+
+                            <span
+                                v-if="line.account_name">
+
+                                - [[ line.account_name ]]
+
+                            </span>
+
+                        </strong>
+
+                        <div class="btn-group">
+
+                            <button
+                                class="btn btn-outline-primary btn-sm"
+                                @click="copy_line(line,index)">
+
+                                <i class="bi bi-files"></i>
+
+                            </button>
+
+                            <button
+                                class="btn btn-outline-danger btn-sm"
+                                @click="delete_line(line,index)">
+
+                                <i class="bi bi-trash"></i>
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="card-body">
+
+                    <!-- ================================================= -->
+                    <!-- Row 1 -->
+                    <!-- ================================================= -->
+
+                    <div class="row">
+
+                        <div class="col-md-3 mb-2">
+
+                            <label class="form-label">
+
+                                Account Name
+
+                            </label>
+
+                            <input
+                                class="form-control form-control-sm"
+                                v-model="line.account_name">
+
+                        </div>
+
+                        <div class="col-md-2 mb-2">
+
+                            <label class="form-label">
+
+                                Website
+
+                            </label>
+
+                            <input
+                                class="form-control form-control-sm"
+                                v-model="line.website">
+
+                        </div>
+
+                        <div class="col-md-2 mb-2">
+
+                            <label class="form-label">
+
+                                B2B Business Type
+
+                            </label>
+
+                            <input
+                                class="form-control form-control-sm"
+                                v-model="line.b2b_business_type">
+
+                        </div>
+
+                        <div class="col-md-2 mb-2">
+
+                            <label class="form-label">
+
+                                NDA
+
+                            </label>
+
+                            <select
+                                class="form-select form-select-sm"
+                                v-model="line.nda_confirmed">
+
+                                <option value=""></option>
+                                <option value="YES">Yes</option>
+                                <option value="NO">No</option>
+
+                            </select>
+
+                        </div>
+
+                        <div class="col-md-3 mb-2">
+
+                            <label class="form-label">
+
+                                Disclosure Format
+
+                            </label>
+
+                            <select
+                                class="form-select form-select-sm"
+                                v-model="line.disclosure_format">
+
+                                <option></option>
+                                <option>1:1 Online</option>
+                                <option>1:1 Face to Face</option>
+                                <option>Group Online</option>
+                                <option>Group Face to Face</option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+                    <!-- ================================================= -->
+                    <!-- Row 2 -->
+                    <!-- ================================================= -->
+
+                    <div class="row">
+
+                        <div class="col-md-2 mb-2">
+
+                            <label class="form-label">
+
+                                Disclosed Last 2 Years
+
+                            </label>
+
+                            <select
+                                class="form-select form-select-sm"
+                                v-model="line.disclosed_last_2_years">
+
+                                <option value=""></option>
+                                <option value="YES">Yes</option>
+                                <option value="NO">No</option>
+
+                            </select>
+
+                        </div>
+
+                        <div class="col-md-2 mb-2">
+
+                            <label class="form-label">
+
+                                SDA Level
+
+                            </label>
+
+                            <select
+                                class="form-select form-select-sm"
+                                v-model="line.sda_partner_level">
+
+                                <option></option>
+                                <option>PIP</option>
+                                <option>AIP1</option>
+                                <option>AIP2</option>
+                                <option>SIP</option>
+
+                            </select>
+
+                        </div>
+
+                        <div class="col-md-2 mb-2">
+
+                            <label class="form-label">
+
+                                SDA Partner
+
+                            </label>
+
+                            <select
+                                class="form-select form-select-sm"
+                                v-model="line.account_in_sda_partner_list">
+
+                                <option value=""></option>
+                                <option value="YES">Yes</option>
+                                <option value="NO">No</option>
+
+                            </select>
+
+                        </div>
+
+                        <div class="col-md-2 mb-2">
+
+                            <label class="form-label">
+
+                                Meeting Date
+
+                            </label>
+
+                            <input
+                                type="date"
+                                class="form-control form-control-sm"
+                                v-model="line.meeting_date">
+
+                        </div>
+
+                        <div class="col-md-4 mb-2">
+
+                            <label class="form-label">
+
+                                Meeting Location
+
+                            </label>
+
+                            <input
+                                class="form-control form-control-sm"
+                                v-model="line.meeting_location">
+
+                        </div>
+
+                    </div>
+
+                    <!-- ================================================= -->
+                    <!-- Row 3 -->
+                    <!-- ================================================= -->
+
+                    <div class="row">
+
+                        <div class="col-md-3 mb-2">
+
+                            <label class="form-label">
+
+                                Canon Responsible
+
+                            </label>
+
+                            <input
+                                class="form-control form-control-sm"
+                                v-model="line.canon_responsible_person">
+
+                        </div>
+
+                        <div class="col-md-2 mb-2">
+
+                            <label class="form-label">
+
+                                Retailer Ranking
+
+                            </label>
+
+                            <input
+                                class="form-control form-control-sm"
+                                v-model="line.retailer_ranking">
+
+                        </div>
+
+                        <div class="col-md-2 mb-2">
+
+                            <label class="form-label">
+
+                                Estimated Business
+
+                            </label>
+
+                            <input
+                                class="form-control form-control-sm"
+                                v-model="line.estimated_business">
+
+                        </div>
+
+                        <div class="col-md-2 mb-2">
+
+                            <label class="form-label">
+
+                                Annual Sales
+
+                            </label>
+
+                            <input
+                                class="form-control form-control-sm"
+                                v-model="line.annual_sales">
+
+                        </div>
+
+                        <div class="col-md-3 mb-2">
+
+                            <label class="form-label">
+
+                                Current Status
+
+                            </label>
+
+                            <input
+                                class="form-control form-control-sm"
+                                readonly
+                                :value="line.predisclosure_line_status || 'Draft'">
+
+                        </div>
+
+                    </div>
+
+                    <!-- Text Areas -->
+
+                    <div class="mb-2">
+
+                        <label class="form-label">
+
+                            Reason for Disclosure
+
+                        </label>
+
+                        <textarea
+                            rows="2"
+                            class="form-control"
+                            v-model="line.reason_for_disclosure">
+                        </textarea>
+
+                    </div>
+
+                    <div class="mb-2">
+
+                        <label class="form-label">
+
+                            Products to be Disclosed
+
+                        </label>
+
+                        <textarea
+                            rows="2"
+                            class="form-control"
+                            v-model="line.products_to_be_disclosed">
+                        </textarea>
+
+                    </div>
+
+                    <div class="row">
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+
+                                Individuals Being Disclosed To
+
+                            </label>
+
+                            <textarea
+                                rows="2"
+                                class="form-control"
+                                v-model="line.individuals_being_disclosed_to">
+                            </textarea>
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+
+                                Information To Be Disclosed
+
+                            </label>
+
+                            <textarea
+                                rows="2"
+                                class="form-control"
+                                v-model="line.information_to_be_disclosed">
+                            </textarea>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </template>
+
+    </div>
+
+</div>
+
+=====================
+
+
+
+
+
+
+========================================
 {% for field in predisclosure_form.visible_fields %}
 
 <div class="col-md-3 mb-2">
