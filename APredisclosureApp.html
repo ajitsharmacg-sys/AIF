@@ -1,3 +1,202 @@
+
+from django.forms import (
+    TextInput,
+    Textarea,
+    Select,
+    DateInput,
+)
+
+from common.forms import EnhancedModelForm
+from predisclosure.models import PreDisclosureLine
+
+
+class PreDisclosureLineForm(EnhancedModelForm):
+
+    FIELD_CONFIG = {
+
+        "account_name": {
+            "width": "220px",
+        },
+
+        "website": {
+            "width": "180px",
+        },
+
+        "b2b_business_type": {
+            "width": "180px",
+        },
+
+        "meeting_date": {
+            "width": "140px",
+            "date": True,
+        },
+
+        "meeting_location": {
+            "width": "180px",
+            "textarea": True,
+            "placeholder": "Enter meeting location",
+        },
+
+        "canon_responsible_person": {
+            "width": "180px",
+            "textarea": True,
+            "placeholder": "Enter Canon responsible person",
+        },
+
+        "reason_for_disclosure": {
+            "width": "250px",
+            "textarea": True,
+            "placeholder": "Enter reason for disclosure",
+        },
+
+        "products_to_be_disclosed": {
+            "width": "250px",
+            "textarea": True,
+            "placeholder": "Enter products to be disclosed",
+        },
+
+        "individuals_being_disclosed_to": {
+            "width": "250px",
+            "textarea": True,
+            "placeholder": "Enter individuals receiving disclosure",
+        },
+
+        "information_to_be_disclosed": {
+            "width": "250px",
+            "textarea": True,
+            "placeholder": "Enter information to be disclosed",
+        },
+
+        "retailer_ranking": {
+            "width": "120px",
+        },
+
+        "estimated_business": {
+            "width": "120px",
+        },
+
+        "annual_sales": {
+            "width": "120px",
+        },
+
+        "disclosed_last_2_years": {
+            "width": "150px",
+            "select": True,
+        },
+
+        "nda_confirmed": {
+            "width": "150px",
+            "select": True,
+        },
+
+        "disclosure_format": {
+            "width": "180px",
+            "select": True,
+        },
+
+        "sda_partner_level": {
+            "width": "150px",
+            "select": True,
+        },
+
+        "account_in_sda_partner_list": {
+            "width": "150px",
+            "select": True,
+        },
+    }
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        for field_name, config in self.FIELD_CONFIG.items():
+
+            if field_name not in self.fields:
+                continue
+
+            field = self.fields[field_name]
+
+            attrs = {
+                "class": "form-control form-control-sm",
+                "style": f"width:{config['width']};",
+            }
+
+            #
+            # Select
+            #
+            if config.get("select"):
+
+                field.widget = Select(
+                    attrs={
+                        "class": "form-select form-select-sm",
+                        "style": f"width:{config['width']};",
+                    },
+                    choices=field.choices,
+                )
+
+            #
+            # TextArea
+            #
+            elif config.get("textarea"):
+
+                field.widget = Textarea(
+                    attrs={
+                        **attrs,
+                        "rows": 2,
+                        "placeholder": config.get(
+                            "placeholder",
+                            "",
+                        ),
+                    }
+                )
+
+            #
+            # Date
+            #
+            elif config.get("date"):
+
+                field.widget = DateInput(
+                    attrs={
+                        **attrs,
+                        "type": "date",
+                    }
+                )
+
+            #
+            # Text
+            #
+            else:
+
+                field.widget = TextInput(
+                    attrs=attrs
+                )
+
+    class Meta:
+
+        model = PreDisclosureLine
+
+        fields = [
+            "account_name",
+            "website",
+            "disclosed_last_2_years",
+            "b2b_business_type",
+            "nda_confirmed",
+            "disclosure_format",
+            "reason_for_disclosure",
+            "products_to_be_disclosed",
+            "sda_partner_level",
+            "account_in_sda_partner_list",
+            "meeting_date",
+            "meeting_location",
+            "canon_responsible_person",
+            "individuals_being_disclosed_to",
+            "information_to_be_disclosed",
+            "retailer_ranking",
+            "estimated_business",
+            "annual_sales",
+        ]
+=========================
+
 <div class="card mb-3">
 
     <div class="card-header">
