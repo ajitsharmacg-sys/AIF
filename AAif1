@@ -1,1 +1,122 @@
 
+from django.forms import TextInput, NumberInput
+
+class AifLineForm(EnhancedModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # =====================================================
+        # Read Only Fields
+        # =====================================================
+
+        readonly_fields = [
+            "product_group",
+            "product_description",
+            "elp",
+            "elp_eur",
+            "promotion_support",
+            "support_per_unit",
+            "promotional_elp_eur",
+            "promotion_support_eur",
+            "line_value",
+            "line_value_eur",
+        ]
+
+        readonly_widths = {
+            "product_group": "70px",
+            "product_description": "220px",
+            "elp": "80px",
+            "elp_eur": "80px",
+            "promotion_support": "90px",
+            "support_per_unit": "90px",
+            "promotional_elp_eur": "90px",
+            "promotion_support_eur": "100px",
+            "line_value": "100px",
+            "line_value_eur": "100px",
+        }
+
+        for field_name in readonly_fields:
+
+            if field_name not in self.fields:
+                continue
+
+            self.fields[field_name].disabled = True
+
+            self.fields[field_name].widget = TextInput(
+                attrs={
+                    "class": "form-control form-control-sm text-end"
+                    if field_name
+                    in [
+                        "elp",
+                        "elp_eur",
+                        "promotion_support",
+                        "support_per_unit",
+                        "promotional_elp_eur",
+                        "promotion_support_eur",
+                        "line_value",
+                        "line_value_eur",
+                    ]
+                    else "form-control form-control-sm",
+                    "style": f"width:{readonly_widths[field_name]};",
+                }
+            )
+
+        # =====================================================
+        # Editable Text Fields
+        # =====================================================
+
+        text_fields = {
+            "mercury_code": "100px",
+        }
+
+        for field_name, width in text_fields.items():
+
+            if field_name in self.fields:
+
+                self.fields[field_name].widget = TextInput(
+                    attrs={
+                        "class": "form-control form-control-sm",
+                        "style": f"width:{width};",
+                    }
+                )
+
+        # =====================================================
+        # Editable Numeric Fields
+        # =====================================================
+
+        numeric_fields = [
+            "promotional_qty",
+            "promotional_elp",
+        ]
+
+        for field_name in numeric_fields:
+
+            if field_name in self.fields:
+
+                self.fields[field_name].widget = NumberInput(
+                    attrs={
+                        "class": "form-control form-control-sm text-end",
+                        "style": "width:85px;",
+                        "step": "0.01",
+                        "inputmode": "decimal",
+                    }
+                )
+
+    class Meta:
+        model = AifLines
+        fields = [
+            "product_group",
+            "mercury_code",
+            "product_description",
+            "elp_eur",
+            "elp",
+            "promotional_qty",
+            "promotional_elp",
+            "promotional_elp_eur",
+            "promotion_support",
+            "support_per_unit",
+            "promotion_support_eur",
+            "line_value",
+            "line_value_eur",
+        ]
