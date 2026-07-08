@@ -1,3 +1,94 @@
+<tbody>
+
+<tr
+    v-for="line in lines"
+    :key="lines.indexOf(line)">
+
+    <form
+        :id="'predisclosure_line_form' + lines.indexOf(line)"
+        @submit.prevent="">
+
+        <td class="text-center">
+            [[ lines.indexOf(line) + 1 ]]
+        </td>
+
+        {% for field in predisclosure_line_form.visible_fields %}
+
+        <td class="p-1">
+
+            {{ field|add_attrs:":index=lines.indexOf(line);v-model=lines;@change=handle_line_change(line,lines.indexOf(line),$event)" }}
+
+        </td>
+
+        {% endfor %}
+
+        <td class="text-center">
+
+            <button
+                class="btn btn-danger btn-sm"
+                @click="delete_line(line)">
+
+                <i class="bi bi-x"></i>
+
+            </button>
+
+        </td>
+
+    </form>
+
+</tr>
+
+</tbody>
+
+validate_forms() {
+
+    const headerForm =
+        document.getElementById("predisclosure_form");
+
+    headerForm.requestSubmit();
+
+    if (!headerForm.reportValidity()) {
+        return false;
+    }
+
+    if (this.lines.length === 0) {
+
+        this.show_notification(
+            "Please add at least one account."
+        );
+
+        return false;
+    }
+
+    for (let i = 0; i < this.lines.length; ++i) {
+
+        const form =
+            document.getElementById(
+                "predisclosure_line_form" + i
+            );
+
+        form.requestSubmit();
+
+        if (!form.reportValidity()) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+<form
+    id="predisclosure_form"
+    @submit.prevent="">
+
+    <!-- Header table -->
+
+</form>
+
+
+
+
+
 
 from django.forms import (
     TextInput,
