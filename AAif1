@@ -1,107 +1,105 @@
-
 from django.forms import TextInput, NumberInput
 
 class AifLineForm(EnhancedModelForm):
 
+    FIELD_CONFIG = {
+        "product_group": {
+            "readonly": True,
+            "width": "70px",
+        },
+        "mercury_code": {
+            "width": "100px",
+        },
+        "product_description": {
+            "readonly": True,
+            "width": "220px",
+        },
+        "elp": {
+            "readonly": True,
+            "width": "80px",
+            "numeric": True,
+        },
+        "elp_eur": {
+            "readonly": True,
+            "width": "80px",
+            "numeric": True,
+        },
+        "promotional_qty": {
+            "width": "85px",
+            "numeric": True,
+        },
+        "promotional_elp": {
+            "width": "85px",
+            "numeric": True,
+        },
+        "promotional_elp_eur": {
+            "readonly": True,
+            "width": "85px",
+            "numeric": True,
+        },
+        "promotion_support": {
+            "readonly": True,
+            "width": "90px",
+            "numeric": True,
+        },
+        "support_per_unit": {
+            "readonly": True,
+            "width": "90px",
+            "numeric": True,
+        },
+        "promotion_support_eur": {
+            "readonly": True,
+            "width": "100px",
+            "numeric": True,
+        },
+        "line_value": {
+            "readonly": True,
+            "width": "100px",
+            "numeric": True,
+        },
+        "line_value_eur": {
+            "readonly": True,
+            "width": "100px",
+            "numeric": True,
+        },
+    }
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # =====================================================
-        # Read Only Fields
-        # =====================================================
-
-        readonly_fields = [
-            "product_group",
-            "product_description",
-            "elp",
-            "elp_eur",
-            "promotion_support",
-            "support_per_unit",
-            "promotional_elp_eur",
-            "promotion_support_eur",
-            "line_value",
-            "line_value_eur",
-        ]
-
-        readonly_widths = {
-            "product_group": "70px",
-            "product_description": "220px",
-            "elp": "80px",
-            "elp_eur": "80px",
-            "promotion_support": "90px",
-            "support_per_unit": "90px",
-            "promotional_elp_eur": "90px",
-            "promotion_support_eur": "100px",
-            "line_value": "100px",
-            "line_value_eur": "100px",
-        }
-
-        for field_name in readonly_fields:
+        for field_name, config in self.FIELD_CONFIG.items():
 
             if field_name not in self.fields:
                 continue
 
-            self.fields[field_name].disabled = True
+            field = self.fields[field_name]
 
-            self.fields[field_name].widget = TextInput(
-                attrs={
-                    "class": "form-control form-control-sm text-end"
-                    if field_name
-                    in [
-                        "elp",
-                        "elp_eur",
-                        "promotion_support",
-                        "support_per_unit",
-                        "promotional_elp_eur",
-                        "promotion_support_eur",
-                        "line_value",
-                        "line_value_eur",
-                    ]
-                    else "form-control form-control-sm",
-                    "style": f"width:{readonly_widths[field_name]};",
-                }
-            )
+            attrs = {
+                "style": f"width: {config['width']};",
+            }
 
-        # =====================================================
-        # Editable Text Fields
-        # =====================================================
+            css_class = "form-control form-control-sm"
 
-        text_fields = {
-            "mercury_code": "100px",
-        }
-
-        for field_name, width in text_fields.items():
-
-            if field_name in self.fields:
-
-                self.fields[field_name].widget = TextInput(
+            if config.get("numeric"):
+                css_class += " text-end"
+                field.widget = NumberInput(
                     attrs={
-                        "class": "form-control form-control-sm",
-                        "style": f"width:{width};",
-                    }
-                )
-
-        # =====================================================
-        # Editable Numeric Fields
-        # =====================================================
-
-        numeric_fields = [
-            "promotional_qty",
-            "promotional_elp",
-        ]
-
-        for field_name in numeric_fields:
-
-            if field_name in self.fields:
-
-                self.fields[field_name].widget = NumberInput(
-                    attrs={
-                        "class": "form-control form-control-sm text-end",
-                        "style": "width:85px;",
+                        **attrs,
+                        "class": css_class,
                         "step": "0.01",
                         "inputmode": "decimal",
                     }
                 )
+            else:
+                field.widget = TextInput(
+                    attrs={
+                        **attrs,
+                        "class": css_class,
+                    }
+                )
+
+            if config.get("readonly"):
+                field.disabled = True
 
     class Meta:
         model = AifLines
