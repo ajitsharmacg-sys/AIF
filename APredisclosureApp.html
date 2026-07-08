@@ -1,0 +1,153 @@
+<div class="card mb-3">
+
+    <div class="card-header">
+        <strong>Pre-Disclosure Details</strong>
+    </div>
+
+    <div class="card-body p-2">
+
+        <table class="table table-borderless table-sm mb-0">
+
+            <tr>
+
+                {% for field in predisclosure_form.visible_fields %}
+
+                    <td>
+
+                        <label class="form-label mb-1">
+
+                            {{ field.label }}
+
+                        </label>
+
+                        {% if field.name == "products" %}
+
+                            <select
+                                multiple
+                                class="form-select form-select-sm"
+                                v-model="selected_predisclosure.products">
+
+                                <option
+                                    v-for="product in products"
+                                    :key="product.id"
+                                    :value="product.id">
+
+                                    [[ product.product_name ]]
+
+                                </option>
+
+                            </select>
+
+                        {% else %}
+
+                            {{ field|add_attrs:"v-model=selected_predisclosure;@change=handle_change($event)" }}
+
+                        {% endif %}
+
+                    </td>
+
+                {% endfor %}
+
+            </tr>
+
+        </table>
+
+    </div>
+
+</div>
+
+<div class="card">
+
+    <div class="card-header">
+
+        <strong>Account Details</strong>
+
+    </div>
+
+    <div class="card-body p-2">
+
+        <div class="table-responsive">
+
+            <table class="table table-bordered table-sm align-middle">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th>#</th>
+
+                        {% for field in predisclosure_line_form.visible_fields %}
+
+                            <th>
+
+                                {{ field.label }}
+
+                            </th>
+
+                        {% endfor %}
+
+                        <th>Actions</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    <tr
+                        v-for="(line,index) in lines"
+                        :key="index">
+
+                        <td>
+
+                            [[ index + 1 ]]
+
+                        </td>
+
+                        {% for field in predisclosure_line_form.visible_fields %}
+
+                            <td>
+
+                                {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event)" }}
+
+                            </td>
+
+                        {% endfor %}
+
+                        <td>
+
+                            <div class="btn-group">
+
+                                <template-button
+                                    :size="18"
+                                    @click="copy_line(line)">
+                                </template-button>
+
+                                <delete-button
+                                    :size="18"
+                                    @delete-confirm="delete_line(line)">
+                                </delete-button>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        <div class="mt-2">
+
+            <add-button
+                @click="add_line()">
+            </add-button>
+
+        </div>
+
+    </div>
+
+</div>
