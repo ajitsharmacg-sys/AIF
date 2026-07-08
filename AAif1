@@ -1,3 +1,145 @@
+<div class="card-body">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+
+        <div class="row g-2 align-items-center">
+
+            <div class="col-auto">
+                <label class="form-label small mb-0">
+                    Promo Value
+                </label>
+            </div>
+
+            <div class="col-auto">
+                <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    :value="promoValue"
+                    disabled>
+            </div>
+
+            <div class="col-auto ms-3">
+                <label class="form-label small mb-0">
+                    Promo Value (EUR)
+                </label>
+            </div>
+
+            <div class="col-auto">
+                <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    :value="promoValueEuro"
+                    disabled>
+            </div>
+
+        </div>
+
+        <add-button
+            :size="20"
+            @click="add_line()">
+        </add-button>
+
+    </div>
+
+    <div class="table-responsive">
+
+        <table class="table table-bordered table-sm align-middle">
+
+            <thead class="table-light">
+
+                <tr>
+
+                    <th>#</th>
+
+                    {% for field in aif_line_form.visible_fields %}
+
+                        <th>
+
+                            {{ field.label }}
+
+                            {% if field.name == "mercury_code"
+                                or field.name == "promotional_qty"
+                                or field.name == "promotional_elp" %}
+
+                                <span class="text-danger">*</span>
+
+                            {% endif %}
+
+                            {% if field.help_text %}
+
+                                <div class="small text-muted">
+
+                                    {{ field.help_text|safe }}
+
+                                </div>
+
+                            {% endif %}
+
+                        </th>
+
+                    {% endfor %}
+
+                    <th>Actions</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                <tr
+                    v-for="(line,index) in lines"
+                    :key="line.id || index">
+
+                    <td>
+
+                        [[ index + 1 ]]
+
+                    </td>
+
+                    {% for field in aif_line_form.visible_fields %}
+
+                    <td>
+
+                        {{ field|add_attrs:":index=index;
+                        v-model=lines;
+                        @change=handle_line_change(lines,index,$event);
+                        @paste.prevent=paste_mercury_from_excel(lines,index,$event);" }}
+
+                    </td>
+
+                    {% endfor %}
+
+                    <td>
+
+                        <div class="btn-group">
+
+                            <template-button
+                                :size="18"
+                                @click="copy_line(line)">
+                            </template-button>
+
+                            <delete-button
+                                :size="18"
+                                @delete-confirm="delete_line(line)">
+                            </delete-button>
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+==============================================
+
+
 from django.forms import TextInput, NumberInput
 
 class AifLineForm(EnhancedModelForm):
