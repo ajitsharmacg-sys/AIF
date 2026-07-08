@@ -1,0 +1,232 @@
+from datetime import timedelta
+
+from django.utils import timezone
+from django.contrib.auth.models import Group
+
+from common.email_notifications import (
+    send_email,
+    send_email_to_group,
+    send_emails,
+)
+
+from aif.models import (
+    Aif,
+    AifStatus,
+    AifStatusChoices,
+    AifLines,
+    AifLineStatus,
+    AifLineStatusChoices,
+    AifApprover,
+    OMEmailsConfig,
+)
+
+from aif.api_views import (
+    get_aif_status,
+    get_aif_cc,
+    build_sales_ops_cc,
+    PROMOTION_CATEGORY_TO_RESPONSIBILITY,
+)
+
+from aif.roles import SALES_OPS_USER
+
+
+REMINDER_DAYS = 7
+
+
+def send_pending_approval_notifications():
+    """
+    Sends reminder emails every morning.
+
+    Workflow
+
+    PLANNED
+        -> Check Line Status
+        -> Notify Product Group Approver
+
+    COMMERCIALLY_APPROVED
+        -> Header only
+        -> Notify Sales Ops
+
+    AWAITING_VALIDATION
+        -> Header only
+        -> Notify OM
+    """
+
+    reminder_date = timezone.now() - timedelta(days=REMINDER_DAYS)
+
+    for aif in Aif.objects.prefetch_related("aif_lines"):
+
+        current_status = get_aif_status(aif)
+
+        if current_status.status not in [
+            AifStatusChoices.PLANNED,
+            AifStatusChoices.COMMERCIALLY_APPROVED,
+            AifStatusChoices.AWAITING_VALIDATION,
+        ]:
+            continue
+
+        status_date = (
+            aif.meta_edited_date
+            if aif.meta_edited_date
+            else aif.meta_created_date
+        )
+
+        if status_date > reminder_date:
+            continue
+
+        if current_status.status == AifStatusChoices.PLANNED:
+            notify_pending_line_approvals(aif)
+
+        elif current_status.status == AifStatusChoices.COMMERCIALLY_APPROVED:
+            notify_sales_ops_reminder(aif)
+
+        elif current_status.status == AifStatusChoices.AWAITING_VALIDATION:
+            notify_om_reminder(aif)
+
+
+def notify_pending_line_approvals(aif):
+    """
+    Notify Product Group approvers for lines
+    awaiting approval.
+    """
+
+    responsibility = PROMOTION_CATEGORY_TO_RESPONSIBILITY.get(
+        aif.promotion_category
+    )
+
+    if not responsibility:
+        return
+
+    cc = aif.email_cc or ""
+
+    for line in aif.aif_lines.all():
+
+        try:
+            line_status = (
+                AifLineStatus.objects
+                .filter(aif_line=line)
+                .latest("meta_created_date")
+            )
+
+        except AifLineStatus.DoesNotExist:
+            continue
+
+        if (
+            line_status.status
+            != AifLineStatusChoices.AWAITING_APPROVAL
+        ):
+            continue
+
+        emails = list(
+            AifApprover.objects.filter(
+                product_group=line.product_group,
+                responsibility=responsibility,
+            )
+            .values_list(
+                "approver__email",
+                flat=True,
+            )
+            .distinct()
+        )
+
+        if not emails:
+            continue
+
+        send_emails(
+            to=emails,
+            cc=cc,
+            subject=(
+                f"Reminder - Promotion Ref {aif.aif_id} "
+                "Awaiting Commercial Approval"
+            ),
+            body=f"""
+Dear Approver,<br><br>
+
+Promotion Request <b>{aif.aif_id}</b>
+has been awaiting your approval
+for more than <b>{REMINDER_DAYS} days</b>.<br><br>
+
+Product Group :
+<b>{line.product_group}</b><br>
+
+Mercury Code :
+<b>{line.mercury_code}</b><br><br>
+
+Please review it as soon as possible.<br><br>
+
+Kind Regards<br>
+Rev Sales Ops Team
+""",
+        )
+
+
+def notify_sales_ops_reminder(aif):
+    """
+    Reminder after Commercial Approval.
+    """
+
+    cc = build_sales_ops_cc(
+        get_aif_cc(
+            aif,
+            AifStatusChoices.COMMERCIALLY_APPROVED,
+        )
+    )
+
+    send_email_to_group(
+        to=Group.objects.get(name=SALES_OPS_USER),
+        cc=cc,
+        subject=(
+            f"Reminder - Promotion Ref "
+            f"{aif.aif_id} awaiting validation"
+        ),
+        body=f"""
+Dear Sales Ops Team,<br><br>
+
+Promotion Request
+<b>{aif.aif_id}</b>
+has been Commercially Approved
+for more than <b>{REMINDER_DAYS} days</b>.<br><br>
+
+Please proceed with validation.<br><br>
+
+Kind Regards<br>
+Rev Sales Ops Team
+""",
+    )
+
+
+def notify_om_reminder(aif):
+    """
+    Reminder for OM validation.
+    """
+
+    email_config = OMEmailsConfig.objects.filter(
+        nso=aif.nso
+    ).first()
+
+    if not email_config:
+        return
+
+    if not email_config.om_emails:
+        return
+
+    send_email(
+        to=email_config.om_emails,
+        subject=(
+            f"Reminder - Promotion Ref "
+            f"{aif.aif_id} awaiting completion"
+        ),
+        body=f"""
+Dear OM,<br><br>
+
+Promotion Request
+<b>{aif.aif_id}</b>
+has been awaiting validation
+for more than <b>{REMINDER_DAYS} days</b>.<br><br>
+
+Please complete the validation process.<br><br>
+
+Kind Regards<br>
+Rev Sales Ops Team
+""",
+    )
