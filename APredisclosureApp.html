@@ -1,3 +1,127 @@
+
+
+
+
+computed: {
+
+    lines() {
+        return this.selected_predisclosure?.predisclosure_line ?? [];
+    },
+
+    isTrade() {
+        return this.selected_predisclosure.predisclosure_type === "TRADE";
+    },
+
+    isB2B() {
+        return this.selected_predisclosure.predisclosure_type === "B2B";
+    },
+
+},
+
+showField(fieldName) {
+
+    const tradeOnlyFields = [
+        "sda_partner_level",
+        "account_in_sda_partner_list",
+        "retailer_ranking",
+    ];
+
+    const b2bOnlyFields = [
+        "disclosed_last_2_years",
+        "b2b_business_type",
+        "estimated_business",
+        "annual_sales",
+    ];
+
+    if (this.isTrade) {
+        return !b2bOnlyFields.includes(fieldName);
+    }
+
+    if (this.isB2B) {
+        return !tradeOnlyFields.includes(fieldName);
+    }
+
+    return true;
+},
+
+
+{% for field in predisclosure_line_form.visible_fields %}
+
+<th
+    v-if="showField('{{ field.name }}')">
+
+    {{ field.label }}
+
+</th>
+
+{% endfor %}
+
+
+{% for field in predisclosure_line_form.visible_fields %}
+
+<td
+    v-if="showField('{{ field.name }}')">
+
+    {{ field|add_attrs:":index=index;
+        v-model=lines;
+        @change=handle_line_change(lines,index,$event)" }}
+
+</td>
+
+{% endfor %}
+
+handle_change(event) {
+
+    const field = event.target.name;
+
+    switch (field) {
+
+        case "product_category":
+
+            this.load_products();
+
+            break;
+
+        case "predisclosure_type":
+
+            this.resetDisclosureFields();
+
+            break;
+
+    }
+
+}
+
+resetDisclosureFields() {
+
+    for (const line of this.lines) {
+
+        if (this.isTrade) {
+
+            line.disclosed_last_2_years = null;
+            line.b2b_business_type = "";
+            line.estimated_business = "";
+            line.annual_sales = "";
+
+        }
+
+        if (this.isB2B) {
+
+            line.sda_partner_level = null;
+            line.account_in_sda_partner_list = null;
+            line.retailer_ranking = "";
+
+        }
+
+    }
+
+},
+
+
+
+
+==================================
+
 <form
         :id="'lineform' + lines.indexOf(line)"
         @submit.prevent="">
