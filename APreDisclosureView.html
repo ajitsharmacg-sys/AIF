@@ -1,3 +1,84 @@
+<vertical-table
+    :api_endpoint="get_url"
+    :columns="predisclosure_columns"
+    :custom_format="custom_format"
+    v-model:data_refresh_trigger="update_triggered"
+    @on-item-update="
+        (item) => {
+            selected_predisclosure = item;
+        }
+    "
+>
+    <template #actions="actionProps">
+        <!-- Predisclosure Level Actions -->
+        <tr v-if="actionProps?.predisclosure_status !== 'COMPLETED'">
+            <th>Predisclosure Level Actions</th>
+            <td>
+                <div class="btn-group">
+                    <template v-for="choice in get_status_choices(actionProps)">
+                        <button
+                            type="button"
+                            :class="get_predisclosure_status_action(choice).button_class"
+                            @click="
+                                predisclosure_target_status = choice;
+                                show_predisclosure_status_update = true;
+                            "
+                        >
+                            [[ get_predisclosure_status_action(choice).button_text ]]
+                        </button>
+                    </template>
+
+                    <button
+                        v-if="['DRAFT', 'REJECTED'].includes(actionProps?.predisclosure_status)"
+                        type="button"
+                        class="btn btn-sm btn-primary"
+                        @click="navigate('predisclosure_app', 'edit')"
+                    >
+                        Edit
+                    </button>
+                </div>
+            </td>
+        </tr>
+
+        <!-- Line Level Actions -->
+        <tr v-if="actionProps?.predisclosure_status !== 'COMPLETED'">
+            <th>Line Level Actions</th>
+            <td>
+                <div class="btn-group">
+                    <template
+                        v-for="choice in multiple_line_status_choices()"
+                        v-if="selected_lines.length > 0"
+                    >
+                        <button
+                            type="button"
+                            :class="get_line_status_action(choice).button_class"
+                            @click="
+                                line_target_status = choice;
+                                show_line_status_update = true;
+                            "
+                        >
+                            <span>[[ get_line_status_action(choice).button_text ]]</span>
+                        </button>
+                    </template>
+
+                    <div
+                        v-if="selected_lines.length === 0"
+                        class="alert alert-primary"
+                    >
+                        <p>
+                            Please select one or multiple line(s) (by clicking)
+                            to see available actions (if there are any).
+                        </p>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </template>
+</vertical-table>
+
+================
+
+
 
 computed: {
 
