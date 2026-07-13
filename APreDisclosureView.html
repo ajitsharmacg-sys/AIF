@@ -1,0 +1,1220 @@
+{% load static %}
+{% load common_tags %}
+
+<section
+    class="section"
+    id="predisclosure_view">
+
+<div v-if="nav_state.predisclosure_view">
+
+    <div class="pagetitle">
+
+        <h1>
+
+            Pre-Disclosure Request
+
+            <span
+                class="badge"
+                :class="custom_format.predisclosure_status[selected_predisclosure.predisclosure_status]">
+
+                [[ selected_predisclosure.predisclosure_status ]]
+
+            </span>
+
+        </h1>
+
+        <nav>
+
+            <ol class="breadcrumb">
+
+                <li class="breadcrumb-item">
+
+                    <a
+                        href="#"
+                        @click.prevent="navigate('list_of_predisclosures')">
+
+                        Home
+
+                    </a>
+
+                </li>
+
+                <li class="breadcrumb-item active">
+
+                    View
+
+                </li>
+
+            </ol>
+
+        </nav>
+
+    </div>
+
+    <div class="row">
+
+        <!-- ========================================================= -->
+        <!-- LEFT -->
+        <!-- ========================================================= -->
+
+        <div class="col-lg-4">
+
+            <div class="card">
+
+                <div class="card-header">
+
+                    <strong>
+
+                        Pre-Disclosure Details
+
+                    </strong>
+
+                </div>
+
+                <div class="card-body">
+
+                    <vertical-table
+
+                        :api_endpoint="predisclosure_url"
+
+                        :columns="predisclosure_columns"
+
+                        :custom_format="custom_format"
+
+                        @on-item-update="
+                            (item)=>{
+                                selected_predisclosure=item;
+                            }"
+
+                        v-model:data_refresh_trigger="update_triggered">
+
+                    </vertical-table>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- RIGHT -->
+        <!-- ========================================================= -->
+
+        <div class="col-lg-8">
+
+            <div class="card">
+
+                <div class="card-header d-flex justify-content-between">
+
+                    <strong>
+
+                        Status History
+
+                    </strong>
+
+                </div>
+
+                <div class="card-body">
+
+                    <django-paged-table
+
+                        :api_endpoint="predisclosure_status_url"
+
+                        :columns="status_columns"
+
+                        ordering="-meta_created_date"
+
+                        :fixed_query_filter="'&predisclosure='+selected_predisclosure.predisclosure_id"
+
+                        title=""
+
+                        v-model:data_refresh_trigger="update_triggered"
+
+                        :custom_format="custom_format">
+
+                    </django-paged-table>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- HEADER ACTIONS -->
+    <!-- ========================================================= -->
+
+    <div class="card mt-3">
+
+        <div class="card-header d-flex justify-content-between">
+
+            <strong>
+
+                Header Actions
+
+            </strong>
+
+            <div>
+
+                <button
+
+                    v-for="status in get_header_status_choices()"
+
+                    class="btn btn-success btn-sm me-2"
+
+                    @click="
+
+                        target_header_status=status;
+
+                        show_header_status_dialog=true;
+
+                    ">
+
+                    [[ get_header_status_action(status).button_text ]]
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- ACCOUNT DETAILS -->
+    <!-- ========================================================= -->
+
+    <div class="card mt-3">
+
+        <div class="card-header d-flex justify-content-between">
+
+            <strong>
+
+                Account Details
+
+            </strong>
+
+            <div>
+
+                <button
+
+                    class="btn btn-outline-primary btn-sm"
+
+                    @click="select_all_lines">
+
+                    Select All
+
+                </button>
+
+            </div>
+
+        </div>
+
+        <div class="card-body">
+
+            <django-paged-table
+
+                :api_endpoint="api_endpoints.predisclosure_lines"
+
+                :columns="line_columns"
+
+                :fixed_query_filter="'&predisclosure='+selected_predisclosure.predisclosure_id"
+
+                ordering="account_name"
+
+                title=""
+
+                selectable
+
+                v-model:selected_items="selected_lines"
+
+                v-model:data_refresh_trigger="update_triggered"
+
+                :custom_format="custom_format">
+
+                <template #actions="actionProps">
+
+                    <view-button
+
+                        @click="
+
+                            selected_line=actionProps;
+
+                            show_line_details=true;
+
+                        ">
+
+                    </view-button>
+
+                </template>
+
+            </django-paged-table>
+
+        </div>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- LINE ACTIONS -->
+    <!-- ========================================================= -->
+
+    <div class="card mt-3">
+
+        <div class="card-header d-flex justify-content-between">
+
+            <strong>
+
+                Line Actions
+
+            </strong>
+
+            <div>
+
+                <button
+
+                    v-for="status in get_line_status_choices()"
+
+                    class="btn btn-success btn-sm me-2"
+
+                    @click="
+
+                        target_line_status=status;
+
+                        show_line_status_dialog=true;
+
+                    ">
+
+                    [[ get_line_status_action(status).button_text ]]
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- NOTIFICATION -->
+    <!-- ========================================================= -->
+
+    <notification-dialog
+
+        v-model="show_notification_dialog"
+
+        :message="notification_message">
+
+    </notification-dialog>
+
+</div>
+
+</section>
+
+<!-- ========================================================= -->
+<!-- HEADER STATUS UPDATE -->
+<!-- ========================================================= -->
+
+<comment-dialog
+
+    v-model="show_header_status_dialog"
+
+    title="Update Header Status"
+
+    :message="header_status_message"
+
+    v-model:comment="comment"
+
+    @confirm="update_header_status">
+
+</comment-dialog>
+
+
+<!-- ========================================================= -->
+<!-- LINE STATUS UPDATE -->
+<!-- ========================================================= -->
+
+<comment-dialog
+
+    v-model="show_line_status_dialog"
+
+    title="Update Line Status"
+
+    :message="line_status_message"
+
+    v-model:comment="comment"
+
+    @confirm="update_line_status">
+
+</comment-dialog>
+
+
+<!-- ========================================================= -->
+<!-- LINE DETAILS -->
+<!-- ========================================================= -->
+
+<dialog-box
+
+    v-model="show_line_details"
+
+    title="Account Details"
+
+    size="xl">
+
+    <template #body>
+
+        <vertical-table
+
+            :columns="line_detail_columns"
+
+            :item="selected_line"
+
+            :custom_format="custom_format">
+
+        </vertical-table>
+
+    </template>
+
+</dialog-box>
+
+
+<!-- ========================================================= -->
+<!-- CONFIRMATION DIALOG -->
+<!-- ========================================================= -->
+
+<confirmation-dialog
+
+    v-model="show_confirmation_dialog"
+
+    :title="confirmation_title"
+
+    :message="confirmation_message"
+
+    @confirm="confirmation_callback">
+
+</confirmation-dialog>
+
+
+<!-- ========================================================= -->
+<!-- NOTIFICATION -->
+<!-- ========================================================= -->
+
+<notification-dialog
+
+    v-model="show_notification_dialog"
+
+    :message="notification_message">
+
+</notification-dialog>
+
+
+<!-- ========================================================= -->
+<!-- LOADING -->
+<!-- ========================================================= -->
+
+<loading-dialog
+
+    v-model="loading">
+
+</loading-dialog>
+
+<script type="module">
+
+import {
+    getRequest,
+    postRequest,
+    putRequest,
+} from "{% static 'common/modules/common.js' %}";
+
+import * as vuejs_components
+    from "{% static 'common/modules/components.js' %}";
+
+
+const predisclosure_view = Vue.createApp({
+
+    delimiters: ["[[", "]]"],
+
+    data() {
+
+        return {
+
+            nav_state: init_nav_state,
+
+            selected_predisclosure: selected_predisclosure,
+
+            selected_line: {},
+
+            selected_lines: [],
+
+            update_triggered: false,
+
+            loading: false,
+
+            comment: "",
+
+            target_header_status: null,
+
+            target_line_status: null,
+
+            show_header_status_dialog: false,
+
+            show_line_status_dialog: false,
+
+            show_line_details: false,
+
+            show_notification_dialog: false,
+
+            show_confirmation_dialog: false,
+
+            notification_message: "",
+
+            confirmation_title: "",
+
+            confirmation_message: "",
+
+            confirmation_callback: null,
+
+            predisclosure_columns: [
+
+                "predisclosure_id",
+                "region",
+                "predisclosure_type",
+                "product_category",
+                "products",
+                "predisclosure_status",
+                "meta_created_by",
+                "meta_created_date",
+                "meta_edited_by",
+                "meta_edited_date",
+
+            ],
+
+            status_columns: [
+
+                "status",
+                "comments",
+                "meta_created_by",
+                "meta_created_date",
+
+            ],
+
+            line_columns: [
+
+                "account_name",
+                "website",
+                "meeting_date",
+                "nda_confirmed",
+                "disclosure_format",
+                "predisclosure_line_status",
+
+            ],
+
+            line_detail_columns: [
+
+                "account_name",
+                "website",
+                "disclosed_last_2_years",
+                "b2b_business_type",
+                "nda_confirmed",
+                "disclosure_format",
+                "reason_for_disclosure",
+                "products_to_be_disclosed",
+                "sda_partner_level",
+                "account_in_sda_partner_list",
+                "meeting_date",
+                "meeting_location",
+                "canon_responsible_person",
+                "individuals_being_disclosed_to",
+                "information_to_be_disclosed",
+                "retailer_ranking",
+                "estimated_business",
+                "annual_sales",
+                "predisclosure_line_status",
+
+            ],
+
+            custom_format: {
+
+                predisclosure_status: {
+
+                    DRAFT: "text-bg-secondary",
+
+                    IN_PROGRESS: "text-bg-warning",
+
+                    COMPLETED: "text-bg-success",
+
+                    REJECTED: "text-bg-danger",
+
+                },
+
+                predisclosure_line_status: {
+
+                    DRAFT: "text-bg-secondary",
+
+                    APPROVED: "text-bg-success",
+
+                    REJECTED: "text-bg-danger",
+
+                    AWAITING_ISB_ADMIN_APPROVAL: "text-bg-warning",
+
+                    AWAITING_ISB_PM_APPROVAL: "text-bg-warning",
+
+                    AWAITING_ICB_ADMIN_APPROVAL: "text-bg-warning",
+
+                    AWAITING_ICB_PM_APPROVAL: "text-bg-warning",
+
+                    AWAITING_PR_APPROVAL: "text-bg-warning",
+
+                    AWAITING_MARKETING_PM_APPROVAL: "text-bg-warning",
+
+                },
+
+            },
+
+        };
+
+    },
+
+    computed: {
+
+        predisclosure_url() {
+
+            return (
+                api_endpoints.predisclosure +
+                this.selected_predisclosure.predisclosure_id +
+                "/"
+            );
+
+        },
+
+        predisclosure_status_url() {
+
+            return (
+                api_endpoints.predisclosure_status +
+                "?predisclosure=" +
+                this.selected_predisclosure.predisclosure_id
+            );
+
+        },
+
+        predisclosure_line_url() {
+
+            return (
+                api_endpoints.predisclosure_lines +
+                "?predisclosure=" +
+                this.selected_predisclosure.predisclosure_id
+            );
+
+        },
+
+        header_status_message() {
+
+            if (!this.target_header_status) {
+                return "";
+            }
+
+            return (
+                "Are you sure you want to change the header status to '" +
+                this.target_header_status +
+                "'?"
+            );
+
+        },
+
+        line_status_message() {
+
+            if (!this.target_line_status) {
+                return "";
+            }
+
+            return (
+                "Are you sure you want to update " +
+                this.selected_lines.length +
+                " selected account(s) to '" +
+                this.target_line_status +
+                "'?"
+            );
+
+        },
+
+    },
+
+    watch: {
+
+        "selected_predisclosure.predisclosure_id"(value) {
+
+            if (!value) {
+                return;
+            }
+
+            this.update_triggered = true;
+
+        },
+
+    },
+
+    mounted() {
+
+        if (
+            this.selected_predisclosure &&
+            this.selected_predisclosure.predisclosure_id
+        ) {
+
+            this.update_triggered = true;
+
+        }
+
+    },
+
+    methods: {
+
+        // Part 4 starts here
+      methods: {
+
+    navigate(id) {
+
+        this.nav_state.current = id;
+
+        this.nav_state.predisclosure_view = false;
+
+        this.nav_state[id] = true;
+
+        this.nav_state.previous = "predisclosure_view";
+
+    },
+
+    show_notification(message) {
+
+        this.notification_message = message;
+
+        this.show_notification_dialog = true;
+
+    },
+
+    display_error(error_response) {
+
+        try {
+
+            error_response.json().then(data => {
+
+                if (typeof data === "string") {
+
+                    this.show_notification(data);
+
+                }
+                else if (data.detail) {
+
+                    this.show_notification(data.detail);
+
+                }
+                else {
+
+                    this.show_notification(
+                        JSON.stringify(data)
+                    );
+
+                }
+
+            });
+
+        }
+        catch {
+
+            this.show_notification(
+                "Unknown error occurred."
+            );
+
+        }
+
+    },
+
+    refresh() {
+
+        this.update_triggered = true;
+
+    },
+
+    clear_selection() {
+
+        this.selected_lines = [];
+
+    },
+
+    select_all_lines() {
+
+        this.selected_lines = [];
+
+        if (!this.selected_predisclosure.predisclosure_line) {
+
+            return;
+
+        }
+
+        this.selected_lines.push(
+            ...this.selected_predisclosure.predisclosure_line
+        );
+
+    },
+
+    get_header_status_choices() {
+
+        if (
+            !this.selected_predisclosure
+            ||
+            !this.selected_predisclosure.predisclosure_status
+        ) {
+
+            return [];
+
+        }
+
+        return (
+            HEADER_STATUS_GRAPH.value[
+                this.selected_predisclosure
+                    .predisclosure_status
+            ] || []
+        );
+
+    },
+
+    get_line_status_choices() {
+
+        if (this.selected_lines.length === 0) {
+
+            return [];
+
+        }
+
+        const statuses = [];
+
+        for (const line of this.selected_lines) {
+
+            const current =
+                line.predisclosure_line_status;
+
+            const nextStatuses =
+                LINE_STATUS_GRAPH.value[current] || [];
+
+            if (statuses.length === 0) {
+
+                statuses.push(...nextStatuses);
+
+            }
+            else {
+
+                for (let i = statuses.length - 1; i >= 0; --i) {
+
+                    if (
+                        !nextStatuses.includes(statuses[i])
+                    ) {
+
+                        statuses.splice(i, 1);
+
+                    }
+
+                }
+
+            }
+
+        }
+
+        return statuses;
+
+    },
+
+    get_header_status_action(status) {
+
+        switch (status) {
+
+            case "IN_PROGRESS":
+
+                return {
+
+                    button_text:
+                        "Submit",
+
+                    button_class:
+                        "btn-success",
+
+                };
+
+            case "COMPLETED":
+
+                return {
+
+                    button_text:
+                        "Complete",
+
+                    button_class:
+                        "btn-primary",
+
+                };
+
+            case "REJECTED":
+
+                return {
+
+                    button_text:
+                        "Reject",
+
+                    button_class:
+                        "btn-danger",
+
+                };
+
+            default:
+
+                return {
+
+                    button_text: status,
+
+                    button_class:
+                        "btn-secondary",
+
+                };
+
+        }
+
+    },
+
+    get_line_status_action(status) {
+
+        switch (status) {
+
+            case "APPROVED":
+
+                return {
+
+                    button_text:
+                        "Approve",
+
+                    button_class:
+                        "btn-success",
+
+                };
+
+            case "REJECTED":
+
+                return {
+
+                    button_text:
+                        "Reject",
+
+                    button_class:
+                        "btn-danger",
+
+                };
+
+            default:
+
+                return {
+
+                    button_text: status,
+
+                    button_class:
+                        "btn-primary",
+
+                };
+
+        }
+
+    },
+
+    open_header_status_dialog(status) {
+
+        this.target_header_status = status;
+
+        this.comment = "";
+
+        this.show_header_status_dialog = true;
+
+    },
+
+    open_line_status_dialog(status) {
+
+        if (this.selected_lines.length === 0) {
+
+            this.show_notification(
+                "Please select at least one Account."
+            );
+
+            return;
+
+        }
+
+        this.target_line_status = status;
+
+        this.comment = "";
+
+        this.show_line_status_dialog = true;
+
+    },
+        update_header_status() {
+
+        this.loading = true;
+
+        postRequest(
+            api_endpoints.predisclosure_status,
+            {
+                predisclosure: this.selected_predisclosure.predisclosure_id,
+                status: this.target_header_status,
+                comments: this.comment,
+            }
+        )
+        .then(response => {
+
+            if (response.ok) {
+
+                return response.json();
+
+            }
+
+            return Promise.reject(response);
+
+        })
+        .then(data => {
+
+            this.loading = false;
+
+            this.show_header_status_dialog = false;
+
+            this.comment = "";
+
+            this.target_header_status = null;
+
+            this.update_triggered = true;
+
+            this.show_notification(
+                "Header status updated successfully."
+            );
+
+        })
+        .catch(error => {
+
+            this.loading = false;
+
+            this.display_error(error);
+
+        });
+
+    },
+
+    update_line_status() {
+
+        if (this.selected_lines.length === 0) {
+
+            this.show_notification(
+                "Please select at least one Account."
+            );
+
+            return;
+
+        }
+
+        this.loading = true;
+
+        const requests = [];
+
+        for (const line of this.selected_lines) {
+
+            requests.push(
+
+                postRequest(
+
+                    api_endpoints.predisclosure_line_status,
+
+                    {
+
+                        predisclosure_line: line.id,
+
+                        status: this.target_line_status,
+
+                        comments: this.comment,
+
+                    }
+
+                )
+
+            );
+
+        }
+
+        Promise.all(requests)
+
+        .then(async responses => {
+
+            for (const response of responses) {
+
+                if (!response.ok) {
+
+                    throw response;
+
+                }
+
+                await response.json();
+
+            }
+
+            this.loading = false;
+
+            this.show_line_status_dialog = false;
+
+            this.comment = "";
+
+            this.target_line_status = null;
+
+            this.selected_lines = [];
+
+            this.update_triggered = true;
+
+            this.show_notification(
+                "Line status updated successfully."
+            );
+
+        })
+
+        .catch(error => {
+
+            this.loading = false;
+
+            this.display_error(error);
+
+        });
+
+    },
+
+    refresh_view() {
+
+        this.update_triggered = true;
+
+    },
+
+    close_dialogs() {
+
+        this.show_header_status_dialog = false;
+
+        this.show_line_status_dialog = false;
+
+        this.show_line_details = false;
+
+        this.loading = false;
+
+        this.comment = "";
+
+    },
+
+    on_header_status_updated() {
+
+        this.close_dialogs();
+
+        this.refresh_view();
+
+    },
+
+    on_line_status_updated() {
+
+        this.close_dialogs();
+
+        this.selected_lines = [];
+
+        this.refresh_view();
+
+    },
+
+    can_update_header() {
+
+        return this.get_header_status_choices().length > 0;
+
+    },
+
+    can_update_line() {
+
+        return this.selected_lines.length > 0 &&
+               this.get_line_status_choices().length > 0;
+
+    },
+
+}
+
+    },
+
+});
+
+//
+// Register Common Vue Components
+//
+
+Object.entries(vuejs_components).forEach(
+    ([component_name, component]) => {
+
+        predisclosure_view.component(
+            component_name,
+            component
+        );
+
+    }
+);
+
+//
+// Local Components
+//
+
+predisclosure_view.component(
+    "vertical-table",
+    vuejs_components.VerticalTable
+);
+
+predisclosure_view.component(
+    "django-paged-table",
+    vuejs_components.DjangoPagedTable
+);
+
+predisclosure_view.component(
+    "notification-dialog",
+    vuejs_components.NotificationDialog
+);
+
+predisclosure_view.component(
+    "comment-dialog",
+    vuejs_components.CommentDialog
+);
+
+predisclosure_view.component(
+    "confirmation-dialog",
+    vuejs_components.ConfirmationDialog
+);
+
+predisclosure_view.component(
+    "loading-dialog",
+    vuejs_components.LoadingDialog
+);
+
+predisclosure_view.component(
+    "view-button",
+    vuejs_components.ViewButton
+);
+
+predisclosure_view.component(
+    "delete-button",
+    vuejs_components.DeleteButton
+);
+
+predisclosure_view.component(
+    "edit-button",
+    vuejs_components.EditButton
+);
+
+predisclosure_view.component(
+    "template-button",
+    vuejs_components.TemplateButton
+);
+
+//
+// Mount Application
+//
+
+predisclosure_view.mount(
+    "#predisclosure_view"
+);
+</script>
