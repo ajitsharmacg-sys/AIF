@@ -1,3 +1,111 @@
+
+computed: {
+
+    get_url() {
+
+        return (
+            api_endpoints.predisclosure +
+            this.selected_predisclosure?.predisclosure_id +
+            "/"
+        );
+
+    },
+
+    line_filter() {
+
+        if (!this.selected_predisclosure?.predisclosure_id) {
+
+            return "";
+
+        }
+
+        return (
+            "&predisclosure=" +
+            this.selected_predisclosure.predisclosure_id
+        );
+
+    },
+
+    predisclosure_status_history_url() {
+
+        if (!this.selected_predisclosure?.predisclosure_id) {
+
+            return "";
+
+        }
+
+        return (
+            api_endpoints.predisclosure_status +
+            "?predisclosure=" +
+            this.selected_predisclosure.predisclosure_id
+        );
+
+    },
+
+    line_status_history_url() {
+
+        if (!this.selected_line?.id) {
+
+            return "";
+
+        }
+
+        return (
+            api_endpoints.predisclosure_line_status +
+            "?predisclosure_line=" +
+            this.selected_line.id
+        );
+    predisclosure_line_url() {
+    return api_endpoints.predisclosure_lines;
+},
+
+    },
+
+    custom_format() {
+
+        return {
+
+            predisclosure_status: {
+
+                DRAFT: "text-bg-secondary",
+                PLANNED: "text-bg-warning",
+                REJECTED: "text-bg-danger",
+                COMPLETED: "text-bg-success",
+
+            },
+
+            predisclosure_line_status: {
+
+                DRAFT: "text-bg-secondary",
+                AWAITING_APPROVAL: "text-bg-warning",
+                APPROVED: "text-bg-success",
+                REJECTED: "text-bg-danger",
+
+            }
+
+        };
+
+    }
+
+},
+
+
+:api_endpoint="predisclosure_url"
+:api_endpoint="get_url"
+
+:api_endpoint="predisclosure_status_url"
+:api_endpoint="predisclosure_status_history_url"
+
+:api_endpoint="api_endpoints.predisclosure_line"
+:api_endpoint="predisclosure_line_url"
+
+:fixed_query_filter="'&predisclosure='+selected_predisclosure.predisclosure_id"
+:fixed_query_filter="line_filter"
+
+
+
+
+===============================
 {% load static %}
 {% load common_tags %}
 
