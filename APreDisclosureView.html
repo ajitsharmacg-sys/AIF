@@ -1,236 +1,38 @@
-<vertical-table
-    :api_endpoint="get_url"
-    :columns="predisclosure_columns"
-    :custom_format="custom_format"
-    v-model:data_refresh_trigger="update_triggered"
-    @on-item-update="
-        (item) => {
-            selected_predisclosure = item;
-        }
-    "
->
-    <template #actions="actionProps">
-        <!-- Predisclosure Level Actions -->
-        <tr v-if="actionProps?.predisclosure_status !== 'COMPLETED'">
-            <th>Predisclosure Level Actions</th>
-            <td>
-                <div class="btn-group">
-                    <template v-for="choice in get_status_choices(actionProps)">
-                        <button
-                            type="button"
-                            :class="get_predisclosure_status_action(choice).button_class"
-                            @click="
-                                predisclosure_target_status = choice;
-                                show_predisclosure_status_update = true;
-                            "
-                        >
-                            [[ get_predisclosure_status_action(choice).button_text ]]
-                        </button>
-                    </template>
-
-                    <button
-                        v-if="['DRAFT', 'REJECTED'].includes(actionProps?.predisclosure_status)"
-                        type="button"
-                        class="btn btn-sm btn-primary"
-                        @click="navigate('predisclosure_app', 'edit')"
-                    >
-                        Edit
-                    </button>
-                </div>
-            </td>
-        </tr>
-
-        <!-- Line Level Actions -->
-        <tr v-if="actionProps?.predisclosure_status !== 'COMPLETED'">
-            <th>Line Level Actions</th>
-            <td>
-                <div class="btn-group">
-                    <template
-                        v-for="choice in multiple_line_status_choices()"
-                        v-if="selected_lines.length > 0"
-                    >
-                        <button
-                            type="button"
-                            :class="get_line_status_action(choice).button_class"
-                            @click="
-                                line_target_status = choice;
-                                show_line_status_update = true;
-                            "
-                        >
-                            <span>[[ get_line_status_action(choice).button_text ]]</span>
-                        </button>
-                    </template>
-
-                    <div
-                        v-if="selected_lines.length === 0"
-                        class="alert alert-primary"
-                    >
-                        <p>
-                            Please select one or multiple line(s) (by clicking)
-                            to see available actions (if there are any).
-                        </p>
-                    </div>
-                </div>
-            </td>
-        </tr>
-    </template>
-</vertical-table>
-
-================
-
-
-
-computed: {
-
-    get_url() {
-
-        return (
-            api_endpoints.predisclosure +
-            this.selected_predisclosure?.predisclosure_id +
-            "/"
-        );
-
-    },
-
-    line_filter() {
-
-        if (!this.selected_predisclosure?.predisclosure_id) {
-
-            return "";
-
-        }
-
-        return (
-            "&predisclosure=" +
-            this.selected_predisclosure.predisclosure_id
-        );
-
-    },
-
-    predisclosure_status_history_url() {
-
-        if (!this.selected_predisclosure?.predisclosure_id) {
-
-            return "";
-
-        }
-
-        return (
-            api_endpoints.predisclosure_status +
-            "?predisclosure=" +
-            this.selected_predisclosure.predisclosure_id
-        );
-
-    },
-
-    line_status_history_url() {
-
-        if (!this.selected_line?.id) {
-
-            return "";
-
-        }
-
-        return (
-            api_endpoints.predisclosure_line_status +
-            "?predisclosure_line=" +
-            this.selected_line.id
-        );
-    predisclosure_line_url() {
-    return api_endpoints.predisclosure_lines;
-},
-
-    },
-
-    custom_format() {
-
-        return {
-
-            predisclosure_status: {
-
-                DRAFT: "text-bg-secondary",
-                PLANNED: "text-bg-warning",
-                REJECTED: "text-bg-danger",
-                COMPLETED: "text-bg-success",
-
-            },
-
-            predisclosure_line_status: {
-
-                DRAFT: "text-bg-secondary",
-                AWAITING_APPROVAL: "text-bg-warning",
-                APPROVED: "text-bg-success",
-                REJECTED: "text-bg-danger",
-
-            }
-
-        };
-
-    }
-
-},
-
-
-:api_endpoint="predisclosure_url"
-:api_endpoint="get_url"
-
-:api_endpoint="predisclosure_status_url"
-:api_endpoint="predisclosure_status_history_url"
-
-:api_endpoint="api_endpoints.predisclosure_line"
-:api_endpoint="predisclosure_line_url"
-
-:fixed_query_filter="'&predisclosure='+selected_predisclosure.predisclosure_id"
-:fixed_query_filter="line_filter"
-
-
-
-
-===============================
 {% load static %}
 {% load common_tags %}
 
-<section
-    class="section"
-    id="predisclosure_view">
+{% block predisclosure_view %}
 
-<div v-if="nav_state.predisclosure_view">
+<section id="predisclosure_view">
 
-    <div class="pagetitle">
+    <div v-if="nav_state.predisclosure_view">
 
-        <h1>
+        <!-- ================= Back ================= -->
 
-            Pre-Disclosure Request
+        <div class="fs-4 mb-3">
+            <a href="#">
+                <i class="bi bi-arrow-left-circle-fill"
+                    @click="navigate(nav_state.previous)">
+                </i>
+            </a>
+        </div>
 
-            <span
-                class="badge"
-                :class="custom_format.predisclosure_status[selected_predisclosure.predisclosure_status]">
+        <!-- ================= Breadcrumb ================= -->
 
-                [[ selected_predisclosure.predisclosure_status ]]
-
-            </span>
-
-        </h1>
-
-        <nav>
+        <nav aria-label="breadcrumb">
 
             <ol class="breadcrumb">
 
                 <li class="breadcrumb-item">
-
-                    <a
-                        href="#"
-                        @click.prevent="navigate('list_of_predisclosures')">
-
-                        Home
-
+                    <a href="#"
+                        @click="navigate('list_of_predisclosures')">
+                        PreDisclosures
                     </a>
-
                 </li>
 
                 <li class="breadcrumb-item active">
 
-                    View
+                    [[ selected_predisclosure?.predisclosure_id ]]
 
                 </li>
 
@@ -238,389 +40,325 @@ computed: {
 
         </nav>
 
-    </div>
+        <div class="d-flex justify-content-between align-items-top flex-wrap">
 
-    <div class="row">
+            <!-- ========================================================= -->
+            <!-- Header -->
+            <!-- ========================================================= -->
 
-        <!-- ========================================================= -->
-        <!-- LEFT -->
-        <!-- ========================================================= -->
+            <div class="p-1 flex-grow-1">
 
-        <div class="col-lg-4">
+                <vertical-table
+                    :api_endpoint="get_url"
+                    :columns="predisclosure_columns"
+                    v-model:data_refresh_trigger="update_triggered"
+                    :custom_format="custom_format"
 
-            <div class="card">
+                    @on-item-update="
+                        (item)=>{
+                            selected_predisclosure=item;
+                        }">
 
-                <div class="card-header">
+                    <template #actions="actionProps">
 
-                    <strong>
+                        <tr>
 
-                        Pre-Disclosure Details
+                            <th>
 
-                    </strong>
+                                Actions
 
-                </div>
+                            </th>
 
-                <div class="card-body">
+                            <td>
 
-                    <vertical-table
+                                <div class="btn-group">
 
-                        :api_endpoint="predisclosure_url"
+                                    <button
 
-                        :columns="predisclosure_columns"
+                                        v-if="['DRAFT','REJECTED'].includes(actionProps?.predisclosure_status)"
 
-                        :custom_format="custom_format"
+                                        class="btn btn-sm btn-primary"
 
-                        @on-item-update="
-                            (item)=>{
-                                selected_predisclosure=item;
-                            }"
+                                        @click="navigate('predisclosure_app','edit')">
 
-                        v-model:data_refresh_trigger="update_triggered">
+                                        Edit
 
-                    </vertical-table>
+                                    </button>
 
-                </div>
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    </template>
+
+                </vertical-table>
 
             </div>
 
-        </div>
+            <!-- ========================================================= -->
+            <!-- Status History -->
+            <!-- ========================================================= -->
 
-        <!-- ========================================================= -->
-        <!-- RIGHT -->
-        <!-- ========================================================= -->
+            <div class="p-1 flex-grow-1">
 
-        <div class="col-lg-8">
+                <div class="container-fluid">
 
-            <div class="card">
+                    <status-history
 
-                <div class="card-header d-flex justify-content-between">
-
-                    <strong>
-
-                        Status History
-
-                    </strong>
-
-                </div>
-
-                <div class="card-body">
-
-                    <django-paged-table
-
-                        :api_endpoint="predisclosure_status_url"
-
-                        :columns="status_columns"
-
-                        ordering="-meta_created_date"
-
-                        :fixed_query_filter="'&predisclosure='+selected_predisclosure.predisclosure_id"
-
-                        title=""
+                        :api_endpoint="predisclosure_status_history_url"
 
                         v-model:data_refresh_trigger="update_triggered"
 
-                        :custom_format="custom_format">
+                        :custom_format="custom_format?.predisclosure_status">
 
-                    </django-paged-table>
+                    </status-history>
 
                 </div>
 
             </div>
 
-        </div>
+            <!-- ========================================================= -->
+            <!-- Line Table -->
+            <!-- ========================================================= -->
 
-    </div>
+            <div class="p-1 flex-grow-1">
 
-    <!-- ========================================================= -->
-    <!-- HEADER ACTIONS -->
-    <!-- ========================================================= -->
+                <django-paged-table
 
-    <div class="card mt-3">
+                    :api_endpoint="api_endpoints.predisclosure_line"
 
-        <div class="card-header d-flex justify-content-between">
+                    :columns="predisclosure_line_columns"
 
-            <strong>
+                    :fixed_query_filter="line_filter"
 
-                Header Actions
+                    title="PreDisclosure Lines"
 
-            </strong>
+                    :filter_items="line_filter_items"
 
-            <div>
+                    @row-select="
+                        (item,index)=>{
+                            selected_lines.push(item);
+                        }"
 
-                <button
+                    @row-unselect="
+                        (item,index)=>{
+                            selected_lines.splice(
+                                selected_lines.indexOf(item),
+                                1
+                            );
+                        }"
 
-                    v-for="status in get_header_status_choices()"
+                    :row_select_active="true"
 
-                    class="btn btn-success btn-sm me-2"
+                    v-model:data_refresh_trigger="update_triggered"
 
-                    @click="
+                    :custom_format="custom_format">
 
-                        target_header_status=status;
+                    <template #actions="actionProps">
 
-                        show_header_status_dialog=true;
+                        <div class="btn-group">
 
-                    ">
+                            <button
 
-                    [[ get_header_status_action(status).button_text ]]
+                                type="button"
 
-                </button>
+                                class="btn btn-secondary"
+
+                                title="See Line Status History"
+
+                                @click="
+                                    selected_line=actionProps;
+                                    show_line_history=true;
+                                ">
+
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                    width="32"
+                                    height="32"
+                                    fill="currentColor"
+                                    viewBox="0 0 16 16">
+
+                                    <path
+                                        d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022z"/>
+
+                                    <path
+                                        d="M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0z"/>
+
+                                    <path
+                                        d="M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5"/>
+
+                                </svg>
+
+                            </button>
+
+                        </div>
+
+                    </template>
+
+                </django-paged-table>
 
             </div>
 
         </div>
+                <!-- ===================================================== -->
+        <!-- Line Status History -->
+        <!-- ===================================================== -->
 
-    </div>
+        <modal-dialog v-model="show_line_history">
 
-    <!-- ========================================================= -->
-    <!-- ACCOUNT DETAILS -->
-    <!-- ========================================================= -->
+            <template #header>
 
-    <div class="card mt-3">
+                <h5 class="modal-title">
+                    Line Status History
+                </h5>
 
-        <div class="card-header d-flex justify-content-between">
+            </template>
 
-            <strong>
+            <template #body>
 
-                Account Details
+                <status-history
 
-            </strong>
+                    v-if="show_line_history"
 
-            <div>
+                    :api_endpoint="line_status_history_url"
+
+                    :custom_format="custom_format?.predisclosure_line_status">
+
+                </status-history>
+
+            </template>
+
+        </modal-dialog>
+
+        <!-- ===================================================== -->
+        <!-- Line Status Update -->
+        <!-- ===================================================== -->
+
+        <modal-dialog v-model="show_line_status_update">
+
+            <template #header>
+
+                <h5 class="modal-title">
+                    Action
+                </h5>
+
+            </template>
+
+            <template #body>
+
+                <div class="d-flex flex-column">
+
+                    <h5>
+
+                        [[ line_status_update_message() ]]
+
+                    </h5>
+
+                    <div class="p-2">
+
+                        <label
+                            for="line_status_comment"
+                            class="form-label">
+
+                            Comment
+
+                        </label>
+
+                        <input
+
+                            type="text"
+
+                            autocomplete="off"
+
+                            maxlength="300"
+
+                            class="form-control"
+
+                            id="line_status_comment"
+
+                            v-model="comment">
+
+                    </div>
+
+                    <div class="p-2">
+
+                        <label
+                            class="form-label"
+                            for="line_status_update_attachment">
+
+                            Attachments (optional)
+
+                        </label>
+
+                        <input
+
+                            type="file"
+
+                            class="form-control"
+
+                            id="line_status_update_attachment"
+
+                            accept="image/*,application/pdf"
+
+                            multiple>
+
+                    </div>
+
+                </div>
+
+            </template>
+
+            <template #footer>
 
                 <button
 
-                    class="btn btn-outline-primary btn-sm"
+                    type="button"
 
-                    @click="select_all_lines">
+                    class="btn btn-primary"
 
-                    Select All
+                    @click="update_line_status()">
 
-                </button>
-
-            </div>
-
-        </div>
-
-        <div class="card-body">
-
-            <django-paged-table
-
-                :api_endpoint="api_endpoints.predisclosure_lines"
-
-                :columns="line_columns"
-
-                :fixed_query_filter="'&predisclosure='+selected_predisclosure.predisclosure_id"
-
-                ordering="account_name"
-
-                title=""
-
-                selectable
-
-                v-model:selected_items="selected_lines"
-
-                v-model:data_refresh_trigger="update_triggered"
-
-                :custom_format="custom_format">
-
-                <template #actions="actionProps">
-
-                    <view-button
-
-                        @click="
-
-                            selected_line=actionProps;
-
-                            show_line_details=true;
-
-                        ">
-
-                    </view-button>
-
-                </template>
-
-            </django-paged-table>
-
-        </div>
-
-    </div>
-
-    <!-- ========================================================= -->
-    <!-- LINE ACTIONS -->
-    <!-- ========================================================= -->
-
-    <div class="card mt-3">
-
-        <div class="card-header d-flex justify-content-between">
-
-            <strong>
-
-                Line Actions
-
-            </strong>
-
-            <div>
-
-                <button
-
-                    v-for="status in get_line_status_choices()"
-
-                    class="btn btn-success btn-sm me-2"
-
-                    @click="
-
-                        target_line_status=status;
-
-                        show_line_status_dialog=true;
-
-                    ">
-
-                    [[ get_line_status_action(status).button_text ]]
+                    Confirm
 
                 </button>
 
-            </div>
+            </template>
 
-        </div>
+        </modal-dialog>
+
+        <!-- ===================================================== -->
+        <!-- Notification -->
+        <!-- ===================================================== -->
+
+        <notification-dialog
+
+            v-model="show_notification_dialog"
+
+            :message="notification_message">
+
+        </notification-dialog>
 
     </div>
-
-    <!-- ========================================================= -->
-    <!-- NOTIFICATION -->
-    <!-- ========================================================= -->
-
-    <notification-dialog
-
-        v-model="show_notification_dialog"
-
-        :message="notification_message">
-
-    </notification-dialog>
-
-</div>
 
 </section>
-
-<!-- ========================================================= -->
-<!-- HEADER STATUS UPDATE -->
-<!-- ========================================================= -->
-
-<comment-dialog
-
-    v-model="show_header_status_dialog"
-
-    title="Update Header Status"
-
-    :message="header_status_message"
-
-    v-model:comment="comment"
-
-    @confirm="update_header_status">
-
-</comment-dialog>
-
-
-<!-- ========================================================= -->
-<!-- LINE STATUS UPDATE -->
-<!-- ========================================================= -->
-
-<comment-dialog
-
-    v-model="show_line_status_dialog"
-
-    title="Update Line Status"
-
-    :message="line_status_message"
-
-    v-model:comment="comment"
-
-    @confirm="update_line_status">
-
-</comment-dialog>
-
-
-<!-- ========================================================= -->
-<!-- LINE DETAILS -->
-<!-- ========================================================= -->
-
-<dialog-box
-
-    v-model="show_line_details"
-
-    title="Account Details"
-
-    size="xl">
-
-    <template #body>
-
-        <vertical-table
-
-            :columns="line_detail_columns"
-
-            :item="selected_line"
-
-            :custom_format="custom_format">
-
-        </vertical-table>
-
-    </template>
-
-</dialog-box>
-
-
-<!-- ========================================================= -->
-<!-- CONFIRMATION DIALOG -->
-<!-- ========================================================= -->
-
-<confirmation-dialog
-
-    v-model="show_confirmation_dialog"
-
-    :title="confirmation_title"
-
-    :message="confirmation_message"
-
-    @confirm="confirmation_callback">
-
-</confirmation-dialog>
-
-
-<!-- ========================================================= -->
-<!-- NOTIFICATION -->
-<!-- ========================================================= -->
-
-<notification-dialog
-
-    v-model="show_notification_dialog"
-
-    :message="notification_message">
-
-</notification-dialog>
-
-
-<!-- ========================================================= -->
-<!-- LOADING -->
-<!-- ========================================================= -->
-
-<loading-dialog
-
-    v-model="loading">
-
-</loading-dialog>
-
 <script type="module">
 
 import {
-    getRequest,
-    postRequest,
-    putRequest,
+    postData,
+    patchData,
+    upload_files_to_sharepoint
 } from "{% static 'common/modules/common.js' %}";
 
 import * as vuejs_components
     from "{% static 'common/modules/components.js' %}";
 
+import {
+    utils,
+    writeFile
+} from "{% static 'common/modules/xlsx.mjs' %}";
 
-const predisclosure_view = Vue.createApp({
+const predisclosure_view_app = Vue.createApp({
 
     delimiters: ["[[", "]]"],
 
@@ -630,39 +368,25 @@ const predisclosure_view = Vue.createApp({
 
             nav_state: init_nav_state,
 
-            selected_predisclosure: selected_predisclosure,
+            HEADER_STATUS_GRAPH: HEADER_STATUS_GRAPH,
+
+            PREDISCLOSURE_LINE_STATUS_GRAPH:
+                PREDISCLOSURE_LINE_STATUS_GRAPH,
+
+            LINE_STATUS_TO_ROLE:
+                LINE_STATUS_TO_ROLE,
+
+            selected_predisclosure:
+                selected_predisclosure,
 
             selected_line: {},
 
             selected_lines: [],
 
-            update_triggered: false,
+            comment: null,
 
-            loading: false,
-
-            comment: "",
-
-            target_header_status: null,
-
-            target_line_status: null,
-
-            show_header_status_dialog: false,
-
-            show_line_status_dialog: false,
-
-            show_line_details: false,
-
-            show_notification_dialog: false,
-
-            show_confirmation_dialog: false,
-
-            notification_message: "",
-
-            confirmation_title: "",
-
-            confirmation_message: "",
-
-            confirmation_callback: null,
+            user_role:
+                "{{ request.user|get_roles }}",
 
             predisclosure_columns: [
 
@@ -672,23 +396,13 @@ const predisclosure_view = Vue.createApp({
                 "product_category",
                 "products",
                 "predisclosure_status",
-                "meta_created_by",
-                "meta_created_date",
-                "meta_edited_by",
-                "meta_edited_date",
 
-            ],
-
-            status_columns: [
-
-                "status",
-                "comments",
                 "meta_created_by",
                 "meta_created_date",
 
             ],
 
-            line_columns: [
+            predisclosure_line_columns: [
 
                 "account_name",
                 "website",
@@ -699,33 +413,88 @@ const predisclosure_view = Vue.createApp({
 
             ],
 
-            line_detail_columns: [
+            line_target_status: null,
 
-                "account_name",
-                "website",
-                "disclosed_last_2_years",
-                "b2b_business_type",
-                "nda_confirmed",
-                "disclosure_format",
-                "reason_for_disclosure",
-                "products_to_be_disclosed",
-                "sda_partner_level",
-                "account_in_sda_partner_list",
-                "meeting_date",
-                "meeting_location",
-                "canon_responsible_person",
-                "individuals_being_disclosed_to",
-                "information_to_be_disclosed",
-                "retailer_ranking",
-                "estimated_business",
-                "annual_sales",
-                "predisclosure_line_status",
+            show_line_history: false,
 
-            ],
+            show_line_status_update: false,
 
-            custom_format: {
+            show_notification_dialog: false,
 
-                predisclosure_status: {
+            notification_message: "",
+
+            update_triggered: false,
+
+        };
+
+    },
+
+    watch: {
+
+        nav_state: {
+
+            handler(newVal, oldVal) {
+
+                if (newVal.predisclosure_view) {
+
+                    this.selected_lines = [];
+
+                }
+
+            },
+
+            deep: true,
+
+        },
+
+    },
+
+    computed: {
+
+        get_url() {
+
+            return (
+                api_endpoints.predisclosure +
+                this.selected_predisclosure?.predisclosure_id +
+                "/"
+            );
+
+        },
+
+        line_filter() {
+
+            return (
+                "&predisclosure=" +
+                this.selected_predisclosure?.predisclosure_id
+            );
+
+        },
+
+        predisclosure_status_history_url() {
+
+            return (
+                api_endpoints.predisclosure_status +
+                "?predisclosure=" +
+                this.selected_predisclosure?.predisclosure_id
+            );
+
+        },
+
+        line_status_history_url() {
+
+            return (
+                api_endpoints.predisclosure_line_status +
+                "?line=" +
+                this.selected_line.id
+            );
+
+        },
+
+        custom_format() {
+
+            return {
+
+                "predisclosure_status": {
 
                     DRAFT: "text-bg-secondary",
 
@@ -737,7 +506,7 @@ const predisclosure_view = Vue.createApp({
 
                 },
 
-                predisclosure_line_status: {
+                "predisclosure_line_status": {
 
                     DRAFT: "text-bg-secondary",
 
@@ -745,131 +514,324 @@ const predisclosure_view = Vue.createApp({
 
                     REJECTED: "text-bg-danger",
 
-                    AWAITING_ISB_ADMIN_APPROVAL: "text-bg-warning",
+                    AWAITING_ISB_ADMIN_APPROVAL:
+                        "text-bg-warning",
 
-                    AWAITING_ISB_PM_APPROVAL: "text-bg-warning",
+                    AWAITING_ISB_PM_APPROVAL:
+                        "text-bg-warning",
 
-                    AWAITING_ICB_ADMIN_APPROVAL: "text-bg-warning",
+                    AWAITING_ICB_ADMIN_APPROVAL:
+                        "text-bg-warning",
 
-                    AWAITING_ICB_PM_APPROVAL: "text-bg-warning",
+                    AWAITING_ICB_PM_APPROVAL:
+                        "text-bg-warning",
 
-                    AWAITING_PR_APPROVAL: "text-bg-warning",
+                    AWAITING_PR_APPROVAL:
+                        "text-bg-warning",
 
-                    AWAITING_MARKETING_PM_APPROVAL: "text-bg-warning",
+                    AWAITING_MARKETING_PM_APPROVAL:
+                        "text-bg-warning",
 
                 },
 
-            },
-
-        };
-
-    },
-
-    computed: {
-
-        predisclosure_url() {
-
-            return (
-                api_endpoints.predisclosure +
-                this.selected_predisclosure.predisclosure_id +
-                "/"
-            );
+            };
 
         },
 
-        predisclosure_status_url() {
+        line_filter_items() {
 
-            return (
-                api_endpoints.predisclosure_status +
-                "?predisclosure=" +
-                this.selected_predisclosure.predisclosure_id
-            );
+            const res = [];
 
-        },
+            for (const status of [
 
-        predisclosure_line_url() {
+                "DRAFT",
 
-            return (
-                api_endpoints.predisclosure_lines +
-                "?predisclosure=" +
-                this.selected_predisclosure.predisclosure_id
-            );
+                "APPROVED",
 
-        },
+                "REJECTED",
 
-        header_status_message() {
+                "AWAITING_ISB_ADMIN_APPROVAL",
 
-            if (!this.target_header_status) {
-                return "";
+                "AWAITING_ISB_PM_APPROVAL",
+
+                "AWAITING_ICB_ADMIN_APPROVAL",
+
+                "AWAITING_ICB_PM_APPROVAL",
+
+                "AWAITING_PR_APPROVAL",
+
+                "AWAITING_MARKETING_PM_APPROVAL",
+
+            ]) {
+
+                res.push({
+
+                    label: status,
+
+                    expression:
+                        "&predisclosure_line_status=" +
+                        status,
+
+                });
+
             }
 
-            return (
-                "Are you sure you want to change the header status to '" +
-                this.target_header_status +
-                "'?"
-            );
-
-        },
-
-        line_status_message() {
-
-            if (!this.target_line_status) {
-                return "";
-            }
-
-            return (
-                "Are you sure you want to update " +
-                this.selected_lines.length +
-                " selected account(s) to '" +
-                this.target_line_status +
-                "'?"
-            );
+            return res;
 
         },
 
     },
+    methods: {
 
-    watch: {
+    navigate(id, context = null) {
 
-        "selected_predisclosure.predisclosure_id"(value) {
-
-            if (!value) {
-                return;
-            }
-
-            this.update_triggered = true;
-
-        },
+        this.nav_state["predisclosure_view"] = false;
+        this.nav_state.previous = "predisclosure_view";
+        this.nav_state[id] = true;
+        this.nav_state.context = context;
 
     },
 
-    mounted() {
+    line_status_update_message() {
 
-        if (
-            this.selected_predisclosure &&
-            this.selected_predisclosure.predisclosure_id
-        ) {
+        switch (this.line_target_status) {
 
-            this.update_triggered = true;
+            case "AWAITING_ISB_PM_APPROVAL":
+                return "Please confirm that you approve the selected account(s). The request will be transferred to the ISB PM.";
+
+            case "AWAITING_ICB_PM_APPROVAL":
+                return "Please confirm that you approve the selected account(s). The request will be transferred to the ICB PM.";
+
+            case "AWAITING_MARKETING_PM_APPROVAL":
+                return "Please confirm that you approve the selected account(s). The request will be transferred to the Marketing PM.";
+
+            case "APPROVED":
+                return "Please confirm that you approve the selected account(s).";
+
+            case "REJECTED":
+                return "Please confirm that you reject the selected account(s).";
+
+            default:
+                return "Would you like to change the selected line(s) status to " +
+                    this.line_target_status + "?";
 
         }
 
     },
 
-    methods: {
+    get_line_status_choices(line) {
 
-        // Part 4 starts here
-      methods: {
+        const current_status = line.predisclosure_line_status;
 
-    navigate(id) {
+        if (!current_status) {
+            return [];
+        }
 
-        this.nav_state.current = id;
+        let has_permission = false;
 
-        this.nav_state.predisclosure_view = false;
+        for (const role of this.LINE_STATUS_TO_ROLE[current_status]) {
 
-        this.nav_state[id] = true;
+            if (this.user_role.includes(role)) {
 
-        this.nav_state.previous = "predisclosure_view";
+                has_permission = true;
+
+            }
+
+        }
+
+        if (has_permission) {
+
+            return this.PREDISCLOSURE_LINE_STATUS_GRAPH[current_status];
+
+        }
+
+        return [];
+
+    },
+
+    get_line_status_action(choice) {
+
+        switch (choice) {
+
+            case "AWAITING_ISB_PM_APPROVAL":
+            case "AWAITING_ICB_PM_APPROVAL":
+            case "AWAITING_MARKETING_PM_APPROVAL":
+            case "APPROVED":
+
+                return {
+                    button_text: "Approve",
+                    button_class: "btn btn-sm btn-success"
+                };
+
+            case "REJECTED":
+
+                return {
+                    button_text: "Reject",
+                    button_class: "btn btn-sm btn-danger"
+                };
+
+            default:
+
+                return {
+                    button_text: choice,
+                    button_class: "btn btn-sm btn-primary"
+                };
+
+        }
+
+    },
+
+    multiple_line_status_choices() {
+
+        let common_target_status =
+            new Set(
+                this.get_line_status_choices(
+                    this.selected_lines[0]
+                )
+            );
+
+        for (const line of this.selected_lines) {
+
+            common_target_status =
+                common_target_status.intersection(
+
+                    new Set(
+                        this.get_line_status_choices(line)
+                    )
+
+                );
+
+        }
+
+        return common_target_status;
+
+    },
+
+    async update_line_status() {
+
+        this.show_line_status_update = false;
+
+        let error_occured = false;
+
+        for (const line of this.selected_lines) {
+
+            this.show_notification(
+
+                "Updating status of Account : " +
+                line.account_name
+
+            );
+
+            await postData(
+
+                api_endpoints.predisclosure_line_status,
+
+                {
+
+                    line: line.id,
+
+                    status: this.line_target_status,
+
+                    comment: this.comment,
+
+                }
+
+            )
+
+            .then(response => {
+
+                if (response.ok) {
+
+                    return response.json();
+
+                }
+
+                return Promise.reject(response);
+
+            })
+
+            .catch(error => {
+
+                this.show_notification(
+
+                    "An error occurred while updating Account : " +
+                    line.account_name
+
+                );
+
+                error_occured = true;
+
+            });
+
+            if (error_occured) {
+
+                break;
+
+            }
+
+        }
+
+        if (!error_occured) {
+
+            this.show_notification(
+
+                "Uploading attachment(s)..."
+
+            );
+
+            await this.upload_file(
+
+                "line_status_update_attachment"
+
+            );
+
+            this.show_notification(
+
+                "Reloading PreDisclosure..."
+
+            );
+
+            this.update_triggered = true;
+
+            this.selected_lines = [];
+
+            this.comment = null;
+
+            this.show_notification(
+
+                "Selected account(s) updated successfully."
+
+            );
+
+        }
+
+    },
+
+    async upload_file(input_id) {
+
+        const base_url =
+            "{{ site_address|escapejs }}{{ library|escapejs }}";
+
+        const path =
+            this.selected_predisclosure.link.substring(
+
+                base_url.length + 1
+
+            );
+
+        await upload_files_to_sharepoint(
+
+            input_id,
+
+            "{{ sharepoint_upload_endpoint|escapejs }}",
+
+            "{{ site_address|escapejs }}",
+
+            "{{ library|escapejs }}",
+
+            path
+
+        );
 
     },
 
@@ -885,525 +847,67 @@ const predisclosure_view = Vue.createApp({
 
         try {
 
-            error_response.json().then(data => {
+            const details = error_response.json();
 
-                if (typeof data === "string") {
+            details.then(data => {
 
-                    this.show_notification(data);
-
-                }
-                else if (data.detail) {
-
-                    this.show_notification(data.detail);
-
-                }
-                else {
-
-                    this.show_notification(
-                        JSON.stringify(data)
-                    );
-
-                }
+                this.show_notification(data);
 
             });
 
         }
+
         catch {
 
             this.show_notification(
-                "Unknown error occurred."
+
+                "Unknown error occurred, please contact the Support Team."
+
             );
 
         }
 
     },
 
-    refresh() {
+    async export_to_excel(items) {
 
-        this.update_triggered = true;
+        const workbook = utils.book_new();
 
-    },
+        const worksheet =
+            utils.json_to_sheet(items.results);
 
-    clear_selection() {
+        utils.book_append_sheet(
 
-        this.selected_lines = [];
+            workbook,
 
-    },
+            worksheet,
 
-    select_all_lines() {
+            "PreDisclosureLines"
 
-        this.selected_lines = [];
+        );
 
-        if (!this.selected_predisclosure.predisclosure_line) {
+        writeFile(
 
-            return;
+            workbook,
 
-        }
+            "PreDisclosureLines.xlsx"
 
-        this.selected_lines.push(
-            ...this.selected_predisclosure.predisclosure_line
         );
 
     },
 
-    get_header_status_choices() {
-
-        if (
-            !this.selected_predisclosure
-            ||
-            !this.selected_predisclosure.predisclosure_status
-        ) {
-
-            return [];
-
-        }
-
-        return (
-            HEADER_STATUS_GRAPH.value[
-                this.selected_predisclosure
-                    .predisclosure_status
-            ] || []
-        );
-
-    },
-
-    get_line_status_choices() {
-
-        if (this.selected_lines.length === 0) {
-
-            return [];
-
-        }
-
-        const statuses = [];
-
-        for (const line of this.selected_lines) {
-
-            const current =
-                line.predisclosure_line_status;
-
-            const nextStatuses =
-                LINE_STATUS_GRAPH.value[current] || [];
-
-            if (statuses.length === 0) {
-
-                statuses.push(...nextStatuses);
-
-            }
-            else {
-
-                for (let i = statuses.length - 1; i >= 0; --i) {
-
-                    if (
-                        !nextStatuses.includes(statuses[i])
-                    ) {
-
-                        statuses.splice(i, 1);
-
-                    }
-
-                }
-
-            }
-
-        }
-
-        return statuses;
-
-    },
-
-    get_header_status_action(status) {
-
-        switch (status) {
-
-            case "IN_PROGRESS":
-
-                return {
-
-                    button_text:
-                        "Submit",
-
-                    button_class:
-                        "btn-success",
-
-                };
-
-            case "COMPLETED":
-
-                return {
-
-                    button_text:
-                        "Complete",
-
-                    button_class:
-                        "btn-primary",
-
-                };
-
-            case "REJECTED":
-
-                return {
-
-                    button_text:
-                        "Reject",
-
-                    button_class:
-                        "btn-danger",
-
-                };
-
-            default:
-
-                return {
-
-                    button_text: status,
-
-                    button_class:
-                        "btn-secondary",
-
-                };
-
-        }
-
-    },
-
-    get_line_status_action(status) {
-
-        switch (status) {
-
-            case "APPROVED":
-
-                return {
-
-                    button_text:
-                        "Approve",
-
-                    button_class:
-                        "btn-success",
-
-                };
-
-            case "REJECTED":
-
-                return {
-
-                    button_text:
-                        "Reject",
-
-                    button_class:
-                        "btn-danger",
-
-                };
-
-            default:
-
-                return {
-
-                    button_text: status,
-
-                    button_class:
-                        "btn-primary",
-
-                };
-
-        }
-
-    },
-
-    open_header_status_dialog(status) {
-
-        this.target_header_status = status;
-
-        this.comment = "";
-
-        this.show_header_status_dialog = true;
-
-    },
-
-    open_line_status_dialog(status) {
-
-        if (this.selected_lines.length === 0) {
-
-            this.show_notification(
-                "Please select at least one Account."
-            );
-
-            return;
-
-        }
-
-        this.target_line_status = status;
-
-        this.comment = "";
-
-        this.show_line_status_dialog = true;
-
-    },
-        update_header_status() {
-
-        this.loading = true;
-
-        postRequest(
-            api_endpoints.predisclosure_status,
-            {
-                predisclosure: this.selected_predisclosure.predisclosure_id,
-                status: this.target_header_status,
-                comments: this.comment,
-            }
-        )
-        .then(response => {
-
-            if (response.ok) {
-
-                return response.json();
-
-            }
-
-            return Promise.reject(response);
-
-        })
-        .then(data => {
-
-            this.loading = false;
-
-            this.show_header_status_dialog = false;
-
-            this.comment = "";
-
-            this.target_header_status = null;
-
-            this.update_triggered = true;
-
-            this.show_notification(
-                "Header status updated successfully."
-            );
-
-        })
-        .catch(error => {
-
-            this.loading = false;
-
-            this.display_error(error);
-
-        });
-
-    },
-
-    update_line_status() {
-
-        if (this.selected_lines.length === 0) {
-
-            this.show_notification(
-                "Please select at least one Account."
-            );
-
-            return;
-
-        }
-
-        this.loading = true;
-
-        const requests = [];
-
-        for (const line of this.selected_lines) {
-
-            requests.push(
-
-                postRequest(
-
-                    api_endpoints.predisclosure_line_status,
-
-                    {
-
-                        predisclosure_line: line.id,
-
-                        status: this.target_line_status,
-
-                        comments: this.comment,
-
-                    }
-
-                )
-
-            );
-
-        }
-
-        Promise.all(requests)
-
-        .then(async responses => {
-
-            for (const response of responses) {
-
-                if (!response.ok) {
-
-                    throw response;
-
-                }
-
-                await response.json();
-
-            }
-
-            this.loading = false;
-
-            this.show_line_status_dialog = false;
-
-            this.comment = "";
-
-            this.target_line_status = null;
-
-            this.selected_lines = [];
-
-            this.update_triggered = true;
-
-            this.show_notification(
-                "Line status updated successfully."
-            );
-
-        })
-
-        .catch(error => {
-
-            this.loading = false;
-
-            this.display_error(error);
-
-        });
-
-    },
-
-    refresh_view() {
-
-        this.update_triggered = true;
-
-    },
-
-    close_dialogs() {
-
-        this.show_header_status_dialog = false;
-
-        this.show_line_status_dialog = false;
-
-        this.show_line_details = false;
-
-        this.loading = false;
-
-        this.comment = "";
-
-    },
-
-    on_header_status_updated() {
-
-        this.close_dialogs();
-
-        this.refresh_view();
-
-    },
-
-    on_line_status_updated() {
-
-        this.close_dialogs();
-
-        this.selected_lines = [];
-
-        this.refresh_view();
-
-    },
-
-    can_update_header() {
-
-        return this.get_header_status_choices().length > 0;
-
-    },
-
-    can_update_line() {
-
-        return this.selected_lines.length > 0 &&
-               this.get_line_status_choices().length > 0;
-
-    },
-
-}
-
-    },
+},
+    Object.entries(vuejs_components).forEach((item) => {
+
+    predisclosure_view_app.component(
+        item[0],
+        item[1]
+    );
 
 });
 
-//
-// Register Common Vue Components
-//
+predisclosure_view_app.mount("#predisclosure_view");
 
-Object.entries(vuejs_components).forEach(
-    ([component_name, component]) => {
-
-        predisclosure_view.component(
-            component_name,
-            component
-        );
-
-    }
-);
-
-//
-// Local Components
-//
-
-predisclosure_view.component(
-    "vertical-table",
-    vuejs_components.VerticalTable
-);
-
-predisclosure_view.component(
-    "django-paged-table",
-    vuejs_components.DjangoPagedTable
-);
-
-predisclosure_view.component(
-    "notification-dialog",
-    vuejs_components.NotificationDialog
-);
-
-predisclosure_view.component(
-    "comment-dialog",
-    vuejs_components.CommentDialog
-);
-
-predisclosure_view.component(
-    "confirmation-dialog",
-    vuejs_components.ConfirmationDialog
-);
-
-predisclosure_view.component(
-    "loading-dialog",
-    vuejs_components.LoadingDialog
-);
-
-predisclosure_view.component(
-    "view-button",
-    vuejs_components.ViewButton
-);
-
-predisclosure_view.component(
-    "delete-button",
-    vuejs_components.DeleteButton
-);
-
-predisclosure_view.component(
-    "edit-button",
-    vuejs_components.EditButton
-);
-
-predisclosure_view.component(
-    "template-button",
-    vuejs_components.TemplateButton
-);
-
-//
-// Mount Application
-//
-
-predisclosure_view.mount(
-    "#predisclosure_view"
-);
 </script>
+
+{% endblock %}
