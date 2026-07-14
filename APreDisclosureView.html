@@ -1,3 +1,69 @@
+predisclosure_line_columns() {
+
+    const commonFields = [
+
+        "account_name",
+        "website",
+        "nda_confirmed",
+        "disclosure_format",
+        "reason_for_disclosure",
+        "products_to_be_disclosed",
+        "meeting_date",
+        "meeting_location",
+        "canon_responsible_person",
+        "individuals_being_disclosed_to",
+        "information_to_be_disclosed",
+
+    ];
+
+    const tradeFields = [
+
+        "sda_partner_level",
+        "account_in_sda_partner_list",
+        "retailer_ranking",
+
+    ];
+
+    const b2bFields = [
+
+        "disclosed_last_2_years",
+        "b2b_business_type",
+        "estimated_business",
+        "annual_sales",
+
+    ];
+
+    if (
+        this.selected_predisclosure.predisclosure_type === "PARTNER"
+    ) {
+
+        return [
+            ...commonFields,
+            ...tradeFields,
+            "predisclosure_line_status",
+        ];
+
+    }
+
+    if (
+        this.selected_predisclosure.predisclosure_type === "END_CUSTOMER"
+    ) {
+
+        return [
+            ...commonFields,
+            ...b2bFields,
+            "predisclosure_line_status",
+        ];
+
+    }
+
+    return [
+        ...commonFields,
+        "predisclosure_line_status",
+    ];
+
+},
+
 
 
 
