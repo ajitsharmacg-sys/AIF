@@ -1,7 +1,39 @@
 
+async patch_predisclosure() {
 
+    const payload = structuredClone(this.selected_predisclosure);
 
+    // Convert Product objects to Product IDs
+    payload.products = (payload.products || []).map(product => product.id);
 
+    await patchData(
+        api_endpoints.predisclosure +
+        this.selected_predisclosure.predisclosure_id +
+        "/",
+        payload,
+    )
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        }
+        return Promise.reject(response);
+    })
+    .catch(error => {
+        this.display_error(error);
+    });
+
+},
+
+const payload = structuredClone(this.selected_predisclosure);
+
+payload.products = (payload.products || []).map(product => product.id);
+
+await postData(
+    api_endpoints.predisclosure,
+    payload,
+)
+
+=======================
 computed: {
 
     lines() {
