@@ -1,3 +1,26 @@
+products_display = serializers.SerializerMethodField()
+
+class Meta:
+    model = PreDisclosure
+    fields = "__all__"
+
+def get_products_display(self, obj):
+    return ", ".join(
+        obj.products.values_list("product_name", flat=True)
+    )
+
+predisclosure_columns = [
+    "predisclosure_id",
+    "region",
+    "predisclosure_type",
+    "product_category",
+    "products_display",
+    "predisclosure_status",
+    "meta_created_by",
+    "meta_created_date",
+];
+=============================
+
 case "product_category":
 
     // Clear previous selections
