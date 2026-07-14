@@ -1,3 +1,8 @@
+console.log("Current Status:", current_status);
+console.log("Roles:", this.user_role);
+console.log("Allowed:", this.LINE_STATUS_TO_ROLE[current_status]);
+
+
 multiple_line_status_choices() {
 
     if (this.selected_lines.length === 0) {
