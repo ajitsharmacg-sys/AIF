@@ -17,25 +17,49 @@ async load_products() {
         return;
     }
 
-    const response = await fetch(
+    await fetch(
         api_endpoints.predisclosure_products +
         "?product_category=" +
         encodeURIComponent(
             this.selected_predisclosure.product_category
         )
-    );
+    )
+    .then(response => {
 
-    if (!response.ok) {
-        return;
-    }
+        if (response.ok) {
+            return response.json();
+        }
 
-    const data = await response.json();
+        return Promise.reject(response);
 
-    this.products = data.results ?? data;
+    })
+    .then(data => {
 
-}
+        // Handle paginated/non-paginated response
+        this.products = data.results ?? data;
 
+        // Edit mode: convert selected product objects to IDs
+        if (Array.isArray(this.selected_predisclosure.products)) {
 
+            this.selected_predisclosure.products =
+                this.selected_predisclosure.products.map(product =>
+
+                    typeof product === "object"
+                        ? product.id
+                        : product
+
+                );
+
+        }
+
+    })
+    .catch(error => {
+
+        this.display_error(error);
+
+    });
+
+},
 
 async setup_edit_context() {
 
