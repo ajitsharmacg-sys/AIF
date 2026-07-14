@@ -1,3 +1,11 @@
+const payload = {
+    ...this.selected_predisclosure,
+    products: (this.selected_predisclosure.products || []).map(product =>
+        typeof product === "object"
+            ? product.id
+            : product
+    ),
+};
 
 async patch_predisclosure() {
 
