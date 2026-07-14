@@ -1,3 +1,30 @@
+multiple_line_status_choices() {
+
+    if (this.selected_lines.length === 0) {
+        return [];
+    }
+
+    let common_target_status = new Set(
+        this.get_line_status_choices(
+            this.selected_lines[0]
+        )
+    );
+
+    for (const line of this.selected_lines.slice(1)) {
+
+        common_target_status =
+            common_target_status.intersection(
+                new Set(
+                    this.get_line_status_choices(line)
+                )
+            );
+
+    }
+
+    return [...common_target_status];
+
+},
+
 get_line_status_choices(line) {
 
     const current_status = line.predisclosure_line_status;
