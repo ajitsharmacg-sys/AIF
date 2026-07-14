@@ -1,3 +1,57 @@
+async create_lines(lines) {
+
+    for (const line of lines) {
+
+        line.predisclosure =
+            this.selected_predisclosure.predisclosure_id;
+
+        await postData(
+            api_endpoints.predisclosure_line,
+            line,
+        )
+        .then(response => {
+
+            if (response.ok) {
+                return response.json();
+            }
+
+            return Promise.reject(response);
+
+        })
+        .catch(error => {
+
+            this.display_error(error);
+
+        });
+
+    }
+
+},
+
+.then(async predisclosure => {
+
+    // Preserve the entered lines before replacing the header
+    const lines = this.lines.map(line => ({ ...line }));
+
+    this.selected_predisclosure = predisclosure;
+
+    await this.create_lines(lines);
+
+    await this.upload_to_sharepoint(
+        predisclosure
+    );
+
+    this.show_notification(
+        "PreDisclosure created successfully."
+    );
+
+})
+
+
+===============
+
+
+
 products_display = serializers.SerializerMethodField()
 
 class Meta:
