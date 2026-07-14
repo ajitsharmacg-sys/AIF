@@ -1,3 +1,91 @@
+get_line_status_choices(line) {
+
+    const current_status = line.predisclosure_line_status;
+
+    if (!current_status) {
+        return [];
+    }
+
+    const allowed_roles =
+        this.LINE_STATUS_TO_ROLE[current_status];
+
+    if (!allowed_roles) {
+        return [];
+    }
+
+    const has_permission = allowed_roles.some(role =>
+        this.user_role.includes(role)
+    );
+
+    if (!has_permission) {
+        return [];
+    }
+
+    // Every awaiting stage only exposes Approve/Reject
+    if (current_status.startsWith("AWAITING_")) {
+
+        return [
+            "APPROVED",
+            "REJECTED",
+        ];
+
+    }
+
+    return [];
+
+},
+
+get_line_status_action(choice) {
+
+    switch (choice) {
+
+        case "APPROVED":
+            return {
+                button_text: "Approve",
+                button_class: "btn btn-sm btn-success",
+            };
+
+        case "REJECTED":
+            return {
+                button_text: "Reject",
+                button_class: "btn btn-sm btn-danger",
+            };
+
+        default:
+            return {
+                button_text: choice,
+                button_class: "btn btn-sm btn-primary",
+            };
+
+    }
+
+},
+
+line_status_update_message() {
+
+    switch (this.line_target_status) {
+
+        case "APPROVED":
+            return "Please confirm that you approve the selected account(s).";
+
+        case "REJECTED":
+            return "Please confirm that you reject the selected account(s).";
+
+        default:
+            return "Would you like to continue?";
+
+    }
+
+},
+
+
+
+
+
+
+
+
+
 get_current_stage
 
 latest = (
