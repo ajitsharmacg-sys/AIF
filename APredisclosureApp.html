@@ -1,3 +1,93 @@
+case "product_category":
+
+    // Clear previous selections
+    this.selected_predisclosure.products = [];
+
+    // Load products for the selected category
+    this.load_products();
+
+    break;
+
+
+async load_products() {
+
+    this.products = [];
+
+    if (!this.selected_predisclosure.product_category) {
+        return;
+    }
+
+    const response = await fetch(
+        api_endpoints.predisclosure_products +
+        "?product_category=" +
+        encodeURIComponent(
+            this.selected_predisclosure.product_category
+        )
+    );
+
+    if (!response.ok) {
+        return;
+    }
+
+    const data = await response.json();
+
+    this.products = data.results ?? data;
+
+}
+
+
+
+async setup_edit_context() {
+
+    this.reset_changes();
+
+    // Load all products for the selected category
+    await this.load_products();
+
+    // Convert saved product objects to IDs
+    this.selected_predisclosure.products =
+        (this.selected_predisclosure.products || []).map(p =>
+            typeof p === "object" ? p.id : p
+        );
+
+}
+
+
+
+watch: {
+    "selected_predisclosure.product_category"(newValue) {
+
+        if (!newValue) {
+            return;
+        }
+
+        this.selected_predisclosure.products = [];
+
+        this.load_products();
+    }
+}
+
+handler: async function(newVal) {
+
+    if (
+        newVal.predisclosure_app &&
+        (
+            newVal.context === "edit" ||
+            newVal.context === "template"
+        )
+    ) {
+
+        await this.setup_edit_context();
+
+        await this.get_predisclosure_lines(
+            this.selected_predisclosure.predisclosure_id
+        );
+
+    }
+
+}
+
+
 const payload = {
     ...this.selected_predisclosure,
     products: (this.selected_predisclosure.products || []).map(product =>
