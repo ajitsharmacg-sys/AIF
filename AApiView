@@ -1,3 +1,75 @@
+get_current_stage
+
+latest = (
+    PreDisclosureLineStatus.objects.filter(
+        line__predisclosure=predisclosure,
+        status__startswith="AWAITING",
+    )
+    .order_by("-meta_created_date")
+    .first()
+)
+
+if not latest:
+    return None
+
+def update_all_lines_status(
+    status,
+    predisclosure,
+    request,
+):
+
+    for line in PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    ):
+
+        latest = (
+            PreDisclosureLineStatus.objects
+            .filter(line=line)
+            .latest("meta_created_date")
+        )
+
+        if latest.status not in [
+            PreDisclosureLineStatusChoices.APPROVED,
+            PreDisclosureLineStatusChoices.REJECTED,
+        ]:
+            continue
+
+        PreDisclosureLineStatus.objects.create(
+            line=line,
+            status=status,
+            meta_created_by=request.user,
+        )
+
+PreDisclosureLineReadSerializer
+========================================
+predisclosure_line_status = serializers.SerializerMethodField()
+previous_decision = serializers.SerializerMethodField()
+
+def get_previous_decision(self, obj):
+
+    for status in (
+        obj.predisclosure_line_status
+        .order_by("-meta_created_date")
+    ):
+
+        if status.status in [
+            PreDisclosureLineStatusChoices.APPROVED,
+            PreDisclosureLineStatusChoices.REJECTED,
+        ]:
+            return status.status
+
+    return None
+
+
+
+
+
+
+
+
+
+
+
 <div class="card mt-3">
 
     <div class="card-header d-flex justify-content-between align-items-center">
