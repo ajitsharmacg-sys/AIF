@@ -1,3 +1,50 @@
+-- Delete AIF Line Statuses
+DELETE ALS
+FROM aif_aiflinestatus ALS
+INNER JOIN aif_aiflines AL
+    ON ALS.aif_line_id = AL.id
+WHERE AL.aif_id = 10060;
+
+-- Delete AIF Lines
+DELETE FROM aif_aiflines
+WHERE aif_id = 10060;
+
+-- Delete Customer Lines
+DELETE FROM aif_aifcustomerlines
+WHERE aif_id = 10060;
+
+-- Delete AIF Statuses
+DELETE FROM aif_aifstatus
+WHERE aif_id = 10060;
+
+-- Delete AIF Header
+DELETE FROM aif_aif
+WHERE aif_id = 10060;
+
+SELECT * FROM aif_aif
+WHERE aif_id = 10060;
+
+SELECT * FROM aif_aifstatus
+WHERE aif_id = 10060;
+
+SELECT * FROM aif_aifcustomerlines
+WHERE aif_id = 10060;
+
+SELECT * FROM aif_aiflines
+WHERE aif_id = 10060;
+
+SELECT ALS.*
+FROM aif_aiflinestatus ALS
+INNER JOIN aif_aiflines AL
+    ON ALS.aif_line_id = AL.id
+WHERE AL.aif_id = 10060;
+
+
+
+
+
+
+==========================================
 from datetime import timedelta
 
 from django.utils import timezone
