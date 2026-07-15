@@ -1,3 +1,206 @@
+def set_initial_line_status(
+    predisclosure,
+    request,
+):
+    """
+    Called when request is submitted.
+    Every line moves from DRAFT to the first workflow stage.
+    """
+
+    workflow = WORKFLOW_MATRIX[
+        get_workflow_type(predisclosure)
+    ]
+
+    first_status = workflow[1]
+
+    for line in PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    ):
+
+        latest = (
+            PreDisclosureLineStatus.objects
+            .filter(line=line)
+            .latest("meta_created_date")
+        )
+
+        if latest.status != PreDisclosureLineStatusChoices.DRAFT:
+            continue
+
+        PreDisclosureLineStatus.objects.create(
+            line=line,
+            status=first_status,
+            meta_created_by=request.user,
+        )
+
+def update_all_lines_status(
+    status,
+    predisclosure,
+    request,
+):
+
+    for line in PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    ):
+
+        latest = (
+            PreDisclosureLineStatus.objects
+            .filter(line=line)
+            .latest("meta_created_date")
+        )
+
+        if latest.status not in [
+            PreDisclosureLineStatusChoices.APPROVED,
+            PreDisclosureLineStatusChoices.REJECTED,
+        ]:
+            continue
+
+        PreDisclosureLineStatus.objects.create(
+            line=line,
+            status=status,
+            meta_created_by=request.user,
+        )
+
+def get_current_stage(
+    predisclosure,
+):
+    """
+    Returns the current workflow stage.
+
+    Finds the first workflow stage that still has
+    lines awaiting approval.
+    """
+
+    workflow = WORKFLOW_MATRIX[
+        get_workflow_type(predisclosure)
+    ]
+
+    for step, awaiting_status in workflow.items():
+
+        exists = (
+            PreDisclosureLineStatus.objects.filter(
+                line__predisclosure=predisclosure,
+                status=awaiting_status,
+            )
+            .exists()
+        )
+
+        if exists:
+            return step
+
+    return None
+
+
+def advance_workflow(
+    predisclosure,
+    request,
+):
+    """
+    Move workflow to the next approval stage.
+    Returns True if workflow moved.
+    Returns False if workflow has reached the final stage.
+    """
+
+    workflow = WORKFLOW_MATRIX[
+        get_workflow_type(predisclosure)
+    ]
+
+    current_stage = get_current_stage(
+        predisclosure
+    )
+
+    if current_stage is None:
+        return False
+
+    next_stage = current_stage + 1
+
+    next_status = workflow.get(next_stage)
+
+    if next_status is None:
+        return False
+
+    update_all_lines_status(
+        next_status,
+        predisclosure,
+        request,
+    )
+
+    return True
+
+def process_line_approval(
+    request,
+    line_status,
+):
+    """
+    Central workflow engine.
+    """
+
+    predisclosure = (
+        line_status.line.predisclosure
+    )
+
+    # Wait until every line has received a decision
+    if not is_stage_completed(
+        predisclosure
+    ):
+        return
+
+    # Move to next approval stage if one exists
+    if advance_workflow(
+        predisclosure,
+        request,
+    ):
+        return
+
+    # Otherwise complete the workflow
+    finalize_workflow(
+        predisclosure,
+        request,
+    )
+
+def is_stage_completed(
+    predisclosure,
+):
+    """
+    Returns True when every line that is currently
+    awaiting approval has received a decision.
+    """
+
+    current_stage = get_current_stage(
+        predisclosure
+    )
+
+    if current_stage is None:
+        return True
+
+    workflow = WORKFLOW_MATRIX[
+        get_workflow_type(predisclosure)
+    ]
+
+    awaiting_status = workflow[current_stage]
+
+    for line in PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    ):
+
+        latest = (
+            PreDisclosureLineStatus.objects.filter(
+                line=line
+            ).latest("meta_created_date")
+        )
+
+        if latest.status == awaiting_status:
+            return False
+
+    return True
+
+
+
+
+
+
+
+=============================================================================
+
 console.log("Current Status:", current_status);
 console.log("Roles:", this.user_role);
 console.log("Allowed:", this.LINE_STATUS_TO_ROLE[current_status]);
