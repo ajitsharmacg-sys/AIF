@@ -1,3 +1,9 @@
+from django.conf import settings
+
+def aif_url(aif_id):
+    return f"{settings.APP_BASE_URL}/aifmgmt/aif/{aif_id}/"
+
+
 -- Delete AIF Line Statuses
 DELETE ALS
 FROM aif_aiflinestatus ALS
