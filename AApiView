@@ -1,3 +1,10 @@
+previous_status = get_previous_status(
+    line_status.line
+)
+
+if previous_status is None:
+    return
+
 def is_stage_completed(predisclosure):
 
     for line in PreDisclosureLine.objects.filter(
