@@ -1,3 +1,85 @@
+def get_next_stage_status(current_status, predisclosure):
+    """
+    Returns the next awaiting status based on
+    the current awaiting status.
+    """
+
+    workflow = WORKFLOW_MATRIX[
+        get_workflow_type(predisclosure)
+    ]
+
+    for step, status in workflow.items():
+
+        if status == current_status:
+            return workflow.get(step + 1)
+
+    return None
+
+def process_line_approval(
+    request,
+    line_status,
+):
+    """
+    Main workflow engine.
+    """
+
+    predisclosure = line_status.line.predisclosure
+
+    # Wait until every line has been approved/rejected
+    if not is_stage_completed(
+        predisclosure
+    ):
+        return
+
+    # Get the awaiting status that has just completed
+    previous_status = (
+        PreDisclosureLineStatus.objects
+        .filter(
+            line=line_status.line
+        )
+        .order_by("-meta_created_date")[1]
+    )
+
+    next_status = get_next_stage_status(
+        previous_status.status,
+        predisclosure,
+    )
+
+    # Final stage completed
+    if not next_status:
+
+        finalize_workflow(
+            predisclosure,
+            request,
+        )
+
+        return
+
+    # Move every completed line to next stage
+    update_all_lines_status(
+        next_status,
+        predisclosure,
+        request,
+    )
+
+def get_previous_status(line):
+
+    history = (
+        PreDisclosureLineStatus.objects
+        .filter(line=line)
+        .order_by("-meta_created_date")
+    )
+
+    return history[1] if history.count() > 1 else None
+
+previous_status = get_previous_status(line_status.line)
+
+
+
+
+
+
+================================================
 def set_initial_line_status(
     predisclosure,
     request,
