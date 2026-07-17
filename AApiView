@@ -1,3 +1,23 @@
+def is_stage_completed(predisclosure):
+
+    for line in PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    ):
+
+        latest = (
+            PreDisclosureLineStatus.objects
+            .filter(line=line)
+            .latest("meta_created_date")
+        )
+
+        if latest.status not in [
+            PreDisclosureLineStatusChoices.APPROVED,
+            PreDisclosureLineStatusChoices.REJECTED,
+        ]:
+            return False
+
+    return True
+
 def get_next_stage_status(current_status, predisclosure):
     """
     Returns the next awaiting status based on
