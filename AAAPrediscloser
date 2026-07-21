@@ -1,3 +1,54 @@
+
+
+
+computed: {
+    isTrade() {
+        return this.selected_predisclosure.predisclosure_type === "PARTNER";
+    },
+
+    isB2B() {
+        return this.selected_predisclosure.predisclosure_type === "END_CUSTOMER";
+    },
+
+    isPSSocial() {
+        return this.selected_predisclosure.predisclosure_type === "PS_SOCIAL";
+    },
+},
+
+
+showField(fieldName) {
+    const tradeOnlyFields = [
+        "sda_partner_level",
+        "account_in_sda_partner_list",
+        "retailer_ranking",
+    ];
+
+    const b2bOnlyFields = [
+        "disclosed_last_2_years",
+        "b2b_business_type",
+        "estimated_business",
+        "annual_sales",
+    ];
+
+    if (this.isTrade) {
+        return !b2bOnlyFields.includes(fieldName);
+    }
+
+    if (this.isB2B) {
+        return !tradeOnlyFields.includes(fieldName);
+    }
+
+    if (this.isPSSocial) {
+        return !tradeOnlyFields.includes(fieldName)
+            && !b2bOnlyFields.includes(fieldName);
+    }
+
+    return true;
+}
+
+=============================
+
+
 if (model_column === "mercury") {
     if (!value) {
         return; // Let HTML required validation handle empty mercury
