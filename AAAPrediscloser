@@ -1,14 +1,37 @@
 
+from predisclosure.workflow import get_role_from_status
+
 def get_previous_decision(self, obj):
-    for status in (
+    statuses = list(
         obj.predisclosure_line_status
         .order_by("-meta_created_date")
-    ):
+    )
+
+    for index, status in enumerate(statuses):
         if status.status in [
             PreDisclosureLineStatusChoices.APPROVED,
             PreDisclosureLineStatusChoices.REJECTED,
         ]:
-            return f"{status.status} by {status.role}"
+            role = ""
+
+            if index + 1 < len(statuses):
+                previous_status = statuses[index + 1].status
+                roles = get_role_from_status(previous_status)
+
+                if roles:
+                    role = (
+                        roles[0]
+                        .replace("PreDisclosure ", "")
+                        .replace("_", " ")
+                    )
+
+            decision = status.status.title()
+
+            return (
+                f"{role} - {decision}"
+                if role
+                else decision
+            )
 
     return None
 ===============
