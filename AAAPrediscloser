@@ -1,5 +1,17 @@
 
+def get_previous_decision(self, obj):
+    for status in (
+        obj.predisclosure_line_status
+        .order_by("-meta_created_date")
+    ):
+        if status.status in [
+            PreDisclosureLineStatusChoices.APPROVED,
+            PreDisclosureLineStatusChoices.REJECTED,
+        ]:
+            return f"{status.status} by {status.role}"
 
+    return None
+===============
 
 computed: {
     isTrade() {
