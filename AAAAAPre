@@ -190,3 +190,48 @@ def get_role_status(role):
     Returns the awaiting status assigned to the role.
     """
     return ROLE_TO_LINE_STATUS.get(role, [])
+
+
+==============================================
+from predisclosure.roles import (
+    NSO_USER,
+    ICB_ADMIN,
+    ISB_PM,
+    ISB_ADMIN,
+    ICB_PM,
+    PR_ADMIN,
+    ADMIN_ROLE,
+)
+
+def get_workflow_type(predisclosure):
+    """
+    Returns the workflow type based on disclosure type.
+    """
+    return predisclosure.predisclosure_type
+
+def get_product_category(predisclosure):
+    """
+    Returns product category.
+    """
+    return predisclosure.product_category
+
+get_next_stage_status
+
+workflow = WORKFLOW_MATRIX[
+    get_workflow_type(predisclosure)
+][
+    get_product_category(predisclosure)
+]
+
+set_initial_line_status
+workflow = WORKFLOW_MATRIX[
+    get_workflow_type(predisclosure)
+][
+    get_product_category(predisclosure)
+]
+
+from predisclosure.workflow import (
+    WORKFLOW_MATRIX,
+    get_role_from_status,
+)
+
