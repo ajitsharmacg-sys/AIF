@@ -1,3 +1,23 @@
+def get_next_status(disclosure_type, product_category, current_status):
+    workflow = WORKFLOW_MATRIX[disclosure_type][product_category]
+
+    reverse = {v: k for k, v in workflow.items()}
+
+    step = reverse.get(current_status)
+
+    if step is None:
+        return None
+
+    return workflow.get(step + 1)
+
+
+next_status = get_next_status(
+    predisclosure.predisclosure_type,
+    predisclosure.product_category,
+    previous_status.status,
+)
+
+===========================
 from predisclosure.roles import (
     ISB_ADMIN,
     ISB_PM,
