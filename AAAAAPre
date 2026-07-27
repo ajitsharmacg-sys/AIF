@@ -1,3 +1,110 @@
+STATUS_TO_APPROVER_TYPE = {
+    PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL:
+        ApproverTypeChoices.ISB_APPROVER1,
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL:
+        ApproverTypeChoices.ISB_APPROVER2,
+
+    PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL:
+        ApproverTypeChoices.ICB_APPROVER1,
+
+    PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL:
+        ApproverTypeChoices.ICB_APPROVER2,
+
+    PreDisclosureLineStatusChoices.AWAITING_PR_APPROVAL:
+        ApproverTypeChoices.PR_APPROVER1,
+}
+
+
+def get_approver_type(status):
+    return STATUS_TO_APPROVER_TYPE.get(status)
+
+
+
+from common.email_notifications import send_emails
+
+def notify_predisclosure_approvers(request, predisclosure, status):
+    approver_type = get_approver_type(status)
+
+    if not approver_type:
+        return
+
+    emails = list(
+        PreDisclosureApprover.objects.filter(
+            approver_type=approver_type
+        )
+        .values_list(
+            "approver__email",
+            flat=True,
+        )
+        .distinct()
+    )
+
+    if not emails:
+        return
+
+    send_emails(
+        to=emails,
+        subject=f"PreDisclosure {predisclosure.predisclosure_id} is awaiting approval",
+        body=...
+    )
+
+
+def set_initial_line_status(
+    predisclosure,
+    request,
+):
+    workflow = WORKFLOW_MATRIX[
+        predisclosure.predisclosure_type
+    ][
+        predisclosure.product_category
+    ]
+
+    first_status = workflow[1]
+
+    for line in PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    ):
+        latest = (
+            PreDisclosureLineStatus.objects
+            .filter(line=line)
+            .latest("meta_created_date")
+        )
+
+        if latest.status != PreDisclosureLineStatusChoices.DRAFT:
+            continue
+
+        PreDisclosureLineStatus.objects.create(
+            line=line,
+            status=first_status,
+            meta_created_by=request.user,
+        )
+
+    # <-- ADD HERE
+    notify_predisclosure_approvers(
+        request,
+        predisclosure,
+        first_status,
+    )
+
+
+process_line_approval
+=========================
+update_all_lines_status(
+    next_status,
+    predisclosure,
+    request,
+)
+
+# <-- ADD HERE
+notify_predisclosure_approvers(
+    request,
+    predisclosure,
+    next_status,
+)
+
+
+
 def get_next_status(disclosure_type, product_category, current_status):
     workflow = WORKFLOW_MATRIX[disclosure_type][product_category]
 
