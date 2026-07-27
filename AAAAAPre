@@ -1,3 +1,22 @@
+send_emails(
+        to=emails,
+        subject=f"PreDisclosure {predisclosure.predisclosure_id} is awaiting approval",
+        body=f"""
+            Dear Approver,<br><br>
+
+            PreDisclosure <b>{predisclosure.predisclosure_id}</b>
+            is awaiting your approval.<br><br>
+
+            Please review the request.
+
+            <br><br>
+            Thanks,<br>
+            Rev Sales Ops Team
+        """,
+    )
+
+
+
 from django.contrib import admin
 
 from predisclosure.models import (
