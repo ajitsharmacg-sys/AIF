@@ -1,3 +1,52 @@
+from django.contrib import admin
+
+from predisclosure.models import (
+    PreDisclosure,
+    PreDisclosureLine,
+    PreDisclosureStatus,
+    PreDisclosureLineStatus,
+    PreDisclosureProduct,
+    PreDisclosureApprover,
+)
+
+
+admin.site.register(PreDisclosure)
+admin.site.register(PreDisclosureLine)
+admin.site.register(PreDisclosureStatus)
+admin.site.register(PreDisclosureLineStatus)
+admin.site.register(PreDisclosureProduct)
+
+
+@admin.register(PreDisclosureApprover)
+class PreDisclosureApproverAdmin(admin.ModelAdmin):
+    fields = (
+        "approver_type",
+        "approver",
+    )
+
+    list_display = (
+        "approver_type",
+        "approver",
+    )
+
+    list_filter = (
+        "approver_type",
+    )
+
+    search_fields = (
+        "approver__username",
+        "approver__first_name",
+        "approver__last_name",
+        "approver__email",
+    )
+
+    ordering = (
+        "approver_type",
+        "approver__first_name",
+    )
+
+===============
+
 STATUS_TO_APPROVER_TYPE = {
     PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL:
         ApproverTypeChoices.ISB_APPROVER1,
