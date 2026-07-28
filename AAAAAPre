@@ -3,9 +3,11 @@
 {% block predisclosure_approver %}
 
 <section class="section" id="predisclosure_approver">
+
     <div v-if="nav_state.predisclosure_approver">
 
         <div class="section">
+
             <div class="row g-3">
 
                 <template
@@ -25,7 +27,7 @@
 
                                     <div>
                                         <strong>
-                                            [[ approverType.replaceAll('_', ' ') ]]
+                                            [[ formatApproverType(approverType) ]]
                                         </strong>
                                     </div>
                                 </div>
@@ -81,22 +83,28 @@
                 </template>
 
             </div>
+
         </div>
 
     </div>
+
 </section>
 
 <script type="module">
 
-Vue.createApp({
+const predisclosure_approver = Vue.createApp({
 
     delimiters: ['[[', ']]'],
 
     data() {
         return {
             nav_state: init_nav_state,
-            predisclosure_approvers: predisclosure_approvers,
+            predisclosure_approvers: [],
         };
+    },
+
+    created() {
+        this.load_predisclosure_approvers();
     },
 
     computed: {
@@ -110,9 +118,11 @@ Vue.createApp({
                 if (!result[item.approver_type]) {
 
                     result[item.approver_type] = {
+
                         approvers: [],
                         modified_by: "",
                         modified_at: "",
+
                     };
 
                 }
@@ -137,6 +147,33 @@ Vue.createApp({
 
     methods: {
 
+        async load_predisclosure_approvers() {
+
+            fetch(api_endpoints.predisclosure_approver)
+                .then(response => response.json())
+                .then(data => {
+                    this.predisclosure_approvers = data;
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+
+        },
+
+        formatApproverType(type) {
+
+            const labels = {
+                ISB_APPROVER1: "ISB Approver 1",
+                ISB_APPROVER2: "ISB Approver 2",
+                ICB_APPROVER1: "ICB Approver 1",
+                ICB_APPROVER2: "ICB Approver 2",
+                PR_APPROVER1: "PR Approver 1",
+            };
+
+            return labels[type] || type;
+
+        },
+
         navigate(id) {
 
             this.nav_state.predisclosure_approver = false;
@@ -148,12 +185,15 @@ Vue.createApp({
 
     },
 
-}).mount("#predisclosure_approver");
+});
+
+predisclosure_approver.mount(
+    "#predisclosure_approver"
+);
 
 </script>
 
 {% endblock %}
-
 =================================
 
 self.fields["product_category"].choices = [
