@@ -1,3 +1,161 @@
+{% load static %}
+{% load common_tags %}
+{% block predisclosure_approver %}
+
+<section class="section" id="predisclosure_approver">
+    <div v-if="nav_state.predisclosure_approver">
+
+        <div class="section">
+            <div class="row g-3">
+
+                <template
+                    v-for="(group, approverType) in groupedApprovers"
+                    :key="approverType">
+
+                    <div class="col-md-4">
+
+                        <div class="card h-100">
+
+                            <div class="card-body">
+
+                                <div class="mb-2">
+                                    <small class="text-muted">
+                                        Approver Type
+                                    </small>
+
+                                    <div>
+                                        <strong>
+                                            [[ approverType.replaceAll('_', ' ') ]]
+                                        </strong>
+                                    </div>
+                                </div>
+
+                                <div class="mb-2">
+                                    <small class="text-muted">
+                                        Approvers
+                                    </small>
+
+                                    <ul class="mb-0 ps-3">
+                                        <li
+                                            v-for="person in group.approvers"
+                                            :key="person">
+                                            [[ person ]]
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <div
+                                    class="mb-2"
+                                    v-if="group.modified_at">
+
+                                    <small class="text-muted">
+                                        Modified
+                                    </small>
+
+                                    <div>
+                                        [[ new Date(group.modified_at).toLocaleString() ]]
+                                    </div>
+
+                                </div>
+
+                                <div
+                                    class="mb-2"
+                                    v-if="group.modified_by">
+
+                                    <small class="text-muted">
+                                        Modified By
+                                    </small>
+
+                                    <div>
+                                        [[ group.modified_by ]]
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </template>
+
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<script type="module">
+
+Vue.createApp({
+
+    delimiters: ['[[', ']]'],
+
+    data() {
+        return {
+            nav_state: init_nav_state,
+            predisclosure_approvers: predisclosure_approvers,
+        };
+    },
+
+    computed: {
+
+        groupedApprovers() {
+
+            const result = {};
+
+            this.predisclosure_approvers.forEach(item => {
+
+                if (!result[item.approver_type]) {
+
+                    result[item.approver_type] = {
+                        approvers: [],
+                        modified_by: "",
+                        modified_at: "",
+                    };
+
+                }
+
+                result[item.approver_type].approvers.push(
+                    item.approver
+                );
+
+                result[item.approver_type].modified_by =
+                    item.meta_edited_by;
+
+                result[item.approver_type].modified_at =
+                    item.meta_edited_date;
+
+            });
+
+            return result;
+
+        }
+
+    },
+
+    methods: {
+
+        navigate(id) {
+
+            this.nav_state.predisclosure_approver = false;
+            this.nav_state.current = id;
+            this.nav_state[id] = true;
+            this.nav_state.previous = "predisclosure_approver";
+
+        },
+
+    },
+
+}).mount("#predisclosure_approver");
+
+</script>
+
+{% endblock %}
+
+=================================
+
 self.fields["product_category"].choices = [
     ("ISB", "ISB"),
     ("ICB", "ICB"),
