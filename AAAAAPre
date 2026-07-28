@@ -1,4 +1,277 @@
+from predisclosure.models import (
+    PreDisclosureLineStatusChoices,
+    ApproverTypeChoices,
+)
 
+# --------------------------------------------------------
+# Approver Mapping
+# --------------------------------------------------------
+
+APPROVER_TYPE_TO_ROLE = {
+
+    ApproverTypeChoices.ISB_APPROVER1: ISB_ADMIN,
+
+    ApproverTypeChoices.ISB_APPROVER2: ISB_PM,
+
+    ApproverTypeChoices.ICB_APPROVER1: ICB_ADMIN,
+
+    ApproverTypeChoices.ICB_APPROVER2: ICB_PM,
+
+    ApproverTypeChoices.PR_APPROVER1: PR_ADMIN,
+
+}
+
+
+STATUS_TO_APPROVER_TYPE = {
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL:
+        ApproverTypeChoices.ISB_APPROVER1,
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL:
+        ApproverTypeChoices.ISB_APPROVER2,
+
+    PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL:
+        ApproverTypeChoices.ICB_APPROVER1,
+
+    PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL:
+        ApproverTypeChoices.ICB_APPROVER2,
+
+    PreDisclosureLineStatusChoices.AWAITING_PR_APPROVAL:
+        ApproverTypeChoices.PR_APPROVER1,
+
+}
+
+
+def get_approver_type(status):
+    """
+    Returns approver type from workflow status.
+    """
+    return STATUS_TO_APPROVER_TYPE.get(status)
+
+
+def get_required_role(approver_type):
+    """
+    Returns required role for approver type.
+    """
+    return APPROVER_TYPE_TO_ROLE.get(approver_type)
+
+
+from django import forms
+
+from predisclosure.models import (
+    PreDisclosureApprover,
+)
+
+from predisclosure.workflow import (
+    get_required_role,
+)
+
+
+class PreDisclosureApproverAdminForm(forms.ModelForm):
+
+    class Meta:
+        model = PreDisclosureApprover
+        fields = (
+            "approver_type",
+            "approver",
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        approver = cleaned_data.get("approver")
+        approver_type = cleaned_data.get("approver_type")
+
+        if not approver or not approver_type:
+            return cleaned_data
+
+        required_role = get_required_role(
+            approver_type
+        )
+
+        if (
+            required_role
+            and not approver.groups.filter(
+                name=required_role
+            ).exists()
+        ):
+            raise forms.ValidationError(
+                f"{approver} is not assigned to "
+                f"'{required_role}'."
+            )
+
+        return cleaned_data
+
+
+admin.py
+---------
+from django.contrib import admin
+from django.utils import timezone
+
+from predisclosure.models import (
+    PreDisclosureApprover,
+    PreDisclosureProduct,
+)
+
+from predisclosure.forms import (
+    PreDisclosureApproverAdminForm,
+    PreDisclosureProductAdminForm,
+)
+
+from predisclosure.roles import (
+    ADMIN_ROLE,
+)
+
+
+@admin.register(PreDisclosureProduct)
+class PreDisclosureProductAdmin(admin.ModelAdmin):
+
+    save_as = True
+    form = PreDisclosureProductAdminForm
+
+    list_display = (
+        "id",
+        "product_name",
+        "product_category",
+        "is_active",
+        "meta_edited_date",
+    )
+
+    list_filter = (
+        "product_category",
+        "is_active",
+    )
+
+    search_fields = (
+        "product_name",
+    )
+
+    readonly_fields = (
+        "meta_edited_date",
+        "meta_edited_by",
+    )
+
+    exclude = (
+        "meta_edited_by",
+    )
+
+    def save_model(self, request, obj, form, change):
+
+        obj.meta_edited_by = request.user
+        obj.meta_edited_date = timezone.now()
+
+        super().save_model(
+            request,
+            obj,
+            form,
+            change,
+        )
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.groups.filter(
+            name=ADMIN_ROLE
+        ).exists()
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.groups.filter(
+            name=ADMIN_ROLE
+        ).exists()
+
+    def has_add_permission(self, request, obj=None):
+        return request.user.groups.filter(
+            name=ADMIN_ROLE
+        ).exists()
+
+
+@admin.register(PreDisclosureApprover)
+class PreDisclosureApproverAdmin(admin.ModelAdmin):
+
+    save_as = True
+    form = PreDisclosureApproverAdminForm
+
+    fields = (
+        "approver_type",
+        "approver",
+    )
+
+    list_display = (
+        "id",
+        "approver_type",
+        "approver",
+        "approver_email",
+        "meta_edited_date",
+    )
+
+    list_filter = (
+        "approver_type",
+    )
+
+    search_fields = (
+        "approver__username",
+        "approver__email",
+        "approver__first_name",
+        "approver__last_name",
+    )
+
+    readonly_fields = (
+        "meta_edited_date",
+        "meta_edited_by",
+    )
+
+    exclude = (
+        "meta_edited_by",
+    )
+
+    def save_model(self, request, obj, form, change):
+
+        obj.meta_edited_by = request.user
+        obj.meta_edited_date = timezone.now()
+
+        super().save_model(
+            request,
+            obj,
+            form,
+            change,
+        )
+
+    def approver_email(self, obj):
+        return obj.approver.email
+
+    approver_email.short_description = "Approver Email"
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.groups.filter(
+            name=ADMIN_ROLE
+        ).exists()
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.groups.filter(
+            name=ADMIN_ROLE
+        ).exists()
+
+    def has_add_permission(self, request, obj=None):
+        return request.user.groups.filter(
+            name=ADMIN_ROLE
+        ).exists()
+
+
+
+approver_type = get_approver_type(status)
+
+emails = list(
+    PreDisclosureApprover.objects.filter(
+        approver_type=approver_type
+    )
+    .values_list(
+        "approver__email",
+        flat=True,
+    )
+    .distinct()
+)
+
+
+
+==========================================================================================================
 from django import forms
 
 from predisclosure.models import (
