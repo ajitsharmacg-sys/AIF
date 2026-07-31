@@ -1,3 +1,21 @@
+custom_format() {
+    return {
+        predisclosure_line_status: {
+            formatter: (value) => this.formatStatus(value),
+
+            DRAFT: "text-bg-secondary",
+            APPROVED: "text-bg-success",
+            REJECTED: "text-bg-danger",
+            AWAITING_ISB_ADMIN_APPROVAL: "text-bg-warning",
+            AWAITING_ISB_PM_APPROVAL: "text-bg-warning",
+            AWAITING_ICB_ADMIN_APPROVAL: "text-bg-warning",
+            AWAITING_ICB_PM_APPROVAL: "text-bg-warning",
+            AWAITING_PR_APPROVAL: "text-bg-warning",
+        },
+    };
+}
+
+
 formatStatus(status) {
     if (!status) {
         return "";
