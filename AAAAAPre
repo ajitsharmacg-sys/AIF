@@ -1,3 +1,52 @@
+
+from predisclosure.utils import generate_upload_path
+
+class PreDisclosure(CommonFields):
+    ...
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        if not self.link:
+            self.link = generate_upload_path(
+                region=self.region,
+                predisclosure_id=self.predisclosure_id,
+            )
+
+            super().save(update_fields=["link"])
+
+
+from django.utils import timezone
+
+from predisclosure.config import PredisclosureConfig
+
+
+def generate_upload_path(region: str, predisclosure_id: str) -> str:
+    """
+    Generate SharePoint upload path.
+
+    Folder Structure:
+        Library/
+            dd-MM-yyyy/
+                Region/
+                    PreDisclosure ID/
+    """
+
+    base_url = (
+        f"{PredisclosureConfig.site_address}"
+        f"{PredisclosureConfig.library}"
+    )
+
+    current_date = timezone.now().strftime("%d-%m-%Y")
+
+    return (
+        f"{base_url}/"
+        f"{current_date}/"
+        f"{region}/"
+        f"{predisclosure_id}"
+    )
+
+=============================================
 {% load static %}
 {% load common_tags %}
 {% block predisclosure_approver %}
