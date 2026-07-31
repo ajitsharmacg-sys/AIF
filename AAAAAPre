@@ -1,3 +1,87 @@
+class PreDisclosureApproverAdminForm(EnhancedModelForm):
+
+    class Meta:
+        model = PreDisclosureApprover
+        fields = (
+            "approver_type",
+            "approver",
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        approver = cleaned_data.get("approver")
+        approver_type = cleaned_data.get("approver_type")
+
+        if not approver or not approver_type:
+            return cleaned_data
+
+        required_role = get_required_role(approver_type)
+
+        if (
+            required_role
+            and not approver.groups.filter(name=required_role).exists()
+        ):
+            raise forms.ValidationError(
+                f"{approver} is not assigned to role '{required_role}'."
+            )
+
+        if (
+            PreDisclosureApprover.objects.filter(
+                approver=approver,
+                approver_type=approver_type,
+            )
+            .exclude(pk=self.instance.pk)
+            .exists()
+        ):
+            raise forms.ValidationError(
+                "This approver is already configured for the selected Approver Type."
+            )
+
+        return cleaned_data
+
+class PreDisclosureProductAdminForm(EnhancedModelForm):
+
+    class Meta:
+        model = PreDisclosureProduct
+        fields = (
+            "product_category",
+            "product_name",
+            "is_active",
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        product_name = cleaned_data.get("product_name")
+        product_category = cleaned_data.get("product_category")
+
+        if (
+            product_name
+            and product_category
+            and PreDisclosureProduct.objects.filter(
+                product_name__iexact=product_name,
+                product_category=product_category,
+            ).exclude(pk=self.instance.pk).exists()
+        ):
+            raise forms.ValidationError(
+                "This product already exists for the selected Product Category."
+            )
+
+        return cleaned_data
+
+
+
+
+
+
+
+
+
+
+
+
+===================================
 custom_format() {
     return {
         predisclosure_line_status: {
