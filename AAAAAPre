@@ -1,3 +1,25 @@
+formatStatus(status) {
+    if (!status) {
+        return "";
+    }
+
+    let formatted = status
+        .replaceAll("_", " ")
+        .toLowerCase()
+        .replace(/\b\w/g, c => c.toUpperCase());
+
+    return formatted
+        .replace(/\bIsb\b/g, "ISB")
+        .replace(/\bIcb\b/g, "ICB")
+        .replace(/\bPm\b/g, "PM")
+        .replace(/\bPr\b/g, "PR");
+}
+
+[[ formatStatus(line.predisclosure_line_status) ]]
+
+
+
+
 
 from predisclosure.utils import generate_upload_path
 
