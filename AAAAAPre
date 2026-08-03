@@ -1,4 +1,12 @@
-statuses = PreDisclosureStatus.objects.raw(
+def predisclosure_url(request, predisclosure_id):
+    return (
+        f"{request.build_absolute_uri('/predisclosure/predisclosure/')}"
+        f"{predisclosure_id}/"
+    )
+
+
+
+tatuses = PreDisclosureStatus.objects.raw(
     f"""
     SELECT
         B.id,
