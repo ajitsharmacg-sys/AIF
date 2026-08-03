@@ -1,3 +1,61 @@
+from rest_framework import filters
+
+from predisclosure.models import (
+    PreDisclosureStatus,
+    PreDisclosureStatusChoices,
+)
+
+
+class PreDisclosureByStatusFilter(filters.BaseFilterBackend):
+    """
+    Filter PreDisclosures based on their latest status.
+    """
+
+    def filter_queryset(self, request, queryset, view):
+        predisclosure_status = request.query_params.get(
+            "predisclosure_status",
+            None,
+        )
+
+        if predisclosure_status:
+
+            if predisclosure_status in PreDisclosureStatusChoices:
+
+                statuses = PreDisclosureStatus.objects.raw(
+                    f"""
+                    SELECT
+                        id,
+                        meta_created_date,
+                        status,
+                        comment,
+                        predisclosure_id,
+                        meta_created_by_id
+                    FROM
+                    (
+                        SELECT
+                            predisclosure_id,
+                            MAX(id) AS last_status_id
+                        FROM predisclosure_predisclosurestatus
+                        GROUP BY predisclosure_id
+                    ) A
+                    INNER JOIN predisclosure_predisclosurestatus B
+                        ON A.last_status_id = B.id
+                    WHERE B.status = '{predisclosure_status}'
+                    """
+                )
+
+                predisclosure_ids = [
+                    status.predisclosure_id
+                    for status in statuses
+                ]
+
+                queryset = queryset.filter(
+                    predisclosure_id__in=predisclosure_ids
+                )
+
+        return queryset
+
+
 <div class="p-2 w-25 appitem">
     <div class="d-flex flex-column align-items-center">
         <div class="p-2">
