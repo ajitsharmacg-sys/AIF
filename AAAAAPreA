@@ -1,4 +1,89 @@
+from predisclosure.email_templates import (
+    get_predisclosure_email_subject,
+    get_predisclosure_email_body,
+)
 
+...
+
+if instance.status == PreDisclosureStatusChoices.IN_PROGRESS:
+
+    link = predisclosure_url(
+        self.request,
+        instance.predisclosure.predisclosure_id,
+    )
+
+    send_email(
+        to=instance.predisclosure.meta_created_by.email,
+        subject=get_predisclosure_email_subject(
+            instance.predisclosure,
+            instance.status,
+        ),
+        body=get_predisclosure_email_body(
+            instance.predisclosure,
+            instance.status,
+            link,
+        ),
+    )
+
+    set_initial_line_status(
+        instance.predisclosure,
+        self.request,
+    )
+
+
+link = predisclosure_url(
+    request,
+    predisclosure.predisclosure_id,
+)
+
+send_emails(
+    to=emails,
+    subject=get_predisclosure_email_subject(
+        predisclosure,
+        None,
+        approver=True,
+    ),
+    body=get_predisclosure_email_body(
+        predisclosure,
+        None,
+        link,
+        approver=True,
+        approver_status=status,
+    ),
+)
+
+
+link = predisclosure_url(
+    request,
+    predisclosure.predisclosure_id,
+)
+
+latest_comment = (
+    PreDisclosureLineStatus.objects.filter(
+        line__predisclosure=predisclosure,
+        comment__isnull=False,
+    )
+    .exclude(comment="")
+    .order_by("-meta_created_date")
+    .values_list("comment", flat=True)
+    .first()
+)
+
+send_email(
+    to=predisclosure.meta_created_by.email,
+    subject=get_predisclosure_email_subject(
+        predisclosure,
+        status,
+    ),
+    body=get_predisclosure_email_body(
+        predisclosure,
+        status,
+        link,
+        latest_comment,
+    ),
+)
+
+===============================================
 from predisclosure.models import (
     PreDisclosureHeaderStatusChoices,
     PreDisclosureLineStatusChoices,
