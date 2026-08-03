@@ -1,0 +1,117 @@
+<div
+    class="ms-auto d-flex align-items-center gap-2"
+    v-if="selected_predisclosure?.predisclosure_type"
+>
+    <span class="text-muted small fw-medium">
+        Download Excel Template
+    </span>
+
+    <button
+        type="button"
+        class="btn btn-sm btn-outline-primary d-flex align-items-center gap-2"
+        @click="download_template"
+        :disabled="isDownloading"
+    >
+        <template v-if="!isDownloading">
+            <i class="bi bi-download"></i>
+        </template>
+
+        <template v-else>
+            <span class="spinner-border spinner-border-sm"></span>
+            <span class="small">
+                Preparing...
+            </span>
+        </template>
+    </button>
+</div>
+
+data() {
+    return {
+        ...
+        isDownloading: false,
+    };
+},
+
+async download_template() {
+
+    this.isDownloading = true;
+
+    const wb = utils.book_new();
+
+    const ws = utils.aoa_to_sheet(
+        this.get_template_header()
+    );
+
+    utils.book_append_sheet(
+        wb,
+        ws,
+        "Template"
+    );
+
+    writeFile(
+        wb,
+        `${this.selected_predisclosure.predisclosure_type}_Template.xlsx`
+    );
+
+    this.isDownloading = false;
+}
+
+get_template_header() {
+
+    switch(this.selected_predisclosure.predisclosure_type){
+
+        case "ISB":
+            return [
+                [
+                    "Account Name",
+                    "Website",
+                    "Is NDA Confirmed",
+                    "Pre Disclosure Format",
+                    "Disclosure Reason",
+                    "Meeting Date",
+                    "Meeting Location",
+                    "Canon Person",
+                    "Individuals",
+                    "Information"
+                ]
+            ];
+
+        case "ICB":
+            return [
+                [
+                    "Account Name",
+                    "Website",
+                    "Is NDA Confirmed",
+                    "Pre Disclosure Format",
+                    "Disclosure Reason",
+                    "SDA Partner Level",
+                    "SDA Partner List",
+                    "Meeting Date",
+                    "Meeting Location",
+                    "Canon Person",
+                    "Individuals",
+                    "Information"
+                ]
+            ];
+
+        case "PR_SOCIAL":
+            return [
+                [
+                    "Account Name",
+                    "Website",
+                    "Is NDA Confirmed",
+                    "Pre Disclosure Format",
+                    "Disclosure Reason",
+                    "Retailer Ranking",
+                    "Estimated Business",
+                    "Annual Sales",
+                    "Meeting Date",
+                    "Meeting Location",
+                    "Canon Person"
+                ]
+            ];
+
+        default:
+            return [[]];
+    }
+}
