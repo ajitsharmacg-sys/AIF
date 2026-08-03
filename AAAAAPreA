@@ -1,3 +1,286 @@
+
+from predisclosure.models import (
+    PreDisclosureHeaderStatusChoices,
+    PreDisclosureLineStatusChoices,
+)
+
+from predisclosure.workflow import (
+    get_approver_type,
+)
+
+
+def get_predisclosure_cc(predisclosure, status):
+    """
+    Returns CC recipient based on status.
+    """
+
+    if status == PreDisclosureHeaderStatusChoices.IN_PROGRESS:
+        return None
+
+    if status == PreDisclosureHeaderStatusChoices.COMPLETED:
+        return predisclosure.meta_created_by.email
+
+    if status == PreDisclosureHeaderStatusChoices.REJECTED:
+        return predisclosure.meta_created_by.email
+
+    return None
+
+
+def signature_user(name):
+    return f"""
+    Thanks,<br>
+    Kind regards,<br>
+    {name}
+    """
+
+
+PREDISCLOSURE_SIGNATURE = """
+Thanks,<br>
+Kind regards,<br>
+PreDisclosure System
+"""
+
+
+def base_html_wrapper(content: str, signature: str) -> str:
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family: Arial, sans-serif; font-size:14px; color:#333;">
+        {content}
+        <br><br>
+        {signature}
+    </body>
+    </html>
+    """
+
+
+def get_predisclosure_email_subject(
+    predisclosure,
+    status,
+    approver=False,
+):
+    """
+    Returns email subject.
+    """
+
+    if approver:
+        return (
+            f"Action Required - "
+            f"PreDisclosure {predisclosure.predisclosure_id}"
+        )
+
+    if status == PreDisclosureHeaderStatusChoices.IN_PROGRESS:
+        return (
+            f"PreDisclosure {predisclosure.predisclosure_id} "
+            f"Submitted Successfully"
+        )
+
+    if status == PreDisclosureHeaderStatusChoices.COMPLETED:
+        return (
+            f"PreDisclosure {predisclosure.predisclosure_id} "
+            f"Approved"
+        )
+
+    if status == PreDisclosureHeaderStatusChoices.REJECTED:
+        return (
+            f"PreDisclosure {predisclosure.predisclosure_id} "
+            f"Rejected"
+        )
+
+    return ""
+
+
+def get_predisclosure_email_body(
+    predisclosure,
+    status,
+    link,
+    comment=None,
+    approver=False,
+    approver_status=None,
+):
+    """
+    Returns HTML email body.
+    """
+
+    if approver:
+
+        approver_type = get_approver_type(
+            approver_status
+        )
+
+        content = f"""
+        Dear Approver,<br><br>
+
+        A PreDisclosure request requires your review
+        and approval.<br><br>
+
+        <b>Request ID:</b>
+        {predisclosure.predisclosure_id}<br>
+
+        <b>Disclosure Type:</b>
+        {predisclosure.predisclosure_type}<br>
+
+        <b>Product Category:</b>
+        {predisclosure.product_category}<br>
+
+        <b>Region:</b>
+        {predisclosure.region}<br>
+
+        <b>Approval Stage:</b>
+        {approver_type}<br><br>
+
+        Please review the request using the
+        following link:<br><br>
+
+        <a href="{link}">
+            {link}
+        </a>
+
+        <br><br>
+
+        Kindly complete your review at the earliest.
+        """
+
+        return base_html_wrapper(
+            content,
+            PREDISCLOSURE_SIGNATURE,
+        )
+
+    if status == PreDisclosureHeaderStatusChoices.IN_PROGRESS:
+
+        content = f"""
+        Dear {predisclosure.meta_created_by.first_name},<br><br>
+
+        Thank you for submitting your
+        <b>PreDisclosure Request</b>.<br><br>
+
+        Your request has been successfully submitted
+        and is currently awaiting approval.<br><br>
+
+        <b>Request ID:</b>
+        {predisclosure.predisclosure_id}<br>
+
+        <b>Disclosure Type:</b>
+        {predisclosure.predisclosure_type}<br>
+
+        <b>Product Category:</b>
+        {predisclosure.product_category}<br>
+
+        <b>Region:</b>
+        {predisclosure.region}<br><br>
+
+        Please use the link below to monitor your
+        request:<br><br>
+
+        <a href="{link}">
+            {link}
+        </a>
+
+        <br><br>
+
+        You will receive another notification once
+        your request has been approved or rejected.
+        """
+
+        return base_html_wrapper(
+            content,
+            PREDISCLOSURE_SIGNATURE,
+        )
+
+    if status == PreDisclosureHeaderStatusChoices.COMPLETED:
+
+        content = f"""
+        Dear {predisclosure.meta_created_by.first_name},<br><br>
+
+        Congratulations!<br><br>
+
+        Your PreDisclosure request has been
+        approved successfully.<br><br>
+
+        <b>Request ID:</b>
+        {predisclosure.predisclosure_id}<br>
+
+        <b>Disclosure Type:</b>
+        {predisclosure.predisclosure_type}<br>
+
+        <b>Product Category:</b>
+        {predisclosure.product_category}<br><br>
+
+        <b>Comments from Final Approver</b><br>
+
+        {comment or "None"}<br><br>
+
+        Please review the request using the
+        following link:<br><br>
+
+        <a href="{link}">
+            {link}
+        </a>
+
+        <br><br>
+
+        <b>Notes</b>
+
+        <ol>
+            <li>
+                Please ensure that the NDA is signed
+                prior to the meeting.
+            </li>
+
+            <li>
+                Please update the meeting date if
+                it has not already been entered.
+            </li>
+
+            <li>
+                Following the meeting, kindly
+                complete the feedback questionnaire.
+            </li>
+        </ol>
+        """
+
+        return base_html_wrapper(
+            content,
+            PREDISCLOSURE_SIGNATURE,
+        )
+
+    if status == PreDisclosureHeaderStatusChoices.REJECTED:
+
+        content = f"""
+        Dear {predisclosure.meta_created_by.first_name},<br><br>
+
+        Your PreDisclosure request has been
+        rejected.<br><br>
+
+        <b>Request ID:</b>
+        {predisclosure.predisclosure_id}<br><br>
+
+        <b>Reason for Rejection</b><br>
+
+        {comment or "-"}<br><br>
+
+        Please review your request using the
+        following link:<br><br>
+
+        <a href="{link}">
+            {link}
+        </a>
+
+        <br><br>
+
+        If required, you may update the request
+        and submit it again for approval.
+        """
+
+        return base_html_wrapper(
+            content,
+            PREDISCLOSURE_SIGNATURE,
+        )
+
+    return ""
+
+======================================================
+
 <div
     class="ms-auto d-flex align-items-center gap-2"
     v-if="selected_predisclosure?.predisclosure_type"
