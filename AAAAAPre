@@ -2,26 +2,37 @@
     <div class="d-flex flex-column align-items-center">
         <div class="p-2">
             <a class="link-body-emphasis" href="/predisclosure/">
+
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="128"
                     height="128"
-                    fill="currentColor"
-                    class="text-light-emphasis"
-                    viewBox="0 0 24 24">
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="text-light-emphasis">
 
                     <!-- Document -->
-                    <path d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-5h-2v5H6V4h7v4h4v2h2V7.5L13.5 2H6zm9 1.5L18.5 7H15V3.5z"/>
+                    <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7l-5-5z"/>
+                    <polyline points="14 2 14 7 19 7"/>
 
-                    <!-- Checklist -->
-                    <path d="M8 9.5l1 1 2-2 .7.7-2.7 2.8-1.7-1.8zm0 4l1 1 2-2 .7.7-2.7 2.8-1.7-1.8z"/>
+                    <!-- Checkmarks -->
+                    <polyline points="8.2 10.5 9.3 11.6 11.2 9.7"/>
+                    <polyline points="8.2 14.5 9.3 15.6 11.2 13.7"/>
 
                     <!-- Text -->
-                    <path d="M12 10h3v1h-3zm0 4h2v1h-2z"/>
+                    <line x1="13" y1="10.7" x2="16" y2="10.7"/>
+                    <line x1="13" y1="14.7" x2="16" y2="14.7"/>
 
-                    <!-- Magnifying Glass -->
-                    <path d="M17 12a5 5 0 1 0 3.54 8.54l2.46 2.46 1.41-1.41-2.46-2.46A5 5 0 0 0 17 12zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
+                    <!-- Magnifier -->
+                    <circle cx="16.8" cy="17" r="2.6"/>
+                    <line x1="18.6" y1="18.8" x2="21" y2="21"/>
+
                 </svg>
+
             </a>
         </div>
 
