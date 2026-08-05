@@ -1,3 +1,56 @@
+def get_workflow_progress(
+    disclosure_type,
+    product_category,
+    current_status,
+):
+
+    workflow = get_workflow(
+        disclosure_type,
+        product_category,
+    )
+
+    if not workflow:
+        return ""
+
+    status_lookup = {
+        value: key
+        for key, value in workflow.items()
+    }
+
+    current_step = status_lookup.get(
+        current_status,
+        1,
+    )
+
+    html = ""
+
+    for step in sorted(workflow.keys()):
+
+        if step > current_step:
+            break
+
+        stage = get_approver_stage_name(
+            workflow[step]
+        )
+
+        if step < current_step:
+
+            html += (
+                f"&#10004; "
+                f"{stage} - Completed<br>"
+            )
+
+        else:
+
+            html += (
+                f"&#10148; "
+                f"{stage} - Awaiting<br>"
+            )
+
+    return html
+
+
+
 APPROVER_STAGE_NAME = {
     ApproverTypeChoices.ISB_APPROVER1:
         "ISB Administrator Approval",
