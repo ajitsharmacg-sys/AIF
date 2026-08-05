@@ -62,6 +62,13 @@ def get_workflow_progress(
     return html
 
 
+workflow_progress = get_workflow_progress(
+    predisclosure.predisclosure_type,
+    predisclosure.product_category,
+    approver_status,
+)
+
+
 
 APPROVER_STAGE_NAME = {
     ApproverTypeChoices.ISB_APPROVER1:
