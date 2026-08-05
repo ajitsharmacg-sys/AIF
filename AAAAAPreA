@@ -3,6 +3,15 @@ def get_workflow_progress(
     product_category,
     current_status,
 ):
+    """
+    Builds the workflow progress dynamically from WORKFLOW_MATRIX.
+
+    Displays:
+    ✔ Completed stages
+    ➜ Current awaiting stage
+
+    Future stages are not displayed.
+    """
 
     workflow = get_workflow(
         disclosure_type,
@@ -12,15 +21,17 @@ def get_workflow_progress(
     if not workflow:
         return ""
 
-    status_lookup = {
-        value: key
-        for key, value in workflow.items()
+    status_to_step = {
+        status: step
+        for step, status in workflow.items()
     }
 
-    current_step = status_lookup.get(
-        current_status,
-        1,
+    current_step = status_to_step.get(
+        current_status
     )
+
+    if current_step is None:
+        return ""
 
     html = ""
 
@@ -29,23 +40,24 @@ def get_workflow_progress(
         if step > current_step:
             break
 
+        status = workflow[step]
+
         stage = get_approver_stage_name(
-            workflow[step]
+            status
         )
 
         if step < current_step:
-
-            html += (
-                f"&#10004; "
-                f"{stage} - Completed<br>"
-            )
-
+            icon = "&#10004;"      # ✓
+            state = "Completed"
         else:
+            icon = "&#10148;"      # ➜
+            state = "Awaiting"
 
-            html += (
-                f"&#10148; "
-                f"{stage} - Awaiting<br>"
-            )
+        html += (
+            f"{icon} "
+            f"{stage} - "
+            f"{state}<br>"
+        )
 
     return html
 
