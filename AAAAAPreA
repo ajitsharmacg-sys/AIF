@@ -1,3 +1,146 @@
+APPROVER_STAGE_NAME = {
+    ApproverTypeChoices.ISB_APPROVER1:
+        "ISB Administrator Approval",
+
+    ApproverTypeChoices.ISB_APPROVER2:
+        "ISB Product Manager Approval",
+
+    ApproverTypeChoices.ICB_APPROVER1:
+        "ICB Administrator Approval",
+
+    ApproverTypeChoices.ICB_APPROVER2:
+        "ICB Product Manager Approval",
+
+    ApproverTypeChoices.PR_APPROVER1:
+        "PR & Social Approval",
+}
+
+
+APPROVAL_STAGE_SEQUENCE = {
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL: [
+        ("ISB Administrator Approval", "Awaiting"),
+        ("ISB Product Manager Approval", "Pending"),
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL: [
+        ("ISB Administrator Approval", "Completed"),
+        ("ISB Product Manager Approval", "Awaiting"),
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL: [
+        ("ICB Administrator Approval", "Awaiting"),
+        ("ICB Product Manager Approval", "Pending"),
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL: [
+        ("ICB Administrator Approval", "Completed"),
+        ("ICB Product Manager Approval", "Awaiting"),
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_PR_APPROVAL: [
+        ("PR & Social Approval", "Awaiting"),
+    ],
+
+}
+
+
+def get_approver_stage_name(status):
+    approver_type = get_approver_type(status)
+
+    return APPROVER_STAGE_NAME.get(
+        approver_type,
+        approver_type,
+    )
+
+
+def get_workflow_progress(status):
+
+    rows = APPROVAL_STAGE_SEQUENCE.get(status, [])
+
+    html = ""
+
+    for stage, state in rows:
+
+        if state == "Completed":
+            icon = "&#10004;"       # ✓
+
+        elif state == "Awaiting":
+            icon = "&#10148;"       # ➜
+
+        else:
+            icon = "&#9675;"        # ○
+
+        html += (
+            f"{icon} "
+            f"{stage} - "
+            f"{state}<br>"
+        )
+
+    return html
+
+from predisclosure.workflow import (
+    get_approver_stage_name,
+    get_workflow_progress,
+)
+
+
+if approver:
+
+    stage = get_approver_stage_name(
+        approver_status
+    )
+
+    return (
+        f"PreDisclosure "
+        f"{predisclosure.predisclosure_id} - "
+        f"Awaiting {stage}"
+    )
+
+
+
+def get_predisclosure_email_subject(
+    predisclosure,
+    status,
+    approver=False,
+    approver_status=None,
+):
+
+
+approval_stage = get_approver_stage_name(
+    approver_status
+)
+
+workflow_progress = get_workflow_progress(
+    approver_status
+)
+
+
+
+<b>Current Approval Stage</b><br>
+
+{approval_stage}
+
+<br><br>
+
+<b>Workflow Progress</b><br>
+
+{workflow_progress}
+
+<br>
+
+
+
+
+
+
+
+
+
+
+
+==================================================================================
+
 from predisclosure.email_templates import (
     get_predisclosure_email_subject,
     get_predisclosure_email_body,
