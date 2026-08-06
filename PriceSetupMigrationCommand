@@ -1,0 +1,236 @@
+from django.core.management.base import BaseCommand
+from django.db import transaction
+
+from pricerequest.models import (
+    Ticket,
+    TicketLine,
+    TicketStatus,
+    ContactEmails,
+    AnnouncementMailLink,
+)
+
+
+class Command(BaseCommand):
+    help = "Backfill metadata fields from legacy audit fields."
+
+    def handle(self, *args, **options):
+
+        self.stdout.write(self.style.NOTICE("Starting metadata migration..."))
+
+        with transaction.atomic():
+
+            # -------------------------------------------------------
+            # Ticket
+            # -------------------------------------------------------
+            self.stdout.write("Migrating Ticket...")
+
+            updated = 0
+
+            for ticket in Ticket.objects.iterator():
+
+                changed = False
+
+                if not ticket.meta_created_by:
+                    ticket.meta_created_by = ticket.created_by
+                    changed = True
+
+                if not ticket.meta_created_date:
+                    ticket.meta_created_date = ticket.modified
+                    changed = True
+
+                if not ticket.meta_edited_by:
+                    ticket.meta_edited_by = ticket.created_by
+                    changed = True
+
+                if not ticket.meta_edited_date:
+                    ticket.meta_edited_date = ticket.modified
+                    changed = True
+
+                if changed:
+                    ticket.save(
+                        update_fields=[
+                            "meta_created_by",
+                            "meta_created_date",
+                            "meta_edited_by",
+                            "meta_edited_date",
+                        ]
+                    )
+                    updated += 1
+
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Ticket : {updated} record(s) updated."
+                )
+            )
+
+            # -------------------------------------------------------
+            # TicketLine
+            # -------------------------------------------------------
+            self.stdout.write("Migrating TicketLine...")
+
+            updated = 0
+
+            for line in TicketLine.objects.iterator():
+
+                changed = False
+
+                if not line.meta_created_by:
+                    line.meta_created_by = line.created_by
+                    changed = True
+
+                if not line.meta_created_date:
+                    line.meta_created_date = line.modified
+                    changed = True
+
+                if not line.meta_edited_by:
+                    line.meta_edited_by = line.created_by
+                    changed = True
+
+                if not line.meta_edited_date:
+                    line.meta_edited_date = line.modified
+                    changed = True
+
+                if changed:
+                    line.save(
+                        update_fields=[
+                            "meta_created_by",
+                            "meta_created_date",
+                            "meta_edited_by",
+                            "meta_edited_date",
+                        ]
+                    )
+                    updated += 1
+
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"TicketLine : {updated} record(s) updated."
+                )
+            )
+
+            # -------------------------------------------------------
+            # TicketStatus
+            # -------------------------------------------------------
+            self.stdout.write("Migrating TicketStatus...")
+
+            updated = 0
+
+            for status in TicketStatus.objects.iterator():
+
+                changed = False
+
+                if not status.meta_created_by:
+                    status.meta_created_by = status.modified_by
+                    changed = True
+
+                if not status.meta_created_date:
+                    status.meta_created_date = status.modified
+                    changed = True
+
+                if changed:
+                    status.save(
+                        update_fields=[
+                            "meta_created_by",
+                            "meta_created_date",
+                        ]
+                    )
+                    updated += 1
+
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"TicketStatus : {updated} record(s) updated."
+                )
+            )
+
+            # -------------------------------------------------------
+            # ContactEmails
+            # -------------------------------------------------------
+            self.stdout.write("Migrating ContactEmails...")
+
+            updated = 0
+
+            for email in ContactEmails.objects.iterator():
+
+                changed = False
+
+                if not email.meta_created_by:
+                    email.meta_created_by = email.created_by
+                    changed = True
+
+                if not email.meta_created_date:
+                    email.meta_created_date = email.modified
+                    changed = True
+
+                if not email.meta_edited_by:
+                    email.meta_edited_by = email.created_by
+                    changed = True
+
+                if not email.meta_edited_date:
+                    email.meta_edited_date = email.modified
+                    changed = True
+
+                if changed:
+                    email.save(
+                        update_fields=[
+                            "meta_created_by",
+                            "meta_created_date",
+                            "meta_edited_by",
+                            "meta_edited_date",
+                        ]
+                    )
+                    updated += 1
+
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"ContactEmails : {updated} record(s) updated."
+                )
+            )
+
+            # -------------------------------------------------------
+            # AnnouncementMailLink
+            # -------------------------------------------------------
+            self.stdout.write("Migrating AnnouncementMailLink...")
+
+            updated = 0
+
+            for link in AnnouncementMailLink.objects.iterator():
+
+                changed = False
+
+                if not link.meta_created_by:
+                    link.meta_created_by = link.created_by
+                    changed = True
+
+                if not link.meta_created_date:
+                    link.meta_created_date = link.modified
+                    changed = True
+
+                if not link.meta_edited_by:
+                    link.meta_edited_by = link.created_by
+                    changed = True
+
+                if not link.meta_edited_date:
+                    link.meta_edited_date = link.modified
+                    changed = True
+
+                if changed:
+                    link.save(
+                        update_fields=[
+                            "meta_created_by",
+                            "meta_created_date",
+                            "meta_edited_by",
+                            "meta_edited_date",
+                        ]
+                    )
+                    updated += 1
+
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"AnnouncementMailLink : {updated} record(s) updated."
+                )
+            )
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                "\nMetadata migration completed successfully."
+            )
+        )
