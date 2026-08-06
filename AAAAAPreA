@@ -1,3 +1,17 @@
+this.$nextTick(() => {
+
+    console.log(this.$refs.lineTable.selected_rows);
+
+    console.log(
+        this.$refs.lineTable.selected_rows instanceof Set
+    );
+
+    console.log(
+        Array.isArray(this.$refs.lineTable.selected_rows)
+    );
+
+});
+
 <django-paged-table
     ref="lineTable"
     :api_endpoint="predisclosure_line_url"
