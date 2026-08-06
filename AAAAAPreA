@@ -1,3 +1,24 @@
+<django-paged-table
+    ref="lineTable"
+    :api_endpoint="predisclosure_line_url"
+    ...
+>
+
+this.update_triggered = true;
+this.$nextTick(() => {
+
+    console.log(this.$refs.lineTable);
+
+});
+
+this.$nextTick(() => {
+
+    this.$refs.lineTable.selected_rows.clear();
+
+});
+
+
+
 def get_workflow_progress(
     disclosure_type,
     product_category,
