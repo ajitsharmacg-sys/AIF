@@ -1,3 +1,15 @@
+rejection_reason = ""
+
+if comment and comment.strip():
+    rejection_reason = f"""
+    <b>Reason for Rejection</b><br><br>
+
+    {comment}<br><br>
+    """
+
+{rejection_reason}
+
+
 final_approver_comments = ""
 
 if comment and comment.strip():
