@@ -1,3 +1,14 @@
+final_approver_comments = ""
+
+if comment and comment.strip():
+    final_approver_comments = f"""
+    <b>Comments from Final Approver</b><br><br>
+
+    {comment}<br><br>
+    """
+
+
+
 this.$nextTick(() => {
 
     console.log(this.$refs.lineTable.selected_rows);
