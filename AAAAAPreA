@@ -1,3 +1,27 @@
+send_email(
+    to=instance.predisclosure.meta_created_by.email,
+    cc=get_predisclosure_cc(
+        instance.predisclosure,
+        instance.status,
+    ),
+    subject=get_predisclosure_email_subject(
+        instance.predisclosure,
+        instance.status,
+    ),
+    body=get_predisclosure_email_body(
+        instance.predisclosure,
+        instance.status,
+        link,
+    ),
+)
+
+from predisclosure.email_templates import (
+    get_predisclosure_email_subject,
+    get_predisclosure_email_body,
+    get_predisclosure_cc,
+)
+
+
 def get_predisclosure_cc(predisclosure, status):
 
     if status == PreDisclosureStatusChoices.IN_PROGRESS:
