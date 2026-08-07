@@ -1,3 +1,56 @@
+def get_predisclosure_cc(predisclosure, status):
+
+    if status == PreDisclosureStatusChoices.IN_PROGRESS:
+        return get_approval_cc(predisclosure)
+
+    if status == PreDisclosureStatusChoices.COMPLETED:
+        return predisclosure.meta_created_by.email
+
+    if status == PreDisclosureStatusChoices.REJECTED:
+        return predisclosure.meta_created_by.email
+
+    return None
+
+from predisclosure.models import (
+    PreDisclosureApprover,
+    ApproverTypeChoices,
+)
+
+
+
+def get_approval_cc(predisclosure):
+    """
+    Returns CC emails based on disclosure type.
+    """
+
+    cc = []
+
+    if predisclosure.predisclosure_type == PreDisclosureTypeChoices.PR_SOCIAL:
+
+        approver_types = [
+            ApproverTypeChoices.ISB_APPROVER1,
+            ApproverTypeChoices.ICB_APPROVER1,
+        ]
+
+        emails = (
+            PreDisclosureApprover.objects.filter(
+                approver_type__in=approver_types
+            )
+            .values_list("approver__email", flat=True)
+        )
+
+        cc.extend(emails)
+
+    return ",".join(cc) if cc else None
+
+
+
+
+
+
+
+
+
 rejection_reason = ""
 
 if comment and comment.strip():
