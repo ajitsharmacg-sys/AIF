@@ -1,3 +1,28 @@
+class PreDisclosureLineForm(EnhancedModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        distinct_accounts = sorted(
+            list(
+                PreDisclosureLine.objects
+                .exclude(account_name__isnull=True)
+                .exclude(account_name="")
+                .values_list(
+                    "account_name",
+                    flat=True,
+                )
+                .distinct()
+            )
+        )
+
+        self.fields["account_name"].widget = DatalistSelectPredefinedWidget(
+            attrs=self.fields["account_name"].widget.attrs,
+            choices=[(a, a) for a in distinct_accounts],
+        )
+
+
+
 from predisclosure.models import PreDisclosureLineStatusChoices
 
 def get_predisclosure_cc(predisclosure, status):
