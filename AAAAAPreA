@@ -1,3 +1,23 @@
+from predisclosure.models import PreDisclosureLineStatusChoices
+
+def get_predisclosure_cc(predisclosure, status):
+
+    if status in [
+        PreDisclosureStatusChoices.IN_PROGRESS,
+        PreDisclosureLineStatusChoices.AWAITING_PR_APPROVAL,
+    ]:
+        return get_approval_cc(predisclosure)
+
+    if status == PreDisclosureStatusChoices.COMPLETED:
+        return predisclosure.meta_created_by.email
+
+    if status == PreDisclosureStatusChoices.REJECTED:
+        return predisclosure.meta_created_by.email
+
+    return None
+
+
+
 import logging
 
 logger = logging.getLogger(__name__)
