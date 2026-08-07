@@ -1,3 +1,13 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
+logger.warning("Inside get_predisclosure_cc")
+logger.warning(f"Status: {status}")
+logger.warning(f"CC: {get_approval_cc(predisclosure)}")
+
+
+
 send_email(
     to=instance.predisclosure.meta_created_by.email,
     cc=get_predisclosure_cc(
