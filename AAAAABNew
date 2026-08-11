@@ -341,4 +341,54 @@ APPROVER_STAGE_NAME = {
         "ISB & ICB PM Approval",
 }
 
+apiview
+------------
+
+from predisclosure.roles import (
+    NSO_USER,
+    ICB_ADMIN,
+    ISB_PM,
+    ISB_ADMIN,
+    ICB_PM,
+    PR_ADMIN,
+    B2B_ADMIN,
+    ISB_ICB_PM,
+    ADMIN_ROLE,
+)
+
+def is_stage_completed(
+    predisclosure,
+    expected_status=None,
+):
+
+    for line in PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    ):
+
+        latest = (
+            PreDisclosureLineStatus.objects
+            .filter(line=line)
+            .latest("meta_created_date")
+        )
+
+        if expected_status:
+
+            if latest.status != expected_status:
+                return False
+
+        else:
+
+            if latest.status not in [
+                PreDisclosureLineStatusChoices.APPROVED,
+                PreDisclosureLineStatusChoices.REJECTED,
+            ]:
+                return False
+
+    return True
+
+
+is_stage_completed(
+    predisclosure,
+    line_status.status,
+)
 
