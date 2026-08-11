@@ -392,3 +392,145 @@ is_stage_completed(
     line_status.status,
 )
 
+from django.contrib.auth.models import Group, Permission
+from django.contrib.contenttypes.models import ContentType
+
+from common.roles import create_default_role
+from common.models import AccessProvider
+
+
+NSO_USER = "PreDisclosure NSO User"
+
+ISB_ADMIN = "PreDisclosure ISB Admin"
+ISB_PM = "PreDisclosure ISB PM"
+
+ICB_ADMIN = "PreDisclosure ICB Admin"
+ICB_PM = "PreDisclosure ICB PM"
+
+PR_ADMIN = "PreDisclosure PR"
+
+# New Roles
+B2B_ADMIN = "PreDisclosure B2B"
+ISB_ICB_PM = "PreDisclosure ISB ICB PM"
+
+ADMIN_ROLE = "PreDisclosure Admin"
+
+
+USER_ROLES = [
+    NSO_USER,
+    ISB_ADMIN,
+    ISB_PM,
+    ICB_ADMIN,
+    ICB_PM,
+    PR_ADMIN,
+    B2B_ADMIN,
+    ISB_ICB_PM,
+]
+
+ROLES = USER_ROLES + [ADMIN_ROLE]
+
+
+def check_roles():
+    """
+    This function checks if all the roles in the ROLES list are present in the Group model.
+    """
+    all_roles_present = 0
+
+    for role_name in ROLES:
+        all_roles_present += int(
+            Group.objects.filter(
+                name=role_name
+            ).exists()
+        )
+
+    return all_roles_present == len(ROLES)
+
+
+def create_admin_role():
+    """
+    Creates the PreDisclosure Admin role.
+    """
+    role_group, created = Group.objects.get_or_create(
+        name=ADMIN_ROLE
+    )
+
+    if created:
+        print(f"Created role: {ADMIN_ROLE}")
+
+        # Add model permissions here if required.
+        for modelname in []:
+            content_type = ContentType.objects.get_for_model(
+                modelname
+            )
+
+            permissions = Permission.objects.filter(
+                content_type=content_type
+            )
+
+            for permission in permissions:
+                role_group.permissions.add(permission)
+
+
+def create_user_roles():
+    """
+    Creates all application user roles.
+    """
+
+    for role_name in USER_ROLES:
+
+        role_group, created = Group.objects.get_or_create(
+            name=role_name
+        )
+
+        if created:
+            print(f"Created role: {role_name}")
+
+            # Add view permissions here if required.
+            for modelname in []:
+
+                content_type = ContentType.objects.get_for_model(
+                    modelname
+                )
+
+                permissions = Permission.objects.filter(
+                    content_type=content_type
+                )
+
+                for permission in permissions:
+
+                    if permission.codename.startswith("view_"):
+                        role_group.permissions.add(permission)
+
+
+def create_access_providers():
+    """
+    Allows the Admin role to manage all application roles.
+    """
+
+    admin_group = Group.objects.get(
+        name=ADMIN_ROLE
+    )
+
+    for role_name in USER_ROLES:
+
+        AccessProvider.objects.get_or_create(
+            provider_group=admin_group,
+            access_to_group=Group.objects.get(
+                name=role_name
+            ),
+        )
+
+
+def create_roles_if_absent():
+    create_default_role()
+
+    if not check_roles():
+        create_admin_role()
+        create_user_roles()
+        create_access_providers()
+
+
+def has_access_to_app(user, roles):
+    return user.groups.filter(
+        name__in=roles
+    ).exists()
