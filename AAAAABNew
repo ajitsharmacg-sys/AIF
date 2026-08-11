@@ -1,0 +1,344 @@
+class PreDisclosureLineStatusChoices(models.TextChoices):
+    DRAFT = "DRAFT", "Draft"
+
+    AWAITING_ISB_ADMIN_APPROVAL = (
+        "AWAITING_ISB_ADMIN_APPROVAL",
+        "Awaiting ISB Admin Approval",
+    )
+
+    AWAITING_ICB_ADMIN_APPROVAL = (
+        "AWAITING_ICB_ADMIN_APPROVAL",
+        "Awaiting ICB Admin Approval",
+    )
+
+    # NEW
+    AWAITING_B2B_APPROVAL = (
+        "AWAITING_B2B_APPROVAL",
+        "Awaiting B2B Approval",
+    )
+
+    AWAITING_PR_APPROVAL = (
+        "AWAITING_PR_APPROVAL",
+        "Awaiting PR Approval",
+    )
+
+    AWAITING_ISB_PM_APPROVAL = (
+        "AWAITING_ISB_PM_APPROVAL",
+        "Awaiting ISB PM Approval",
+    )
+
+    AWAITING_ICB_PM_APPROVAL = (
+        "AWAITING_ICB_PM_APPROVAL",
+        "Awaiting ICB PM Approval",
+    )
+
+    # NEW
+    AWAITING_ISB_ICB_PM_APPROVAL = (
+        "AWAITING_ISB_ICB_PM_APPROVAL",
+        "Awaiting ISB & ICB PM Approval",
+    )
+
+    APPROVED = "APPROVED", "Approved"
+
+    REJECTED = "REJECTED", "Rejected"
+
+
+class ApproverTypeChoices(models.TextChoices):
+    ISB_APPROVER1 = (
+        "ISB_APPROVER1",
+        "ISB Approver 1",
+    )
+
+    ISB_APPROVER2 = (
+        "ISB_APPROVER2",
+        "ISB Approver 2",
+    )
+
+    ICB_APPROVER1 = (
+        "ICB_APPROVER1",
+        "ICB Approver 1",
+    )
+
+    ICB_APPROVER2 = (
+        "ICB_APPROVER2",
+        "ICB Approver 2",
+    )
+
+    PR_APPROVER1 = (
+        "PR_APPROVER1",
+        "PR Approver 1",
+    )
+
+    # NEW
+    B2B_APPROVER1 = (
+        "B2B_APPROVER1",
+        "B2B Approver 1",
+    )
+
+    # NEW
+    ISB_ICB_APPROVER2 = (
+        "ISB_ICB_APPROVER2",
+        "ISB & ICB PM Approver",
+    )
+
+
+Workflow
+-----------
+
+from predisclosure.roles import (
+    ISB_ADMIN,
+    ISB_PM,
+    ICB_ADMIN,
+    ICB_PM,
+    PR_ADMIN,
+    B2B_ADMIN,        # NEW
+    ISB_ICB_PM,       # NEW
+)
+
+LINE_STATUS_GRAPH = {
+
+    PreDisclosureLineStatusChoices.DRAFT: [
+        PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL,
+        PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL,
+        PreDisclosureLineStatusChoices.AWAITING_B2B_APPROVAL,
+        PreDisclosureLineStatusChoices.AWAITING_PR_APPROVAL,
+        PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL,
+        PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL,
+        PreDisclosureLineStatusChoices.AWAITING_ISB_ICB_PM_APPROVAL,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL: [
+        PreDisclosureLineStatusChoices.APPROVED,
+        PreDisclosureLineStatusChoices.REJECTED,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL: [
+        PreDisclosureLineStatusChoices.APPROVED,
+        PreDisclosureLineStatusChoices.REJECTED,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_B2B_APPROVAL: [
+        PreDisclosureLineStatusChoices.APPROVED,
+        PreDisclosureLineStatusChoices.REJECTED,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_PR_APPROVAL: [
+        PreDisclosureLineStatusChoices.APPROVED,
+        PreDisclosureLineStatusChoices.REJECTED,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL: [
+        PreDisclosureLineStatusChoices.APPROVED,
+        PreDisclosureLineStatusChoices.REJECTED,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL: [
+        PreDisclosureLineStatusChoices.APPROVED,
+        PreDisclosureLineStatusChoices.REJECTED,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_ICB_PM_APPROVAL: [
+        PreDisclosureLineStatusChoices.APPROVED,
+        PreDisclosureLineStatusChoices.REJECTED,
+    ],
+}
+
+WORKFLOW_MATRIX = {
+
+    ##############################################
+    # Partner (Trade)
+    ##############################################
+
+    PreDisclosureTypeChoices.PARTNER: {
+
+        ISB: {
+            1: PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL,
+            2: PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL,
+        },
+
+        ICB: {
+            1: PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL,
+            2: PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL,
+        },
+
+        ISB_ICB: {
+            1: PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL,
+            2: PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL,
+            3: PreDisclosureLineStatusChoices.AWAITING_ISB_ICB_PM_APPROVAL,
+        },
+    },
+
+    ##############################################
+    # End Customer (B2B)
+    ##############################################
+
+    PreDisclosureTypeChoices.END_CUSTOMER: {
+
+        ISB: {
+            1: PreDisclosureLineStatusChoices.AWAITING_B2B_APPROVAL,
+            2: PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL,
+        },
+
+        ICB: {
+            1: PreDisclosureLineStatusChoices.AWAITING_B2B_APPROVAL,
+            2: PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL,
+        },
+
+        ISB_ICB: {
+            1: PreDisclosureLineStatusChoices.AWAITING_B2B_APPROVAL,
+            2: PreDisclosureLineStatusChoices.AWAITING_ISB_ICB_PM_APPROVAL,
+        },
+    },
+
+    ##############################################
+    # PR & Social
+    ##############################################
+
+    PreDisclosureTypeChoices.PR_SOCIAL: {
+
+        ISB: {
+            1: PreDisclosureLineStatusChoices.AWAITING_PR_APPROVAL,
+            2: PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL,
+        },
+
+        ICB: {
+            1: PreDisclosureLineStatusChoices.AWAITING_PR_APPROVAL,
+            2: PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL,
+        },
+
+        ISB_ICB: {
+            1: PreDisclosureLineStatusChoices.AWAITING_PR_APPROVAL,
+            2: PreDisclosureLineStatusChoices.AWAITING_ISB_ICB_PM_APPROVAL,
+        },
+    },
+}
+
+LINE_STATUS_TO_ROLE = {
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL: [
+        ISB_ADMIN,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL: [
+        ICB_ADMIN,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_B2B_APPROVAL: [
+        B2B_ADMIN,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_PR_APPROVAL: [
+        PR_ADMIN,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL: [
+        ISB_PM,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL: [
+        ICB_PM,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_ICB_PM_APPROVAL: [
+        ISB_ICB_PM,
+    ],
+}
+
+
+ROLE_TO_LINE_STATUS = {
+
+    ISB_ADMIN: [
+        PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL,
+    ],
+
+    ICB_ADMIN: [
+        PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL,
+    ],
+
+    B2B_ADMIN: [
+        PreDisclosureLineStatusChoices.AWAITING_B2B_APPROVAL,
+    ],
+
+    PR_ADMIN: [
+        PreDisclosureLineStatusChoices.AWAITING_PR_APPROVAL,
+    ],
+
+    ISB_PM: [
+        PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL,
+    ],
+
+    ICB_PM: [
+        PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL,
+    ],
+
+    ISB_ICB_PM: [
+        PreDisclosureLineStatusChoices.AWAITING_ISB_ICB_PM_APPROVAL,
+    ],
+}
+
+APPROVER_TYPE_TO_ROLE = {
+
+    ApproverTypeChoices.ISB_APPROVER1: ISB_ADMIN,
+
+    ApproverTypeChoices.ISB_APPROVER2: ISB_PM,
+
+    ApproverTypeChoices.ICB_APPROVER1: ICB_ADMIN,
+
+    ApproverTypeChoices.ICB_APPROVER2: ICB_PM,
+
+    ApproverTypeChoices.PR_APPROVER1: PR_ADMIN,
+
+    ApproverTypeChoices.B2B_APPROVER1: B2B_ADMIN,
+
+    ApproverTypeChoices.ISB_ICB_APPROVER2: ISB_ICB_PM,
+}
+
+STATUS_TO_APPROVER_TYPE = {
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL:
+        ApproverTypeChoices.ISB_APPROVER1,
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL:
+        ApproverTypeChoices.ISB_APPROVER2,
+
+    PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL:
+        ApproverTypeChoices.ICB_APPROVER1,
+
+    PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL:
+        ApproverTypeChoices.ICB_APPROVER2,
+
+    PreDisclosureLineStatusChoices.AWAITING_PR_APPROVAL:
+        ApproverTypeChoices.PR_APPROVER1,
+
+    PreDisclosureLineStatusChoices.AWAITING_B2B_APPROVAL:
+        ApproverTypeChoices.B2B_APPROVER1,
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_ICB_PM_APPROVAL:
+        ApproverTypeChoices.ISB_ICB_APPROVER2,
+}
+
+APPROVER_STAGE_NAME = {
+
+    ApproverTypeChoices.ISB_APPROVER1:
+        "ISB Administrator Approval",
+
+    ApproverTypeChoices.ISB_APPROVER2:
+        "ISB Product Manager Approval",
+
+    ApproverTypeChoices.ICB_APPROVER1:
+        "ICB Administrator Approval",
+
+    ApproverTypeChoices.ICB_APPROVER2:
+        "ICB Product Manager Approval",
+
+    ApproverTypeChoices.PR_APPROVER1:
+        "PR & Social Approval",
+
+    ApproverTypeChoices.B2B_APPROVER1:
+        "B2B Approval",
+
+    ApproverTypeChoices.ISB_ICB_APPROVER2:
+        "ISB & ICB PM Approval",
+}
+
+
