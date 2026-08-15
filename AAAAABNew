@@ -1,3 +1,11 @@
+parts = app_config_folder.split(".")
+logger.warning(parts)
+
+app_config = getattr(
+    importlib.import_module(f"{parts[0]}.apps"),
+    parts[2],
+)
+
 git status
 git branch
 git rev-parse HEAD
