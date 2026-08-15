@@ -1,3 +1,9 @@
+(Get-Content .\common\models.py)[249]
+
+Format-Hex .\common\models.py
+python -c "from pathlib import Path; print(repr(Path('common/models.py').read_text(encoding='utf-8').splitlines()[249]))"
+
+
 python -m tokenize common\models.py
 
 python -c "import sys; print(sys.executable)"
