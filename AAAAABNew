@@ -1,7 +1,7 @@
 python -c "import common.models; print(common.models.__file__)"
 
 findstr /N "import_module" C:\CanonAifProject\AIFProjectPhase1\Predisclosure\itcg_azure_apps\common\models.py
-
+git show HEAD:common/models.py | Select-String "import_module" -Context 1,1
 
 
 class PreDisclosureLineStatusChoices(models.TextChoices):
