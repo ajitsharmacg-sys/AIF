@@ -1,3 +1,15 @@
+python -c "import sys; print(sys.executable)"
+
+app_config_folder = "aif.apps.AifConfig"
+
+print(
+    getattr(
+        __import__(f"{app_config_folder.split('.')[0]}"),
+        app_config_folder.split(".")[0]
+    )
+)
+
+
 parts = "aif.apps.AifConfig"
 
 print(parts.split(".")[0])
