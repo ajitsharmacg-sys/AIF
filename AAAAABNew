@@ -1,3 +1,13 @@
+DROP TABLE dbo.predisclosure_predisclosure_products;
+DROP TABLE dbo.predisclosure_predisclosureapprover;
+DROP TABLE dbo.predisclosure_predisclosurelinestatus;
+DROP TABLE dbo.predisclosure_predisclosureline;
+DROP TABLE dbo.predisclosure_predisclosureproduct;
+DROP TABLE dbo.predisclosure_predisclosurestatus;
+DROP TABLE dbo.predisclosure_predisclosure;
+
+
+
 (Get-Content .\common\models.py)[249]
 
 Format-Hex .\common\models.py
