@@ -6,6 +6,8 @@ app_config = getattr(
     parts[2],
 )
 
+python -c "print(f\"{'a.b'.split('.')[0]}\")"
+
 git status
 git branch
 git rev-parse HEAD
