@@ -1,3 +1,11 @@
+git status
+git branch
+git rev-parse HEAD
+git fetch
+git pull
+
+
+
 python -c "import common.models; print(common.models.__file__)"
 
 findstr /N "import_module" C:\CanonAifProject\AIFProjectPhase1\Predisclosure\itcg_azure_apps\common\models.py
