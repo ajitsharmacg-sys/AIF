@@ -1,3 +1,11 @@
+parts = "aif.apps.AifConfig"
+
+print(parts.split(".")[0])
+
+print(f"{parts.split('.')[0]}.apps")
+
+
+
 parts = app_config_folder.split(".")
 logger.warning(parts)
 
