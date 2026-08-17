@@ -1,3 +1,16 @@
+const notification =
+    document.getElementById("notification").value;
+
+await postData(
+    api_endpoints.predisclosure_line_status,
+    {
+        line: line.id,
+        status: this.line_target_status,
+        comment: this.comment,
+        notification: notification,
+    }
+)
+
 <div class="p-2">
     <label
         for="line_status_comment"
