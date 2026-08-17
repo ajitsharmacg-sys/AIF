@@ -1,3 +1,21 @@
+<div class="p-2">
+    <label
+        for="line_status_comment"
+        class="form-label">
+        Comment
+    </label>
+
+    <textarea
+        autocomplete="off"
+        maxlength="1000"
+        class="form-control"
+        id="line_status_comment"
+        v-model="comment"
+        rows="4">
+    </textarea>
+</div>
+
+
 DROP TABLE dbo.predisclosure_predisclosure_products;
 DROP TABLE dbo.predisclosure_predisclosureapprover;
 DROP TABLE dbo.predisclosure_predisclosurelinestatus;
