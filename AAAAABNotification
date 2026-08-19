@@ -1,3 +1,19 @@
+notification_content = ""
+
+if notification and notification.strip():
+    notification_content = f"""
+    <p>
+        <strong>Additional Information:</strong>
+    </p>
+
+    <p>
+        {notification.replace(chr(10), "<br>")}
+    </p>
+    """
+
+{notification_content}
+
+
 <div class="p-2">
     <label
         for="notification"
