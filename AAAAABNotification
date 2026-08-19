@@ -1,3 +1,29 @@
+<div class="p-2">
+    <label
+        for="notification"
+        class="form-label">
+        Email Template Body
+    </label>
+
+    <div class="alert alert-info py-2 mb-2">
+        <small>
+            If you are approving the final pending line(s), or selecting all
+            remaining line(s) for approval, please enter the notification
+            message below. This message will be included in the final
+            notification email.
+        </small>
+    </div>
+
+    <textarea
+        autocomplete="off"
+        maxlength="1000"
+        class="form-control"
+        id="notification"
+        rows="4">
+    </textarea>
+</div>
+
+
 def perform_create(self, serializer):
     line = serializer.validated_data["line"]
 
