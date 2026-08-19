@@ -1,0 +1,87 @@
+def perform_create(self, serializer):
+    line = serializer.validated_data["line"]
+
+    latest_status = (
+        PreDisclosureLineStatus.objects.filter(
+            line=line
+        ).latest("meta_created_date")
+    )
+
+    allowed_roles = get_role_from_status(latest_status.status)
+
+    if not self.request.user.groups.filter(
+        name__in=allowed_roles
+    ).exists():
+        raise PermissionDenied(
+            "You are not authorized to approve this line."
+        )
+
+    instance = serializer.save(
+        meta_created_by=self.request.user,
+    )
+
+    notification = self.request.data.get("notification", "")
+
+    process_line_approval(
+        self.request,
+        instance,
+        notification,
+    )
+
+
+
+def process_line_approval(
+    request,
+    line_status,
+    notification="",
+):
+
+if not next_status:
+    finalize_workflow(
+        predisclosure,
+        request,
+        notification,
+    )
+
+    return
+
+
+def finalize_workflow(
+    predisclosure,
+    request,
+    notification="",
+):
+
+body=get_predisclosure_email_body(
+    predisclosure,
+    status,
+    link,
+    latest_comment,
+    notification,
+),
+
+def get_predisclosure_email_body(
+    predisclosure,
+    status,
+    link,
+    latest_comment=None,
+    notification=None,
+):
+
+context = {
+    "predisclosure": predisclosure,
+    "status": status,
+    "link": link,
+    "comment": latest_comment,
+    "notification": notification,
+}
+
+
+{% if notification %}
+<p><strong>Additional Information:</strong></p>
+
+<p>
+    {{ notification|linebreaksbr }}
+</p>
+{% endif %}
+
