@@ -1,3 +1,19 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
+logger.info(
+    "Next workflow status calculated | "
+    "PreDisclosure=%s | PreviousStatus=%s | NextStatus=%s",
+    predisclosure.predisclosure_id,
+    previous_status.status,
+    next_status,
+)
+
+
+
+
+
 <small>
     If you are approving the final pending line(s), or selecting all
     remaining line(s) for approval, please enter the notification
