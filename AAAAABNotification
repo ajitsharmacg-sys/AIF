@@ -10,7 +10,20 @@ logger.info(
     next_status,
 )
 
+custom_format() {
+    return {
+        predisclosure_type: {
+            END_CUSTOMER: "End Customer (B2B)",
+        },
 
+        predisclosure_status: {
+            DRAFT: "text-bg-secondary",
+            IN_PROGRESS: "text-bg-warning",
+            REJECTED: "text-bg-danger",
+            COMPLETED: "text-bg-success",
+        }
+    };
+},
 
 
 
