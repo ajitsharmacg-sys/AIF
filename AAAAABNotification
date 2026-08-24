@@ -1,3 +1,13 @@
+<small>
+    If you are approving the final pending line(s), or selecting all
+    remaining line(s) for approval, please enter the notification
+    message below. The message will be sent to the next approver as part
+    of the notification email when the request moves to the next
+    approval stage.
+</small>
+
+
+
 notification_content = ""
 
 if notification and notification.strip():
