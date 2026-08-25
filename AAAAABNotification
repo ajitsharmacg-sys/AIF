@@ -8,6 +8,11 @@ async export_to_excel(items) {
             ...export_item
         } = item;
 
+        if (export_item.meta_created_by) {
+            export_item.meta_created_by =
+                export_item.meta_created_by.split(",")[0].trim();
+        }
+
         return export_item;
     });
 
@@ -18,7 +23,6 @@ async export_to_excel(items) {
 
     writeFile(workbook, "PreDisclosures.xlsx");
 },
-
 
 
 from rest_framework import serializers
