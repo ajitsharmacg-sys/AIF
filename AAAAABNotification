@@ -1,3 +1,26 @@
+async export_to_excel(items) {
+    this.show_notification("Only current page has been exported.");
+
+    const export_items = items?.results?.map(item => {
+        const {
+            link,
+            meta_edited_by,
+            ...export_item
+        } = item;
+
+        return export_item;
+    });
+
+    const workbook = utils.book_new();
+    const worksheet = utils.json_to_sheet(export_items);
+
+    utils.book_append_sheet(workbook, worksheet, "data");
+
+    writeFile(workbook, "PreDisclosures.xlsx");
+},
+
+
+
 from rest_framework import serializers
 
 from predisclosure.workflow import get_role_from_status
