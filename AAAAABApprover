@@ -1,3 +1,5 @@
+"user_approver_types": user_approver_types,
+
 from predisclosure.workflow import (
     WORKFLOW_MATRIX,
     get_next_status,
