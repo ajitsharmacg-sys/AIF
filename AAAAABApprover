@@ -1,0 +1,229 @@
+from predisclosure.workflow import (
+    WORKFLOW_MATRIX,
+    get_next_status,
+    get_approver_type
+)
+
+
+def perform_create(self, serializer):
+
+    line = serializer.validated_data["line"]
+
+    latest_status = (
+        PreDisclosureLineStatus.objects
+        .filter(line=line)
+        .latest("meta_created_date")
+    )
+
+    # Determine which approver type is required
+    # for the current line status.
+    required_approver_type = get_approver_type(
+        latest_status.status
+    )
+
+    if not required_approver_type:
+        raise PermissionDenied(
+            "This line is not awaiting an approval action."
+        )
+
+    # Check whether the logged-in user is configured
+    # as the required approver type.
+    is_authorized = PreDisclosureApprover.objects.filter(
+        approver=self.request.user,
+        approver_type=required_approver_type,
+    ).exists()
+
+    if not is_authorized:
+        raise PermissionDenied(
+            "You are not authorized to approve or reject this line."
+        )
+
+    instance = serializer.save(
+        meta_created_by=self.request.user
+    )
+
+    notification = self.request.data.get(
+        "notification",
+        ""
+    )
+
+    process_line_approval(
+        self.request,
+        instance,
+        notification,
+    )
+
+
+def get_default_context(request):
+    app_prefix = "PreDisclosure App"
+
+    users = UserModel.objects.filter(
+        groups__name__in=[NSO_USER, ROLES, ADMIN_ROLE]
+    ).distinct()
+
+    users_to_display = []
+
+    for user in users:
+        u = {}
+        u["email"] = user.email
+        u["first_name"] = user.first_name
+        u["last_name"] = user.last_name
+        u["roles"] = []
+
+        for group in user.groups.all():
+            if app_prefix in group.name:
+                u["roles"].append(group.name)
+
+        u["roles"] = ", ".join(u["roles"])
+        users_to_display.append(u)
+
+    # Approver types configured for the logged-in user
+    user_approver_types = list(
+        PreDisclosureApprover.objects.filter(
+            approver=request.user
+        ).values_list(
+            "approver_type",
+            flat=True
+        )
+    )
+
+    context = {
+        "predisclosure_form": PreDisclosureForm(),
+        "predisclosure_line_form": PreDisclosureLineForm(),
+
+        "site_address": PredisclosureConfig.site_address,
+        "library": PredisclosureConfig.library,
+
+        "sharepoint_upload_endpoint": settings.AZURE_SECRETS[
+            "SharepointUploadEndpoint"
+        ],
+
+        "users_to_display": users_to_display,
+
+        "user_approver_types": user_approver_types,
+
+        "links": ContactOrLink.objects.filter(
+            related_to_app=PredisclosureConfig.name
+        ),
+
+        "feedback_site_address":
+            CommonConfig.feedback_site_address,
+
+        "feedback_library":
+            CommonConfig.feedback_library,
+
+        "app_name":
+            PredisclosureConfig.name,
+    }
+
+    return context
+
+app.html
+----------
+const USER_APPROVER_TYPES = Vue.ref(
+    {{ user_approver_types|safe }}
+);
+
+
+const STATUS_TO_APPROVER_TYPE = Vue.ref({});
+
+
+from predisclosure.workflow import (
+    HEADER_STATUS_GRAPH,
+    LINE_STATUS_GRAPH,
+    WORKFLOW_MATRIX,
+    LINE_STATUS_TO_ROLE,
+    ROLE_TO_LINE_STATUS,
+    STATUS_TO_APPROVER_TYPE,
+)
+
+@login_required
+def workflow(request):
+    workflow = {
+        "HEADER_STATUS_GRAPH": HEADER_STATUS_GRAPH,
+        "LINE_STATUS_GRAPH": LINE_STATUS_GRAPH,
+        "WORKFLOW_MATRIX": WORKFLOW_MATRIX,
+        "LINE_STATUS_TO_ROLE": LINE_STATUS_TO_ROLE,
+        "ROLE_TO_LINE_STATUS": ROLE_TO_LINE_STATUS,
+        "STATUS_TO_APPROVER_TYPE": STATUS_TO_APPROVER_TYPE,
+        "ROLES": ROLES,
+        "ADMIN_ROLE": ADMIN_ROLE,
+    }
+
+    return JsonResponse(workflow)
+
+
+.then(data => {
+    HEADER_STATUS_GRAPH.value =
+        data["HEADER_STATUS_GRAPH"];
+
+    LINE_STATUS_GRAPH.value =
+        data["LINE_STATUS_GRAPH"];
+
+    WORKFLOW_MATRIX.value =
+        data["WORKFLOW_MATRIX"];
+
+    LINE_STATUS_TO_ROLE.value =
+        data["LINE_STATUS_TO_ROLE"];
+
+    ROLE_TO_LINE_STATUS.value =
+        data["ROLE_TO_LINE_STATUS"];
+
+    STATUS_TO_APPROVER_TYPE.value =
+        data["STATUS_TO_APPROVER_TYPE"];
+
+    ROLES.value =
+        data["ROLES"];
+
+    ADMIN_ROLE.value =
+        data["ADMIN_ROLE"];
+});
+
+
+
+
+get_line_status_choices(line) {
+
+    const current_status =
+        line.predisclosure_line_status;
+
+    if (!current_status) {
+        return [];
+    }
+
+    const required_approver_type =
+        this.STATUS_TO_APPROVER_TYPE[current_status];
+
+    if (!required_approver_type) {
+        return [];
+    }
+
+    const is_current_user_approver =
+        this.USER_APPROVER_TYPES.includes(
+            required_approver_type
+        );
+
+    if (!is_current_user_approver) {
+        return [];
+    }
+
+    return [
+        "APPROVED",
+        "REJECTED",
+    ];
+},
+
+
+data() {
+    return {
+        ...
+
+        USER_APPROVER_TYPES:
+            USER_APPROVER_TYPES,
+
+        STATUS_TO_APPROVER_TYPE:
+            STATUS_TO_APPROVER_TYPE,
+
+        ...
+    };
+},
