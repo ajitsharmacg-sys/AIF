@@ -1,3 +1,97 @@
+<style>
+    /* Freeze header for all columns */
+    .predisclosure-line-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: white;
+        outline: 1px solid #dee2e6;
+        outline-offset: -1px;
+    }
+
+    /* Freeze first column - # */
+    .predisclosure-line-table .sticky-index {
+        position: sticky;
+        left: 0;
+        z-index: 20;
+        background: white;
+        outline: 1px solid #dee2e6;
+        outline-offset: -1px;
+    }
+
+    /* Freeze second column - Account Name */
+    .predisclosure-line-table .sticky-account-name {
+        position: sticky;
+        left: 50px;
+        z-index: 20;
+        background: white;
+        outline: 1px solid #dee2e6;
+        outline-offset: -1px;
+    }
+
+    /* Freeze third column - Website */
+    .predisclosure-line-table .sticky-website {
+        position: sticky;
+        left: 290px;
+        z-index: 20;
+        background: white;
+        outline: 1px solid #dee2e6;
+        outline-offset: -1px;
+    }
+
+    /* Frozen columns + header need highest z-index */
+    .predisclosure-line-table thead .sticky-index,
+    .predisclosure-line-table thead .sticky-account-name,
+    .predisclosure-line-table thead .sticky-website {
+        z-index: 30;
+    }
+</style>
+
+<thead>
+    <tr>
+        <th class="sticky-index">
+            #
+        </th>
+
+        {% for field in predisclosure_line_form.visible_fields %}
+            <th
+                v-if="showField('{{ field.name }}')"
+                class="{% if field.name == 'account_name' %}sticky-account-name{% elif field.name == 'website' %}sticky-website{% endif %}">
+                {{ field.label }}
+            </th>
+        {% endfor %}
+    </tr>
+</thead>
+
+<tbody>
+    <tr v-for="(line, index) in lines" :key="line.id">
+
+        <td class="sticky-index">
+            [[ index + 1 ]]
+        </td>
+
+        {% for field in predisclosure_line_form.visible_fields %}
+            <td
+                v-if="showField('{{ field.name }}')"
+                class="{% if field.name == 'account_name' %}sticky-account-name{% elif field.name == 'website' %}sticky-website{% endif %}">
+                {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event)" }}
+            </td>
+        {% endfor %}
+
+    </tr>
+</tbody>
+
+
+
+
+
+
+
+
+
+
+
+==================================================================================================
 async export_to_excel(items) {
     this.show_notification("Only current page has been exported.");
 
