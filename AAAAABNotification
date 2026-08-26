@@ -1,3 +1,8 @@
+def get_meta_created_by(self, obj):
+        if not obj.meta_created_by:
+            return None
+        return obj.meta_created_by.get_full_name()
+
 <style>
     /* Line table scroll container */
     #predisclosure_app .table-responsive {
