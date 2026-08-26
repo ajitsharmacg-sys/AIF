@@ -1,76 +1,44 @@
 <style>
     .predisclosure-line-table {
-        min-width: 1800px;
+        border-collapse: separate;
+        border-spacing: 0;
     }
 
-    .predisclosure-line-table th,
-    .predisclosure-line-table td {
-        white-space: nowrap;
-    }
-
-    /* # column */
-    .predisclosure-line-table th.sticky-index,
-    .predisclosure-line-table td.sticky-index {
-        width: 50px;
-        min-width: 50px;
-        max-width: 50px;
-    }
-
-    /* Account Name */
-    .predisclosure-line-table th.sticky-account-name,
-    .predisclosure-line-table td.sticky-account-name {
-        width: 360px;
-        min-width: 360px;
-        max-width: 360px;
-    }
-
-    /* Website */
-    .predisclosure-line-table th.sticky-website,
-    .predisclosure-line-table td.sticky-website {
-        width: 310px;
-        min-width: 310px;
-        max-width: 310px;
-    }
-
-    /* Make the table cells easier to see */
-    .predisclosure-line-table th,
-    .predisclosure-line-table td {
-        vertical-align: middle;
-    }
-
-    /* Sticky columns */
-    .predisclosure-line-table .sticky-index {
-        position: sticky;
-        left: 0;
-        z-index: 10;
-        background: white;
-    }
-
-    .predisclosure-line-table .sticky-account-name {
-        position: sticky;
-        left: 50px;
-        z-index: 10;
-        background: white;
-    }
-
-    .predisclosure-line-table .sticky-website {
-        position: sticky;
-        left: 410px;
-        z-index: 10;
-        background: white;
-    }
-
-    /* Header must stay above body */
+    /* All headers stay visible while vertically scrolling */
     .predisclosure-line-table thead th {
         position: sticky;
         top: 0;
+        z-index: 10;
+        background: white;
+    }
+
+    /* # */
+    .predisclosure-line-table .sticky-index {
+        position: sticky;
+        left: 0;
         z-index: 20;
         background: white;
     }
 
-    .predisclosure-line-table thead th.sticky-index,
-    .predisclosure-line-table thead th.sticky-account-name,
-    .predisclosure-line-table thead th.sticky-website {
+    /* Account Name */
+    .predisclosure-line-table .sticky-account-name {
+        position: sticky;
+        left: 50px;
+        z-index: 20;
+        background: white;
+    }
+
+    /* Website */
+    .predisclosure-line-table .sticky-website {
+        position: sticky;
+        left: 290px;
+        z-index: 20;
+        background: white;
+    }
+
+    .predisclosure-line-table thead .sticky-index,
+    .predisclosure-line-table thead .sticky-account-name,
+    .predisclosure-line-table thead .sticky-website {
         z-index: 30;
         background: white;
     }
