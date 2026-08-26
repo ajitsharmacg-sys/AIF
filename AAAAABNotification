@@ -4,7 +4,7 @@
         border-spacing: 0;
     }
 
-    /* All headers stay visible while vertically scrolling */
+    /* All table headers stay frozen vertically */
     .predisclosure-line-table thead th {
         position: sticky;
         top: 0;
@@ -12,30 +12,46 @@
         background: white;
     }
 
-    /* # */
+    /* # column */
     .predisclosure-line-table .sticky-index {
         position: sticky;
         left: 0;
         z-index: 20;
         background: white;
+        min-width: 30px;
+        width: 30px;
     }
 
     /* Account Name */
     .predisclosure-line-table .sticky-account-name {
         position: sticky;
-        left: 50px;
+        left: 30px;
         z-index: 20;
         background: white;
+        min-width: 240px;
+        width: 240px;
     }
 
     /* Website */
     .predisclosure-line-table .sticky-website {
         position: sticky;
-        left: 290px;
+        left: 270px;
         z-index: 20;
         background: white;
+        min-width: 240px;
+        width: 240px;
     }
 
+    /* Give the form controls some breathing room */
+    .predisclosure-line-table .sticky-account-name input,
+    .predisclosure-line-table .sticky-website input {
+        width: calc(100% - 8px);
+        margin-left: 4px;
+        margin-right: 4px;
+        box-sizing: border-box;
+    }
+
+    /* Keep frozen header above frozen body cells */
     .predisclosure-line-table thead .sticky-index,
     .predisclosure-line-table thead .sticky-account-name,
     .predisclosure-line-table thead .sticky-website {
