@@ -1,85 +1,138 @@
 <style>
-    /* Freeze header for all columns */
-    .predisclosure-line-table thead th {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        background: white;
-        outline: 1px solid #dee2e6;
-        outline-offset: -1px;
+    .predisclosure-line-table {
+        min-width: 1800px;
     }
 
-    /* Freeze first column - # */
+    .predisclosure-line-table th,
+    .predisclosure-line-table td {
+        white-space: nowrap;
+    }
+
+    /* # column */
+    .predisclosure-line-table th.sticky-index,
+    .predisclosure-line-table td.sticky-index {
+        width: 50px;
+        min-width: 50px;
+        max-width: 50px;
+    }
+
+    /* Account Name */
+    .predisclosure-line-table th.sticky-account-name,
+    .predisclosure-line-table td.sticky-account-name {
+        width: 360px;
+        min-width: 360px;
+        max-width: 360px;
+    }
+
+    /* Website */
+    .predisclosure-line-table th.sticky-website,
+    .predisclosure-line-table td.sticky-website {
+        width: 310px;
+        min-width: 310px;
+        max-width: 310px;
+    }
+
+    /* Make the table cells easier to see */
+    .predisclosure-line-table th,
+    .predisclosure-line-table td {
+        vertical-align: middle;
+    }
+
+    /* Sticky columns */
     .predisclosure-line-table .sticky-index {
         position: sticky;
         left: 0;
-        z-index: 20;
+        z-index: 10;
         background: white;
-        outline: 1px solid #dee2e6;
-        outline-offset: -1px;
     }
 
-    /* Freeze second column - Account Name */
     .predisclosure-line-table .sticky-account-name {
         position: sticky;
         left: 50px;
-        z-index: 20;
+        z-index: 10;
         background: white;
-        outline: 1px solid #dee2e6;
-        outline-offset: -1px;
     }
 
-    /* Freeze third column - Website */
     .predisclosure-line-table .sticky-website {
         position: sticky;
-        left: 290px;
-        z-index: 20;
+        left: 410px;
+        z-index: 10;
         background: white;
-        outline: 1px solid #dee2e6;
-        outline-offset: -1px;
     }
 
-    /* Frozen columns + header need highest z-index */
-    .predisclosure-line-table thead .sticky-index,
-    .predisclosure-line-table thead .sticky-account-name,
-    .predisclosure-line-table thead .sticky-website {
+    /* Header must stay above body */
+    .predisclosure-line-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: white;
+    }
+
+    .predisclosure-line-table thead th.sticky-index,
+    .predisclosure-line-table thead th.sticky-account-name,
+    .predisclosure-line-table thead th.sticky-website {
         z-index: 30;
+        background: white;
     }
 </style>
 
-<thead>
-    <tr>
-        <th class="sticky-index">
-            #
-        </th>
+<div class="table-responsive">
 
-        {% for field in predisclosure_line_form.visible_fields %}
-            <th
-                v-if="showField('{{ field.name }}')"
-                class="{% if field.name == 'account_name' %}sticky-account-name{% elif field.name == 'website' %}sticky-website{% endif %}">
-                {{ field.label }}
-            </th>
-        {% endfor %}
-    </tr>
-</thead>
+    <form id="predisclosure_line_form" @submit.prevent="">
 
-<tbody>
-    <tr v-for="(line, index) in lines" :key="line.id">
+        <table class="table table-bordered table-sm align-middle predisclosure-line-table">
 
-        <td class="sticky-index">
-            [[ index + 1 ]]
-        </td>
+            <thead>
+                <tr>
 
-        {% for field in predisclosure_line_form.visible_fields %}
-            <td
-                v-if="showField('{{ field.name }}')"
-                class="{% if field.name == 'account_name' %}sticky-account-name{% elif field.name == 'website' %}sticky-website{% endif %}">
-                {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event)" }}
-            </td>
-        {% endfor %}
+                    <th class="sticky-index">
+                        #
+                    </th>
 
-    </tr>
-</tbody>
+                    {% for field in predisclosure_line_form.visible_fields %}
+
+                        <th
+                            v-if="showField('{{ field.name }}')"
+                            class="{% if field.name == 'account_name' %}sticky-account-name{% elif field.name == 'website' %}sticky-website{% endif %}">
+
+                            {{ field.label }}
+
+                        </th>
+
+                    {% endfor %}
+
+                </tr>
+            </thead>
+
+            <tbody>
+
+                <tr v-for="(line, index) in lines" :key="line.id || index">
+
+                    <td class="sticky-index">
+                        [[ index + 1 ]]
+                    </td>
+
+                    {% for field in predisclosure_line_form.visible_fields %}
+
+                        <td
+                            v-if="showField('{{ field.name }}')"
+                            class="{% if field.name == 'account_name' %}sticky-account-name{% elif field.name == 'website' %}sticky-website{% endif %}">
+
+                            {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event)" }}
+
+                        </td>
+
+                    {% endfor %}
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </form>
+
+</div>
 
 
 
