@@ -1,10 +1,19 @@
 <style>
+    /* Line table scroll container */
+    #predisclosure_app .table-responsive {
+        max-height: 500px;
+        overflow-x: auto;
+        overflow-y: auto;
+        position: relative;
+    }
+
     .predisclosure-line-table {
         border-collapse: separate;
         border-spacing: 0;
+        min-width: max-content;
     }
 
-    /* All table headers stay frozen vertically */
+    /* Freeze all table headers vertically */
     .predisclosure-line-table thead th {
         position: sticky;
         top: 0;
@@ -38,11 +47,11 @@
         left: 270px;
         z-index: 20;
         background: white;
-        min-width: 240px;
-        width: 240px;
+        min-width: 200px;
+        width: 200px;
     }
 
-    /* Give the form controls some breathing room */
+    /* Input spacing */
     .predisclosure-line-table .sticky-account-name input,
     .predisclosure-line-table .sticky-website input {
         width: calc(100% - 8px);
@@ -51,7 +60,7 @@
         box-sizing: border-box;
     }
 
-    /* Keep frozen header above frozen body cells */
+    /* Frozen header cells must remain above body */
     .predisclosure-line-table thead .sticky-index,
     .predisclosure-line-table thead .sticky-account-name,
     .predisclosure-line-table thead .sticky-website {
