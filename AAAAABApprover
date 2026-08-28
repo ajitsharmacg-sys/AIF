@@ -1,3 +1,150 @@
+line_fields: {
+    account_name: { label: "Account Name", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], export: true, template: true },
+    website: { label: "Website Name", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], export: true, template: true },
+    nda_confirmed: { label: "Is NDA Confirmed", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], export: true, template: true },
+    disclosure_format: { label: "Pre Disclosure Format", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], export: true, template: true },
+    reason_for_disclosure: { label: "Disclosure Reason", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], export: true, template: true },
+    meeting_date: { label: "Meeting Date", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], export: true, template: true },
+    meeting_location: { label: "Meeting Location", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], export: true, template: true },
+    canon_responsible_person: { label: "Canon Responsible Person", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], export: true, template: true },
+    individuals_being_disclosed_to: { label: "Individual Disclosure Names", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], export: true, template: true },
+    information_to_be_disclosed: { label: "Information Disclosure", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], export: true, template: true },
+
+    sda_partner_level: { label: "SDA Partner Level", types: ["PARTNER"], export: true, template: true },
+    account_in_sda_partner_list: { label: "Account in SDA Partner List", types: ["PARTNER"], export: true, template: true },
+    retailer_ranking: { label: "Retailer Ranking", types: ["PARTNER"], export: true, template: true },
+
+    disclosed_last_2_years: { label: "Disclosed In Last 2 years", types: ["END_CUSTOMER"], export: true, template: true },
+    b2b_business_type: { label: "B2B Business Type", types: ["END_CUSTOMER"], export: true, template: true },
+    estimated_business: { label: "Estimated Business", types: ["END_CUSTOMER"], export: true, template: true },
+    annual_sales: { label: "Annual Sales", types: ["END_CUSTOMER"], export: true, template: true },
+
+    previous_status: { label: "Previous Status", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], export: true, template: false },
+    predisclosure_line_status: { label: "PreDisclosure Line Status", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], export: true, template: false },
+},
+
+
+
+async download_line_template() {
+
+    const columns = this.predisclosure_line_columns
+        .filter(
+            field => this.line_fields[field].template
+        );
+
+    const headers = columns.map(
+        field => this.line_fields[field].label
+    );
+
+    const worksheet = utils.aoa_to_sheet([
+        headers,
+    ]);
+
+    worksheet["!cols"] = columns.map(
+        field => ({
+            wch: Math.max(
+                this.line_fields[field].label.length + 3,
+                20
+            ),
+        })
+    );
+
+    const workbook = utils.book_new();
+
+    utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "Lines"
+    );
+
+    writeFile(
+        workbook,
+        `PreDisclosure_${
+            this.selected_predisclosure.predisclosure_type
+        }_Template.xlsx`
+    );
+},
+
+async export_lines_to_excel(items) {
+
+    const columns = this.predisclosure_line_columns;
+
+    const headers = columns.map(
+        field => this.line_fields[field].label
+    );
+
+    const export_data = (
+        items?.results || []
+    ).map(item => {
+
+        return columns.map(
+            field => item[field] ?? ""
+        );
+
+    });
+
+    const worksheet = utils.aoa_to_sheet([
+        headers,
+        ...export_data,
+    ]);
+
+    worksheet["!cols"] = columns.map(
+        (field, index) => {
+
+            const max_length = Math.max(
+                this.line_fields[field].label.length,
+
+                ...export_data.map(
+                    row =>
+                        String(
+                            row[index] ?? ""
+                        ).length
+                )
+            );
+
+            return {
+                wch: Math.min(
+                    Math.max(
+                        max_length + 3,
+                        15
+                    ),
+                    50
+                ),
+            };
+        }
+    );
+
+    const workbook = utils.book_new();
+
+    utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "Lines"
+    );
+
+    writeFile(
+        workbook,
+        "PreDisclosure_Lines.xlsx"
+    );
+},
+
+
+predisclosure_line_columns() {
+
+    const disclosure_type =
+        this.selected_predisclosure.predisclosure_type;
+
+    return Object.keys(this.line_fields)
+        .filter(field => {
+            return this.line_fields[field].types.includes(
+                disclosure_type
+            );
+        });
+},
+
+
+
+==========================================
 <django-paged-table
     ref="lineTable"
     :api_endpoint="predisclosure_line_url"
