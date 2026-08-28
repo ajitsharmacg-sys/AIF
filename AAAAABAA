@@ -68,14 +68,7 @@ predisclosure_line_columns() {
 
 async download_line_template() {
 
-    const columns = this.predisclosure_line_columns.filter(
-        field =>
-            ![
-                "previous_status",
-                "predisclosure_line_status",
-            ].includes(field)
-    );
-
+    const columns = this.predisclosure_line_columns;
     const headers = columns.map(
         field => this.line_fields[field].label
     );
