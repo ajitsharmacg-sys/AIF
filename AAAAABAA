@@ -1,3 +1,212 @@
+async download_line_template() {
+    const disclosure_type =
+        String(
+            this.selected_predisclosure?.predisclosure_type ?? ""
+        ).trim().toUpperCase();
+
+    if (!disclosure_type) {
+        this.show_notification(
+            "Please select a Disclosure Type before downloading the template."
+        );
+        return;
+    }
+
+    const columns =
+        this.predisclosure_line_columns;
+
+    if (!columns.length) {
+        this.show_notification(
+            "No fields are available for the selected Disclosure Type."
+        );
+        return;
+    }
+
+    /*
+     * ============================
+     * PreDisclosure Lines Sheet
+     * ============================
+     */
+
+    const headers = columns.map(
+        field => this.line_fields[field].label
+    );
+
+    const worksheet = utils.aoa_to_sheet([
+        headers
+    ]);
+
+    worksheet["!cols"] = columns.map(
+        field => ({
+            wch: Math.max(
+                this.line_fields[field].label.length + 5,
+                20
+            )
+        })
+    );
+
+
+    /*
+     * ============================
+     * Help Sheet
+     * ============================
+     *
+     * Only dropdown fields and
+     * Meeting Date are displayed.
+     */
+
+    const help_fields = [
+        "nda_confirmed",
+        "disclosure_format",
+        "sda_partner_level",
+        "account_in_sda_partner_list",
+        "disclosed_last_2_years",
+        "meeting_date",
+    ].filter(
+        field => columns.includes(field)
+    );
+
+
+    const help_data = [];
+
+    /*
+     * Header row
+     */
+    help_data.push(
+        help_fields.map(
+            field =>
+                this.line_fields[field].label
+        )
+    );
+
+
+    /*
+     * Find maximum number of
+     * values required.
+     */
+    const max_rows =
+        Math.max(
+            ...help_fields.map(
+                field => {
+                    const config =
+                        this.line_fields[field];
+
+                    if (config.values) {
+                        return config.values.length;
+                    }
+
+                    if (config.date) {
+                        return 1;
+                    }
+
+                    return 0;
+                }
+            ),
+            0
+        );
+
+
+    /*
+     * Add dropdown values/date
+     * format row by row.
+     */
+    for (
+        let row_index = 0;
+        row_index < max_rows;
+        row_index++
+    ) {
+        help_data.push(
+            help_fields.map(
+                field => {
+                    const config =
+                        this.line_fields[field];
+
+                    /*
+                     * Dropdown values
+                     */
+                    if (config.values) {
+                        return (
+                            config.values[row_index] ?? ""
+                        );
+                    }
+
+                    /*
+                     * Date format
+                     */
+                    if (
+                        config.date &&
+                        row_index === 0
+                    ) {
+                        return "dd-mm-yyyy";
+                    }
+
+                    return "";
+                }
+            )
+        );
+    }
+
+
+    const help_worksheet =
+        utils.aoa_to_sheet(help_data);
+
+
+    /*
+     * Set Help sheet column widths.
+     */
+    help_worksheet["!cols"] =
+        help_fields.map(
+            field => ({
+                wch: Math.max(
+                    this.line_fields[field]
+                        .label.length + 5,
+                    25
+                )
+            })
+        );
+
+
+    /*
+     * ============================
+     * Create Workbook
+     * ============================
+     */
+
+    const workbook =
+        utils.book_new();
+
+    utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "PreDisclosure Lines"
+    );
+
+    utils.book_append_sheet(
+        workbook,
+        help_worksheet,
+        "Help"
+    );
+
+
+    /*
+     * Download Excel
+     */
+    writeFile(
+        workbook,
+        "PreDisclosure_Line_Template.xlsx"
+    );
+},
+
+
+
+
+
+
+
+
+
+
+
+
 resetDisclosureFields() {
     for (const line of this.lines) {
         if (
