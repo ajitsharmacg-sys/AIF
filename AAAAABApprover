@@ -1,3 +1,692 @@
+from predisclosure.roles import (
+    ISB_ADMIN,
+    ISB_PM,
+    ICB_ADMIN,
+    ICB_PM,
+    PR_ADMIN,
+    B2B_ADMIN,
+    ISB_ICB_PM,
+    ADMIN_ROLE,
+)
+
+from predisclosure.models import (
+    PreDisclosureLineStatusChoices,
+    PreDisclosureTypeChoices,
+    ApproverTypeChoices,
+    PreDisclosureApprover,
+)
+
+
+ISB = "ISB"
+ICB = "ICB"
+ISB_ICB = "ISB_ICB"
+
+
+# =========================================================
+# HEADER STATUS GRAPH
+# =========================================================
+
+HEADER_STATUS_GRAPH = {
+    "DRAFT": [
+        "IN_PROGRESS",
+    ],
+
+    "IN_PROGRESS": [
+        "COMPLETED",
+        "REJECTED",
+    ],
+}
+
+
+# =========================================================
+# LINE STATUS GRAPH
+#
+# Defines the valid actions from each line status.
+# =========================================================
+
+LINE_STATUS_GRAPH = {
+
+    PreDisclosureLineStatusChoices.DRAFT: [
+        PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL,
+        PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL,
+        PreDisclosureLineStatusChoices.AWAITING_B2B_APPROVAL,
+        PreDisclosureLineStatusChoices.AWAITING_PR_APPROVAL,
+        PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL,
+        PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL,
+        PreDisclosureLineStatusChoices.AWAITING_ISB_ICB_PM_APPROVAL,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL: [
+        PreDisclosureLineStatusChoices.APPROVED,
+        PreDisclosureLineStatusChoices.REJECTED,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL: [
+        PreDisclosureLineStatusChoices.APPROVED,
+        PreDisclosureLineStatusChoices.REJECTED,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_B2B_APPROVAL: [
+        PreDisclosureLineStatusChoices.APPROVED,
+        PreDisclosureLineStatusChoices.REJECTED,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_PR_APPROVAL: [
+        PreDisclosureLineStatusChoices.APPROVED,
+        PreDisclosureLineStatusChoices.REJECTED,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL: [
+        PreDisclosureLineStatusChoices.APPROVED,
+        PreDisclosureLineStatusChoices.REJECTED,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL: [
+        PreDisclosureLineStatusChoices.APPROVED,
+        PreDisclosureLineStatusChoices.REJECTED,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_ICB_PM_APPROVAL: [
+        PreDisclosureLineStatusChoices.APPROVED,
+        PreDisclosureLineStatusChoices.REJECTED,
+    ],
+}
+
+
+# =========================================================
+# WORKFLOW MATRIX
+#
+# Defines the actual approval sequence for:
+#
+# Disclosure Type + Product Category
+#
+# The number represents the approval step.
+# =========================================================
+
+WORKFLOW_MATRIX = {
+
+    PreDisclosureTypeChoices.PARTNER: {
+
+        ISB: {
+            1: PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL,
+            2: PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL,
+        },
+
+        ICB: {
+            1: PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL,
+            2: PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL,
+        },
+
+        ISB_ICB: {
+            1: PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL,
+            2: PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL,
+            3: PreDisclosureLineStatusChoices.AWAITING_ISB_ICB_PM_APPROVAL,
+        },
+    },
+
+
+    PreDisclosureTypeChoices.END_CUSTOMER: {
+
+        ISB: {
+            1: PreDisclosureLineStatusChoices.AWAITING_B2B_APPROVAL,
+            2: PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL,
+        },
+
+        ICB: {
+            1: PreDisclosureLineStatusChoices.AWAITING_B2B_APPROVAL,
+            2: PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL,
+        },
+
+        ISB_ICB: {
+            1: PreDisclosureLineStatusChoices.AWAITING_B2B_APPROVAL,
+            2: PreDisclosureLineStatusChoices.AWAITING_ISB_ICB_PM_APPROVAL,
+        },
+    },
+
+
+    PreDisclosureTypeChoices.PR_SOCIAL: {
+
+        ISB: {
+            1: PreDisclosureLineStatusChoices.AWAITING_PR_APPROVAL,
+            2: PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL,
+        },
+
+        ICB: {
+            1: PreDisclosureLineStatusChoices.AWAITING_PR_APPROVAL,
+            2: PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL,
+        },
+
+        ISB_ICB: {
+            1: PreDisclosureLineStatusChoices.AWAITING_PR_APPROVAL,
+            2: PreDisclosureLineStatusChoices.AWAITING_ISB_ICB_PM_APPROVAL,
+        },
+    },
+}
+
+
+# =========================================================
+# STATUS -> APPROVER TYPE
+#
+# This is the source of truth for normal approvers.
+#
+# Approval authorization does NOT use Django roles.
+# =========================================================
+
+STATUS_TO_APPROVER_TYPE = {
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL:
+        ApproverTypeChoices.ISB_APPROVER1,
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL:
+        ApproverTypeChoices.ISB_APPROVER2,
+
+    PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL:
+        ApproverTypeChoices.ICB_APPROVER1,
+
+    PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL:
+        ApproverTypeChoices.ICB_APPROVER2,
+
+    PreDisclosureLineStatusChoices.AWAITING_PR_APPROVAL:
+        ApproverTypeChoices.PR_APPROVER1,
+
+    PreDisclosureLineStatusChoices.AWAITING_B2B_APPROVAL:
+        ApproverTypeChoices.B2B_APPROVER1,
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_ICB_PM_APPROVAL:
+        ApproverTypeChoices.ISB_ICB_APPROVER2,
+}
+
+
+# =========================================================
+# APPROVER TYPE -> ROLE
+#
+# Kept for compatibility with existing code.
+#
+# This mapping is NOT used to authorize Approve/Reject.
+# =========================================================
+
+APPROVER_TYPE_TO_ROLE = {
+
+    ApproverTypeChoices.ISB_APPROVER1:
+        ISB_ADMIN,
+
+    ApproverTypeChoices.ISB_APPROVER2:
+        ISB_PM,
+
+    ApproverTypeChoices.ICB_APPROVER1:
+        ICB_ADMIN,
+
+    ApproverTypeChoices.ICB_APPROVER2:
+        ICB_PM,
+
+    ApproverTypeChoices.PR_APPROVER1:
+        PR_ADMIN,
+
+    ApproverTypeChoices.B2B_APPROVER1:
+        B2B_ADMIN,
+
+    ApproverTypeChoices.ISB_ICB_APPROVER2:
+        ISB_ICB_PM,
+}
+
+
+# =========================================================
+# APPROVER STAGE DISPLAY NAME
+# =========================================================
+
+APPROVER_STAGE_NAME = {
+
+    ApproverTypeChoices.ISB_APPROVER1:
+        "ISB Administrator Approval",
+
+    ApproverTypeChoices.ISB_APPROVER2:
+        "ISB Product Manager Approval",
+
+    ApproverTypeChoices.ICB_APPROVER1:
+        "ICB Administrator Approval",
+
+    ApproverTypeChoices.ICB_APPROVER2:
+        "ICB Product Manager Approval",
+
+    ApproverTypeChoices.PR_APPROVER1:
+        "PR & Social Approval",
+
+    ApproverTypeChoices.B2B_APPROVER1:
+        "B2B(End Customer) Approval",
+
+    ApproverTypeChoices.ISB_ICB_APPROVER2:
+        "ISB & ICB PM Approval",
+}
+
+
+# =========================================================
+# WORKFLOW HELPERS
+# =========================================================
+
+def get_workflow(
+    disclosure_type,
+    product_category,
+):
+    """
+    Return the configured workflow for the
+    disclosure type and product category.
+
+    Returns an empty dictionary if no workflow
+    is configured.
+    """
+
+    return (
+        WORKFLOW_MATRIX
+        .get(disclosure_type, {})
+        .get(product_category, {})
+    )
+
+
+def get_total_steps(
+    disclosure_type,
+    product_category,
+):
+    """
+    Return the total number of approval steps.
+    """
+
+    return len(
+        get_workflow(
+            disclosure_type,
+            product_category,
+        )
+    )
+
+
+# =========================================================
+# APPROVER HELPERS
+# =========================================================
+
+def get_approver_type(status):
+    """
+    Return the approver type required for
+    the supplied approval status.
+    """
+
+    return STATUS_TO_APPROVER_TYPE.get(
+        status
+    )
+
+
+def get_required_role(approver_type):
+    """
+    Kept for compatibility with existing code.
+
+    This should not be used for approval authorization.
+    """
+
+    return APPROVER_TYPE_TO_ROLE.get(
+        approver_type
+    )
+
+
+def can_user_approve(
+    user,
+    current_status,
+):
+    """
+    Check whether the logged-in user can approve/reject
+    the current approval stage.
+
+    Rules:
+
+    1. ADMIN_ROLE can approve/reject any approval phase.
+    2. Normal users must exist in PreDisclosureApprover
+       with the approver_type required by current_status.
+
+    No role-specific authorization is performed.
+
+    Returns:
+        True / False
+    """
+
+    # -----------------------------------------------------
+    # Admin can approve/reject all phases
+    # -----------------------------------------------------
+
+    if user.groups.filter(
+        name=ADMIN_ROLE
+    ).exists():
+        return True
+
+    # -----------------------------------------------------
+    # Get required approver type
+    # -----------------------------------------------------
+
+    required_approver_type = get_approver_type(
+        current_status
+    )
+
+    if not required_approver_type:
+        return False
+
+    # -----------------------------------------------------
+    # Check configured approver
+    # -----------------------------------------------------
+
+    return PreDisclosureApprover.objects.filter(
+        approver=user,
+        approver_type=required_approver_type,
+    ).exists()
+
+
+# =========================================================
+# WORKFLOW TRANSITION GRAPH
+# =========================================================
+
+def get_workflow_transitions(
+    disclosure_type,
+    product_category,
+):
+    """
+    Build the actual workflow transition graph
+    from WORKFLOW_MATRIX.
+
+    Example:
+
+        STEP 1 -> STEP 2
+        STEP 2 -> STEP 3
+        STEP 3 -> []
+
+    Returns a dictionary:
+
+        {
+            status1: [status2],
+            status2: [status3],
+            status3: [],
+        }
+    """
+
+    workflow = get_workflow(
+        disclosure_type,
+        product_category,
+    )
+
+    if not workflow:
+        return {}
+
+    statuses = list(
+        workflow.values()
+    )
+
+    transitions = {}
+
+    for index, current_status in enumerate(
+        statuses
+    ):
+
+        if index + 1 < len(statuses):
+            transitions[current_status] = [
+                statuses[index + 1]
+            ]
+        else:
+            transitions[current_status] = []
+
+    return transitions
+
+
+def get_next_status(
+    disclosure_type,
+    product_category,
+    current_status,
+):
+    """
+    Return the next approval status.
+
+    Returns None when the current status is
+    the final configured approval stage or when
+    the current status is not found.
+    """
+
+    transitions = get_workflow_transitions(
+        disclosure_type,
+        product_category,
+    )
+
+    next_statuses = transitions.get(
+        current_status,
+        [],
+    )
+
+    if not next_statuses:
+        return None
+
+    return next_statuses[0]
+
+
+def is_valid_transition(
+    disclosure_type,
+    product_category,
+    current_status,
+    next_status,
+):
+    """
+    Check whether a transition is valid for the
+    configured disclosure type and product category.
+
+    Returns True / False only.
+    No exception is raised here.
+    """
+
+    transitions = get_workflow_transitions(
+        disclosure_type,
+        product_category,
+    )
+
+    return next_status in transitions.get(
+        current_status,
+        [],
+    )
+
+
+# =========================================================
+# ROLE HELPERS
+#
+# Kept for backward compatibility.
+#
+# These are NOT used for Approve/Reject authorization.
+# =========================================================
+
+LINE_STATUS_TO_ROLE = {
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL: [
+        ISB_ADMIN,
+        ADMIN_ROLE,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL: [
+        ICB_ADMIN,
+        ADMIN_ROLE,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_B2B_APPROVAL: [
+        B2B_ADMIN,
+        ADMIN_ROLE,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_PR_APPROVAL: [
+        PR_ADMIN,
+        ADMIN_ROLE,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL: [
+        ISB_PM,
+        ADMIN_ROLE,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL: [
+        ICB_PM,
+        ADMIN_ROLE,
+    ],
+
+    PreDisclosureLineStatusChoices.AWAITING_ISB_ICB_PM_APPROVAL: [
+        ISB_ICB_PM,
+        ADMIN_ROLE,
+    ],
+}
+
+
+ROLE_TO_LINE_STATUS = {
+
+    ISB_ADMIN: [
+        PreDisclosureLineStatusChoices.AWAITING_ISB_ADMIN_APPROVAL,
+    ],
+
+    ICB_ADMIN: [
+        PreDisclosureLineStatusChoices.AWAITING_ICB_ADMIN_APPROVAL,
+    ],
+
+    B2B_ADMIN: [
+        PreDisclosureLineStatusChoices.AWAITING_B2B_APPROVAL,
+    ],
+
+    PR_ADMIN: [
+        PreDisclosureLineStatusChoices.AWAITING_PR_APPROVAL,
+    ],
+
+    ISB_PM: [
+        PreDisclosureLineStatusChoices.AWAITING_ISB_PM_APPROVAL,
+    ],
+
+    ICB_PM: [
+        PreDisclosureLineStatusChoices.AWAITING_ICB_PM_APPROVAL,
+    ],
+
+    ISB_ICB_PM: [
+        PreDisclosureLineStatusChoices.AWAITING_ISB_ICB_PM_APPROVAL,
+    ],
+}
+
+
+def get_role_from_status(status):
+    """
+    Backward-compatible helper.
+
+    Not used for approval authorization.
+    """
+
+    return LINE_STATUS_TO_ROLE.get(
+        status,
+        [],
+    )
+
+
+def get_role_status(role):
+    """
+    Backward-compatible helper.
+
+    Not used for approval authorization.
+    """
+
+    return ROLE_TO_LINE_STATUS.get(
+        role,
+        [],
+    )
+
+
+# =========================================================
+# DISPLAY / EMAIL HELPERS
+# =========================================================
+
+def get_approver_stage_name(status):
+    """
+    Return the display name for the current
+    approval stage.
+    """
+
+    approver_type = get_approver_type(
+        status
+    )
+
+    return APPROVER_STAGE_NAME.get(
+        approver_type,
+        approver_type,
+    )
+
+
+def get_workflow_progress(
+    disclosure_type,
+    product_category,
+    current_status,
+):
+    """
+    Build workflow progress dynamically from
+    WORKFLOW_MATRIX.
+
+    Displays:
+
+        ✓ Completed stages
+        ➜ Current awaiting stage
+
+    Future stages are not displayed.
+    """
+
+    workflow = get_workflow(
+        disclosure_type,
+        product_category,
+    )
+
+    if not workflow:
+        return ""
+
+    status_to_step = {
+        status: step
+        for step, status in workflow.items()
+    }
+
+    current_step = status_to_step.get(
+        current_status
+    )
+
+    if current_step is None:
+        return ""
+
+    html = ""
+
+    for step in sorted(
+        workflow.keys()
+    ):
+
+        if step > current_step:
+            break
+
+        status = workflow[step]
+
+        stage = get_approver_stage_name(
+            status
+        )
+
+        if step < current_step:
+            icon = "&#10004;"
+            state = "Completed"
+        else:
+            icon = "&#10148;"
+            state = "Awaiting"
+
+        html += (
+            f"{icon} "
+            f"{stage} - "
+            f"{state}<br>"
+        )
+
+    return html
+
+
+
+
+
+
+
+
+
+
+=================================================================
+
 "user_approver_types": user_approver_types,
 
 from predisclosure.workflow import (
