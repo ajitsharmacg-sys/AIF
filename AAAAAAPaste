@@ -1,3 +1,84 @@
+line_fields: {
+    account_name: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
+    website: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
+    nda_confirmed: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
+    disclosure_format: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
+    reason_for_disclosure: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
+    meeting_date: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
+    meeting_location: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
+    canon_responsible_person: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
+    individuals_being_disclosed_to: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
+    information_to_be_disclosed: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
+    sda_partner_level: ["PARTNER"],
+    account_in_sda_partner_list: ["PARTNER"],
+    retailer_ranking: ["PARTNER"],
+    disclosed_last_2_years: ["END_CUSTOMER"],
+    b2b_business_type: ["END_CUSTOMER"],
+    estimated_business: ["END_CUSTOMER"],
+    annual_sales: ["END_CUSTOMER"],
+},
+
+options: {
+            predisclosure_line: {}
+        },
+prepare_line_fields(api_fields) {
+    Object.keys(this.line_fields).forEach(field => {
+        if (!api_fields[field]) {
+            return;
+        }
+
+        const types =
+            this.line_fields[field].types;
+
+        this.line_fields[field] = {
+            ...api_fields[field],
+            types,
+            values:
+                api_fields[field].choices
+                    ?.map(choice => choice.value),
+            date:
+                api_fields[field].type === "date",
+        };
+    });
+},
+
+created() {
+    loadOptions(api_endpoints.predisclosure_line)
+        .then(response => {
+            if (!response.ok) {
+                return Promise.reject(response);
+            }
+
+            return response.json();
+        })
+        .then(data => {
+            console.log(
+                "PreDisclosure Line Options:",
+                data
+            );
+
+            if (data.actions?.POST) {
+                this.options["predisclosure_line"] =
+                    data.actions.POST;
+
+                this.prepare_line_fields(this.options["predisclosure_line"]);
+            }
+        })
+        .catch(error_response => {
+            this.display_error(
+                error_response,
+                "Failed to load PreDisclosure Line Items"
+            );
+        });
+},
+
+
+
+
+
+
+
+
 created() {
     loadOptions(api_endpoints.predisclosure_line)
         .then(response => {
