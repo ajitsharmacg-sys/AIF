@@ -1,24 +1,493 @@
 line_fields: {
-    account_name: { label: "Account Name", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], mandatory: true },
-    website: { label: "Website Name", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], mandatory: true },
-    nda_confirmed: { label: "Is NDA Confirmed", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], mandatory: true },
-    disclosure_format: { label: "Pre Disclosure Format", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], mandatory: true },
-    reason_for_disclosure: { label: "Disclosure Reason", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], mandatory: true },
-    meeting_date: { label: "Meeting Date", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], mandatory: true },
-    meeting_location: { label: "Meeting Location", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], mandatory: true },
-    canon_responsible_person: { label: "Canon Responsible Person", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], mandatory: true },
-    individuals_being_disclosed_to: { label: "Individual Disclosure Names", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], mandatory: true },
-    information_to_be_disclosed: { label: "Information Disclosure", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], mandatory: false },
+    account_name: {
+        label: "Account Name",
+        types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
+        mandatory: true
+    },
 
-    sda_partner_level: { label: "SDA Partner Level", types: ["PARTNER"], mandatory: false },
-    account_in_sda_partner_list: { label: "Account in SDA Partner List", types: ["PARTNER"], mandatory: false },
-    retailer_ranking: { label: "Retailer Ranking", types: ["PARTNER"], mandatory: false },
+    website: {
+        label: "Website Name",
+        types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
+        mandatory: true
+    },
 
-    disclosed_last_2_years: { label: "Disclosed In Last 2 years", types: ["END_CUSTOMER"], mandatory: false },
-    b2b_business_type: { label: "B2B Business Type", types: ["END_CUSTOMER"], mandatory: false },
-    estimated_business: { label: "Estimated Business", types: ["END_CUSTOMER"], mandatory: false },
-    annual_sales: { label: "Annual Sales", types: ["END_CUSTOMER"], mandatory: false },
+    nda_confirmed: {
+        label: "Is NDA Confirmed",
+        types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
+        mandatory: true,
+        values: ["YES", "NO"]
+    },
+
+    disclosure_format: {
+        label: "Pre Disclosure Format",
+        types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
+        mandatory: true,
+        values: [
+            "ONLINE_1_TO_1",
+            "FACE_TO_FACE_1_TO_1",
+            "GROUP_ONLINE",
+            "GROUP_FACE_TO_FACE"
+        ]
+    },
+
+    reason_for_disclosure: {
+        label: "Disclosure Reason",
+        types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
+        mandatory: true
+    },
+
+    meeting_date: {
+        label: "Meeting Date",
+        types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
+        mandatory: true
+    },
+
+    meeting_location: {
+        label: "Meeting Location",
+        types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
+        mandatory: true
+    },
+
+    canon_responsible_person: {
+        label: "Canon Responsible Person",
+        types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
+        mandatory: true
+    },
+
+    individuals_being_disclosed_to: {
+        label: "Individual Disclosure Names",
+        types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
+        mandatory: true
+    },
+
+    information_to_be_disclosed: {
+        label: "Information Disclosure",
+        types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
+        mandatory: false
+    },
+
+    sda_partner_level: {
+        label: "SDA Partner Level",
+        types: ["PARTNER"],
+        mandatory: false,
+        values: ["PIP", "AIP1", "AIP2", "SIP"]
+    },
+
+    account_in_sda_partner_list: {
+        label: "SDA Partner List",
+        types: ["PARTNER"],
+        mandatory: false,
+        values: ["YES", "NO"]
+    },
+
+    retailer_ranking: {
+        label: "Retailer Ranking",
+        types: ["PARTNER"],
+        mandatory: false
+    },
+
+    disclosed_last_2_years: {
+        label: "Disclosed In Last 2 years",
+        types: ["END_CUSTOMER"],
+        mandatory: false,
+        values: ["YES", "NO"]
+    },
+
+    b2b_business_type: {
+        label: "B2B Business Type",
+        types: ["END_CUSTOMER"],
+        mandatory: false
+    },
+
+    estimated_business: {
+        label: "Estimated Business",
+        types: ["END_CUSTOMER"],
+        mandatory: false
+    },
+
+    annual_sales: {
+        label: "Annual Sales",
+        types: ["END_CUSTOMER"],
+        mandatory: false
+    },
 },
+
+
+predisclosure_line_columns() {
+    const disclosure_type =
+        String(
+            this.selected_predisclosure?.predisclosure_type ?? ""
+        ).trim().toUpperCase();
+
+    if (!disclosure_type) {
+        return Object.keys(this.line_fields);
+    }
+
+    return Object.keys(this.line_fields).filter(
+        field =>
+            this.line_fields[field].types.includes(
+                disclosure_type
+            )
+    );
+},
+
+
+async download_line_template() {
+    const columns = this.predisclosure_line_columns;
+
+    if (!columns.length) {
+        this.show_notification(
+            "Please select a disclosure type first."
+        );
+        return;
+    }
+
+    /*
+     * -----------------------------
+     * Template sheet
+     * -----------------------------
+     */
+
+    const headers = columns.map(
+        field => this.line_fields[field].label
+    );
+
+    const template_data = [
+        headers
+    ];
+
+    const worksheet = utils.aoa_to_sheet(
+        template_data
+    );
+
+    worksheet["!cols"] = columns.map(
+        field => ({
+            wch: Math.max(
+                this.line_fields[field].label.length + 5,
+                20
+            )
+        })
+    );
+
+
+    /*
+     * -----------------------------
+     * Help sheet
+     * -----------------------------
+     */
+
+    const help_data = [
+        ["Field", "Value"]
+    ];
+
+    columns.forEach(field => {
+        const config = this.line_fields[field];
+
+        /*
+         * Dropdown field
+         */
+        if (config.values) {
+            config.values.forEach(
+                (value, index) => {
+                    help_data.push([
+                        index === 0
+                            ? config.label
+                            : "",
+                        value
+                    ]);
+                }
+            );
+        }
+
+        /*
+         * Date field
+         */
+        else if (config.date) {
+            help_data.push([
+                config.label,
+                "dd-mm-yyyy"
+            ]);
+        }
+    });
+
+    const help_worksheet =
+        utils.aoa_to_sheet(help_data);
+
+    help_worksheet["!cols"] = [
+        { wch: 40 },
+        { wch: 40 }
+    ];
+
+
+    /*
+     * -----------------------------
+     * Workbook
+     * -----------------------------
+     */
+
+    const workbook = utils.book_new();
+
+    utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "PreDisclosure Lines"
+    );
+
+    utils.book_append_sheet(
+        workbook,
+        help_worksheet,
+        "Help"
+    );
+
+    writeFile(
+        workbook,
+        "PreDisclosure_Line_Template.xlsx"
+    );
+},
+
+validate_pasted_value(field, value) {
+    const config = this.line_fields[field];
+
+    if (!config) {
+        return true;
+    }
+
+    /*
+     * Blank value
+     *
+     * Mandatory validation is handled separately.
+     */
+    if (
+        value === undefined ||
+        value === null ||
+        String(value).trim() === ""
+    ) {
+        return true;
+    }
+
+    const trimmed_value =
+        String(value).trim();
+
+
+    /*
+     * Dropdown validation
+     */
+    if (config.values) {
+        if (
+            !config.values.includes(
+                trimmed_value
+            )
+        ) {
+            this.show_notification(
+                `${config.label}: invalid value "${value}". ` +
+                `Please enter a valid value manually.`
+            );
+
+            return false;
+        }
+    }
+
+
+    /*
+     * Date validation
+     */
+    if (config.date) {
+        const date_pattern =
+            /^\d{2}-\d{2}-\d{4}$/;
+
+        if (
+            !date_pattern.test(
+                trimmed_value
+            )
+        ) {
+            this.show_notification(
+                `${config.label}: invalid date "${value}". ` +
+                `Please use dd-mm-yyyy format.`
+            );
+
+            return false;
+        }
+
+        const [
+            day,
+            month,
+            year
+        ] =
+            trimmed_value
+                .split("-")
+                .map(Number);
+
+        const date =
+            new Date(
+                year,
+                month - 1,
+                day
+            );
+
+        /*
+         * Check that the date really exists.
+         *
+         * This prevents:
+         * 31-02-2026
+         * 32-01-2026
+         * 00-05-2026
+         */
+        if (
+            date.getFullYear() !== year ||
+            date.getMonth() !== month - 1 ||
+            date.getDate() !== day
+        ) {
+            this.show_notification(
+                `${config.label}: invalid date "${value}". ` +
+                `Please use a valid date in dd-mm-yyyy format.`
+            );
+
+            return false;
+        }
+    }
+
+    return true;
+},
+
+validate_mandatory_fields(line) {
+    const disclosure_type =
+        String(
+            this.selected_predisclosure?.predisclosure_type ?? ""
+        ).trim().toUpperCase();
+
+    for (
+        const field of Object.keys(
+            this.line_fields
+        )
+    ) {
+        const config =
+            this.line_fields[field];
+
+        /*
+         * Ignore fields not applicable
+         * to the selected disclosure type.
+         */
+        if (
+            !config.types.includes(
+                disclosure_type
+            )
+        ) {
+            continue;
+        }
+
+        /*
+         * Ignore optional fields.
+         */
+        if (!config.mandatory) {
+            continue;
+        }
+
+        const value = line[field];
+
+        if (
+            value === undefined ||
+            value === null ||
+            String(value).trim() === ""
+        ) {
+            return (
+                `${config.label} is mandatory.`
+            );
+        }
+    }
+
+    return null;
+},
+
+
+
+==+++++====
+const line = {};
+
+headers.forEach(
+    (header, index) => {
+
+        const field =
+            header_to_field[header];
+
+        if (!field) {
+            return;
+        }
+
+        const value =
+            row[index] ?? "";
+
+        /*
+         * Validate dropdown/date.
+         *
+         * Invalid value is skipped.
+         */
+        if (
+            !this.validate_pasted_value(
+                field,
+                value
+            )
+        ) {
+            return;
+        }
+
+        line[field] = value;
+    }
+);
+
+
+/*
+ * Validate mandatory fields
+ * after all columns are processed.
+ */
+const mandatory_error =
+    this.validate_mandatory_fields(
+        line
+    );
+
+if (mandatory_error) {
+    this.show_notification(
+        mandatory_error
+    );
+
+    return;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===========================================================
+
+validate_pasted_value(field, value) {
+    const config = this.line_fields[field];
+
+    if (!config.values) {
+        return true;
+    }
+
+    if (config.values.includes(String(value).trim())) {
+        return true;
+    }
+
+    this.show_notification(
+        `${config.label}: invalid value "${value}". ` +
+        `Please enter a valid value manually.`
+    );
+
+    return false;
+},
+
 
 validate_line(line) {
     const disclosure_type =
