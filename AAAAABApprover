@@ -1,12 +1,9 @@
 <template #header>
     <div class="d-flex gap-2">
-        <button
-            type="button"
-            class="btn btn-secondary btn-sm"
+        <export-excel-button
+            title="Download Template"
             @click="download_line_template()">
-            <i class="bi bi-download me-1"></i>
-            Download Template
-        </button>
+        </export-excel-button>
     </div>
 </template>
 
