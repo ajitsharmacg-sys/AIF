@@ -1,11 +1,17 @@
-<div class="d-flex justify-content-between align-items-center mb-2">
-    <h6 class="mb-0">Account Details</h6>
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>Account Details</strong>
 
-    <div class="d-flex gap-2">
         <export-excel-button
             title="Download Pre-Disclosure Template"
             @click="download_line_template()">
         </export-excel-button>
+    </div>
+
+    <div class="card-body p-2">
+        <div class="table-responsive">
+            ...
+        </div>
     </div>
 </div>
 
