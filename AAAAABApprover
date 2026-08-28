@@ -1,4 +1,227 @@
+async export_lines_to_excel() {
 
+    const disclosure_type =
+        this.selected_predisclosure.predisclosure_type;
+
+    const columns = [
+        ...get_line_excel_columns(
+            disclosure_type
+        ),
+        ...LINE_EXPORT_ONLY_COLUMNS,
+    ];
+
+    const headers = columns.map(
+        column => column.header
+    );
+
+    const export_data = this.lines.map(
+        line => {
+
+            return columns.map(
+                column => line[column.field] ?? ""
+            );
+
+        }
+    );
+
+    const worksheet = utils.aoa_to_sheet([
+        headers,
+        ...export_data,
+    ]);
+
+    worksheet["!cols"] = columns.map(
+        (column, index) => {
+
+            const max_length = Math.max(
+                column.header.length,
+
+                ...export_data.map(
+                    row =>
+                        String(
+                            row[index] ?? ""
+                        ).length
+                )
+            );
+
+            return {
+                wch: Math.min(
+                    Math.max(
+                        max_length + 3,
+                        15
+                    ),
+                    50
+                ),
+            };
+        }
+    );
+
+    const workbook = utils.book_new();
+
+    utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "PreDisclosure Lines"
+    );
+
+    writeFile(
+        workbook,
+        "PreDisclosure_Lines.xlsx"
+    );
+
+    this.show_notification(
+        "Line details exported successfully."
+    );
+},
+
+
+async download_line_template() {
+
+    const disclosure_type =
+        this.selected_predisclosure.predisclosure_type;
+
+    const columns =
+        get_line_excel_columns(
+            disclosure_type
+        );
+
+    const headers = columns.map(
+        column => column.header
+    );
+
+    const worksheet = utils.aoa_to_sheet([
+        headers,
+    ]);
+
+    worksheet["!cols"] = columns.map(
+        column => ({
+            wch: Math.max(
+                column.header.length + 3,
+                20
+            ),
+        })
+    );
+
+    const workbook = utils.book_new();
+
+    utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "PreDisclosure Lines"
+    );
+
+    writeFile(
+        workbook,
+        `PreDisclosure_${disclosure_type}_Template.xlsx`
+    );
+},
+
+
+const LINE_EXCEL_COLUMNS = {
+
+    common: [
+        {
+            field: "account_name",
+            header: "Account Name",
+        },
+        {
+            field: "website",
+            header: "Website Name",
+        },
+        {
+            field: "nda_confirmed",
+            header: "Is NDA Confirmed",
+        },
+        {
+            field: "disclosure_format",
+            header: "Pre Disclosure Format",
+        },
+        {
+            field: "reason_for_disclosure",
+            header: "Disclosure Reason",
+        },
+        {
+            field: "meeting_date",
+            header: "Meeting Date",
+        },
+        {
+            field: "meeting_location",
+            header: "Meeting Location",
+        },
+        {
+            field: "canon_responsible_person",
+            header: "Canon Responsible Person",
+        },
+        {
+            field: "individual_disclosure_names",
+            header: "Individual Disclosure Names",
+        },
+        {
+            field: "information_to_be_disclosed",
+            header: "Information Disclosure",
+        },
+    ],
+
+    PARTNER: [
+        {
+            field: "sda_partner_level",
+            header: "SDA Partner Level",
+        },
+        {
+            field: "account_in_sda_partner_list",
+            header: "Account in SDA Partner List",
+        },
+        {
+            field: "retailer_ranking",
+            header: "Retailer Ranking",
+        },
+    ],
+
+    END_CUSTOMER: [
+        {
+            field: "disclosed_last_2_years",
+            header: "Disclosed In Last 2 years",
+        },
+        {
+            field: "b2b_business_type",
+            header: "B2B Business Type",
+        },
+        {
+            field: "estimated_business",
+            header: "Estimated Business",
+        },
+        {
+            field: "annual_sales",
+            header: "Annual Sales",
+        },
+    ],
+
+    PR_SOCIAL: [],
+};
+
+
+const LINE_EXPORT_ONLY_COLUMNS = [
+    {
+        field: "previous_status",
+        header: "Previous Status",
+    },
+    {
+        field: "predisclosure_line_status",
+        header: "PreDisclosure Line Status",
+    },
+];
+
+
+function get_line_excel_columns(disclosure_type) {
+
+    return [
+        ...LINE_EXCEL_COLUMNS.common,
+        ...(LINE_EXCEL_COLUMNS[disclosure_type] || []),
+    ];
+}
+
+
+
+----------------------------------
 <django-paged-table
     ref="lineTable"
     :api_endpoint="predisclosure_line_url"
