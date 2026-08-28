@@ -1,3 +1,39 @@
+<django-paged-table
+    ref="lineTable"
+    :api_endpoint="predisclosure_line_url"
+    :columns="predisclosure_line_columns"
+    :fixed_query_filter="line_filter"
+    title="PreDisclosure Lines"
+    :filter_items="line_filter_items"
+    @export-excel="(items) => { export_lines_to_excel(items); }"
+    @row-select="(item,index)=>{selected_lines.push(item);}"
+    @row-unselect="(item,index)=>{selected_lines.splice(selected_lines.indexOf(item),1);}"
+    :row_select_active="true"
+    v-model:data_refresh_trigger="update_triggered"
+    :custom_format="custom_format">
+
+    <template #header>
+
+        <div class="d-flex gap-2">
+
+            <button
+                type="button"
+                class="btn btn-secondary btn-sm"
+                @click="download_line_template()">
+                Download Template
+            </button>
+
+        </div>
+
+    </template>
+
+    <template #actions="actionProps">
+        ...
+    </template>
+
+</django-paged-table>
+
+
 async export_lines_to_excel() {
 
     const disclosure_type =
