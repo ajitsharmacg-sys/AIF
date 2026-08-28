@@ -1,3 +1,11 @@
+<button
+    type="button"
+    class="btn btn-secondary btn-sm"
+    @click="download_line_template()">
+    <i class="fas fa-file-excel"></i>
+    Download Template
+</button>
+
 async export_lines_to_excel() {
 
     const columns = this.predisclosure_line_columns.filter(
