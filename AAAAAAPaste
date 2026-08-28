@@ -1,0 +1,383 @@
+{{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+is_empty_line(line) {
+    if (!line) {
+        return true;
+    }
+
+    return Object.keys(line)
+        .filter(
+            key => key !== "id"
+        )
+        .every(
+            key =>
+                line[key] === null ||
+                line[key] === undefined ||
+                String(line[key]).trim() === ""
+        );
+},
+
+validate_pasted_line(line) {
+    const disclosure_type =
+        String(
+            this.selected_predisclosure
+                ?.predisclosure_type ?? ""
+        )
+        .trim()
+        .toUpperCase();
+
+    for (
+        const field of Object.keys(
+            this.line_fields
+        )
+    ) {
+        const config =
+            this.line_fields[field];
+
+        if (
+            !config.types.includes(
+                disclosure_type
+            )
+        ) {
+            continue;
+        }
+
+        if (!config.mandatory) {
+            continue;
+        }
+
+        const value =
+            line[field];
+
+        if (
+            value === undefined ||
+            value === null ||
+            String(value).trim() === ""
+        ) {
+            return `${config.label} is mandatory.`;
+        }
+    }
+
+    return null;
+},
+
+validate_pasted_date(value) {
+    const date_value =
+        String(value ?? "").trim();
+
+    if (
+        !/^\d{2}-\d{2}-\d{4}$/.test(
+            date_value
+        )
+    ) {
+        return false;
+    }
+
+    const [
+        day,
+        month,
+        year
+    ] =
+        date_value
+            .split("-")
+            .map(Number);
+
+    const date =
+        new Date(
+            year,
+            month - 1,
+            day
+        );
+
+    return (
+        date.getFullYear() === year &&
+        date.getMonth() === month - 1 &&
+        date.getDate() === day
+    );
+},
+
+
+validate_pasted_value(field, value) {
+    const config =
+        this.line_fields[field];
+
+    if (!config) {
+        return true;
+    }
+
+    const trimmed_value =
+        String(value ?? "").trim();
+
+    /*
+     * Dropdown
+     */
+    if (config.values) {
+        if (
+            !config.values.includes(
+                trimmed_value
+            )
+        ) {
+            this.show_notification(
+                `${config.label}: invalid value "${trimmed_value}". Please enter a valid value manually.`
+            );
+
+            return false;
+        }
+    }
+
+    /*
+     * Date
+     */
+    if (config.date) {
+        if (
+            !this.validate_pasted_date(
+                trimmed_value
+            )
+        ) {
+            this.show_notification(
+                `${config.label}: invalid date "${trimmed_value}". Please enter the date in dd-mm-yyyy format manually.`
+            );
+
+            return false;
+        }
+    }
+
+    return true;
+},
+
+async paste_lines_from_excel(line_items, index, event) {
+    this.loading = true;
+
+    try {
+        const text =
+            event.clipboardData.getData("text/plain");
+
+        if (!text || !text.trim()) {
+            return;
+        }
+
+        const copied_lines =
+            text
+                .trim()
+                .split(/\r?\n/)
+                .filter(line => line.trim() !== "");
+
+        if (!copied_lines.length) {
+            return;
+        }
+
+        /*
+         * Disclosure type is mandatory
+         */
+        const disclosure_type =
+            String(
+                this.selected_predisclosure
+                    ?.predisclosure_type ?? ""
+            )
+            .trim()
+            .toUpperCase();
+
+        if (!disclosure_type) {
+            this.show_notification(
+                "Please select a Disclosure Type before pasting Excel data."
+            );
+            return;
+        }
+
+        /*
+         * The downloaded template uses line_fields
+         * labels as Excel headers.
+         *
+         * Example:
+         *
+         * Account Name
+         * Website Name
+         * Is NDA Confirmed
+         * Pre Disclosure Format
+         * Meeting Date
+         */
+
+        const headers =
+            copied_lines[0]
+                .split("\t")
+                .map(header => header.trim());
+
+        const field_mapping = [];
+
+        for (
+            let column_index = 0;
+            column_index < headers.length;
+            column_index++
+        ) {
+            const header =
+                headers[column_index];
+
+            const field =
+                Object.keys(this.line_fields).find(
+                    field_name =>
+                        this.line_fields[field_name]
+                            .label
+                            .trim()
+                            .toLowerCase() ===
+                        header.toLowerCase()
+                );
+
+            if (!field) {
+                continue;
+            }
+
+            /*
+             * Only fields applicable to the
+             * selected disclosure type.
+             */
+            if (
+                !this.line_fields[field]
+                    .types
+                    .includes(disclosure_type)
+            ) {
+                continue;
+            }
+
+            field_mapping.push({
+                column_index,
+                field,
+            });
+        }
+
+        if (!field_mapping.length) {
+            this.show_notification(
+                "No valid Pre-Disclosure columns were found in the pasted Excel data."
+            );
+            return;
+        }
+
+        /*
+         * Create each pasted row.
+         *
+         * First Excel row is treated as header.
+         */
+        for (
+            let row_index = 1;
+            row_index < copied_lines.length;
+            row_index++
+        ) {
+            const cells =
+                copied_lines[row_index]
+                    .split("\t");
+
+            const row = {
+                id: "temp",
+            };
+
+            let has_value = false;
+
+            for (
+                const mapping of field_mapping
+            ) {
+                let value =
+                    cells[
+                        mapping.column_index
+                    ];
+
+                if (
+                    value === undefined ||
+                    value === null
+                ) {
+                    value = "";
+                }
+
+                value =
+                    String(value).trim();
+
+                if (value) {
+                    has_value = true;
+                }
+
+                /*
+                 * Validate dropdown/date values.
+                 *
+                 * Invalid values are skipped and
+                 * user can enter them manually.
+                 */
+                if (
+                    value &&
+                    !this.validate_pasted_value(
+                        mapping.field,
+                        value
+                    )
+                ) {
+                    continue;
+                }
+
+                row[mapping.field] =
+                    value;
+            }
+
+            /*
+             * Ignore completely blank rows.
+             */
+            if (!has_value) {
+                continue;
+            }
+
+            /*
+             * Mandatory field validation.
+             */
+            const mandatory_error =
+                this.validate_pasted_line(row);
+
+            if (mandatory_error) {
+                this.show_notification(
+                    `Row ${row_index + 1}: ${mandatory_error}`
+                );
+                continue;
+            }
+
+            /*
+             * Same behavior as AIF:
+             *
+             * First row uses the existing empty
+             * row. Additional rows are inserted.
+             */
+            if (
+                row_index === 1 &&
+                line_items[index] &&
+                this.is_empty_line(
+                    line_items[index]
+                )
+            ) {
+                Object.assign(
+                    line_items[index],
+                    row
+                );
+            } else {
+                line_items.splice(
+                    index,
+                    0,
+                    row
+                );
+            }
+
+            /*
+             * In edit mode pasted rows are new
+             * rows and must therefore remain temp.
+             */
+            if (
+                this.nav_context.context === "edit"
+            ) {
+                line_items[index].id = "temp";
+
+                this.changes.new_lines_count++;
+            }
+
+            index++;
+        }
+
+    } finally {
+        this.loading = false;
+    }
+},
+
+
+
+
