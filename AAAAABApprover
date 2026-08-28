@@ -1,3 +1,47 @@
+class PreDisclosureApproverAdminForm(EnhancedModelForm):
+
+    class Meta:
+        model = PreDisclosureApprover
+        fields = (
+            "approver_type",
+            "approver",
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        approver = cleaned_data.get("approver")
+        approver_type = cleaned_data.get("approver_type")
+
+        if not approver or not approver_type:
+            return cleaned_data
+
+        # -------------------------------------------------
+        # Check duplicate approver configuration
+        # -------------------------------------------------
+
+        if (
+            PreDisclosureApprover.objects.filter(
+                approver=approver,
+                approver_type=approver_type,
+            )
+            .exclude(pk=self.instance.pk)
+            .exists()
+        ):
+            raise forms.ValidationError(
+                "This approver is already configured "
+                "for the selected Approver Type."
+            )
+
+        return cleaned_data
+
+---------------------------------
+
+
+
+
+
+
 from predisclosure.roles import (
     ISB_ADMIN,
     ISB_PM,
