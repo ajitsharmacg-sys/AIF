@@ -1,3 +1,66 @@
+async export_lines_to_excel(items) {
+
+    const columns = this.predisclosure_line_columns;
+
+    const headers = columns.map(
+        field => this.line_fields[field].label
+    );
+
+    const export_data = (
+        items?.results || []
+    ).map(item => {
+
+        return columns.map(
+            field => item[field] ?? ""
+        );
+
+    });
+
+    const worksheet = utils.aoa_to_sheet([
+        headers,
+        ...export_data,
+    ]);
+
+    worksheet["!cols"] = columns.map(
+        (field, index) => {
+
+            const max_length = Math.max(
+                this.line_fields[field].label.length,
+
+                ...export_data.map(
+                    row =>
+                        String(
+                            row[index] ?? ""
+                        ).length
+                )
+            );
+
+            return {
+                wch: Math.min(
+                    Math.max(
+                        max_length + 3,
+                        15
+                    ),
+                    50
+                ),
+            };
+        }
+    );
+
+    const workbook = utils.book_new();
+
+    utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "Lines"
+    );
+
+    writeFile(
+        workbook,
+        "PreDisclosure_Lines.xlsx"
+    );
+},
+
 line_fields: {
     account_name: { label: "Account Name", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], export: true, template: true },
     website: { label: "Website Name", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], export: true, template: true },
