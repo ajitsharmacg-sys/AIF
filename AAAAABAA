@@ -1,0 +1,124 @@
+data() {
+    return {
+        current_screen: current_screen,
+        nav_context: nav_context,
+        selected_predisclosure: selected_predisclosure,
+        loading: false,
+        show_notification_dialog: false,
+        notification_message: "",
+        products: [],
+        approvers: [],
+
+        line_fields: {
+            account_name: { label: "Account Name", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"] },
+            website: { label: "Website Name", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"] },
+            nda_confirmed: { label: "Is NDA Confirmed", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"] },
+            disclosure_format: { label: "Pre Disclosure Format", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"] },
+            reason_for_disclosure: { label: "Disclosure Reason", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"] },
+            meeting_date: { label: "Meeting Date", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"] },
+            meeting_location: { label: "Meeting Location", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"] },
+            canon_responsible_person: { label: "Canon Responsible Person", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"] },
+            individuals_being_disclosed_to: { label: "Individual Disclosure Names", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"] },
+            information_to_be_disclosed: { label: "Information Disclosure", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"] },
+
+            sda_partner_level: { label: "SDA Partner Level", types: ["PARTNER"] },
+            account_in_sda_partner_list: { label: "Account in SDA Partner List", types: ["PARTNER"] },
+            retailer_ranking: { label: "Retailer Ranking", types: ["PARTNER"] },
+
+            disclosed_last_2_years: { label: "Disclosed In Last 2 years", types: ["END_CUSTOMER"] },
+            b2b_business_type: { label: "B2B Business Type", types: ["END_CUSTOMER"] },
+            estimated_business: { label: "Estimated Business", types: ["END_CUSTOMER"] },
+            annual_sales: { label: "Annual Sales", types: ["END_CUSTOMER"] },
+
+            previous_status: { label: "Previous Status", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"] },
+            predisclosure_line_status: { label: "PreDisclosure Line Status", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"] },
+        },
+
+        changes: {
+            new_lines_count: 0,
+            deleted_lines: new Set([]),
+            edited_lines: new Set([]),
+        },
+    };
+},
+
+
+showField(fieldName) {
+    const disclosure_type =
+        this.selected_predisclosure.predisclosure_type;
+
+    return this.line_fields[fieldName]?.types.includes(
+        disclosure_type
+    );
+},
+
+
+predisclosure_line_columns() {
+    const disclosure_type =
+        this.selected_predisclosure.predisclosure_type;
+
+    return Object.keys(this.line_fields)
+        .filter(field =>
+            this.line_fields[field].types.includes(
+                disclosure_type
+            )
+        );
+},
+
+
+async download_line_template() {
+
+    const columns = this.predisclosure_line_columns.filter(
+        field =>
+            ![
+                "previous_status",
+                "predisclosure_line_status",
+            ].includes(field)
+    );
+
+    const headers = columns.map(
+        field => this.line_fields[field].label
+    );
+
+    const worksheet = utils.aoa_to_sheet([
+        headers,
+    ]);
+
+    worksheet["!cols"] = columns.map(
+        field => ({
+            wch: Math.max(
+                this.line_fields[field].label.length + 3,
+                20
+            ),
+        })
+    );
+
+    const workbook = utils.book_new();
+
+    utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "PreDisclosure Lines"
+    );
+
+    writeFile(
+        workbook,
+        "PreDisclosure_Line_Template.xlsx"
+    );
+},
+
+
+==========================================================
+
+predisclosure_line_columns() {
+    const disclosure_type =
+        this.selected_predisclosure.predisclosure_type;
+
+    return Object.keys(this.line_fields)
+        .filter(field =>
+            this.line_fields[field].types.includes(
+                disclosure_type
+            )
+        );
+},
+
