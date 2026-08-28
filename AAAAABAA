@@ -1,3 +1,56 @@
+line_fields: {
+    account_name: { label: "Account Name", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], mandatory: true },
+    website: { label: "Website Name", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], mandatory: true },
+    nda_confirmed: { label: "Is NDA Confirmed", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], mandatory: true },
+    disclosure_format: { label: "Pre Disclosure Format", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], mandatory: true },
+    reason_for_disclosure: { label: "Disclosure Reason", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], mandatory: true },
+    meeting_date: { label: "Meeting Date", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], mandatory: true },
+    meeting_location: { label: "Meeting Location", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], mandatory: true },
+    canon_responsible_person: { label: "Canon Responsible Person", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], mandatory: true },
+    individuals_being_disclosed_to: { label: "Individual Disclosure Names", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], mandatory: true },
+    information_to_be_disclosed: { label: "Information Disclosure", types: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"], mandatory: false },
+
+    sda_partner_level: { label: "SDA Partner Level", types: ["PARTNER"], mandatory: false },
+    account_in_sda_partner_list: { label: "Account in SDA Partner List", types: ["PARTNER"], mandatory: false },
+    retailer_ranking: { label: "Retailer Ranking", types: ["PARTNER"], mandatory: false },
+
+    disclosed_last_2_years: { label: "Disclosed In Last 2 years", types: ["END_CUSTOMER"], mandatory: false },
+    b2b_business_type: { label: "B2B Business Type", types: ["END_CUSTOMER"], mandatory: false },
+    estimated_business: { label: "Estimated Business", types: ["END_CUSTOMER"], mandatory: false },
+    annual_sales: { label: "Annual Sales", types: ["END_CUSTOMER"], mandatory: false },
+},
+
+validate_line(line) {
+    const disclosure_type =
+        this.selected_predisclosure.predisclosure_type;
+
+    for (const field of Object.keys(this.line_fields)) {
+        const config = this.line_fields[field];
+
+        if (!config.types.includes(disclosure_type)) {
+            continue;
+        }
+
+        if (
+            config.mandatory &&
+            (
+                line[field] === undefined ||
+                line[field] === null ||
+                String(line[field]).trim() === ""
+            )
+        ) {
+            return `${config.label} is mandatory.`;
+        }
+    }
+
+    return null;
+},
+
+
+
+
+
+============================================
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <strong>Account Details</strong>
