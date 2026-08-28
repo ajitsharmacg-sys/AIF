@@ -1,3 +1,197 @@
+async download_line_template() {
+    const disclosure_type =
+        String(
+            this.selected_predisclosure?.predisclosure_type ?? ""
+        ).trim().toUpperCase();
+
+    // Disclosure type is mandatory for template download
+    if (!disclosure_type) {
+        this.show_notification(
+            "Please select a Disclosure Type before downloading the template."
+        );
+        return;
+    }
+
+    const columns =
+        this.predisclosure_line_columns;
+
+    if (!columns.length) {
+        this.show_notification(
+            "No fields are available for the selected Disclosure Type."
+        );
+        return;
+    }
+
+    /*
+     * ============================
+     * Template Sheet
+     * ============================
+     */
+
+    const headers = columns.map(
+        field => this.line_fields[field].label
+    );
+
+    const worksheet = utils.aoa_to_sheet([
+        headers
+    ]);
+
+    worksheet["!cols"] = columns.map(
+        field => ({
+            wch: Math.max(
+                this.line_fields[field].label.length + 5,
+                20
+            )
+        })
+    );
+
+
+    /*
+     * ============================
+     * Help Sheet
+     * ============================
+     *
+     * Each field is a column.
+     * Values are placed vertically
+     * under the field.
+     *
+     * Example:
+     *
+     * Retailer Ranking | Disclosed In Last 2 years | B2B Business Type | Estimated Business
+     *                   | YES                     |                    |
+     *                   | NO                      |                    |
+     */
+
+    const help_fields = columns.filter(
+        field => {
+            const config =
+                this.line_fields[field];
+
+            return (
+                config.values ||
+                config.date
+            );
+        }
+    );
+
+    const help_data = [];
+
+    // Header row
+    help_data.push(
+        help_fields.map(
+            field =>
+                this.line_fields[field].label
+        )
+    );
+
+    // Maximum number of values/date rows
+    const max_rows =
+        Math.max(
+            ...help_fields.map(
+                field => {
+                    const config =
+                        this.line_fields[field];
+
+                    if (config.values) {
+                        return config.values.length;
+                    }
+
+                    if (config.date) {
+                        return 1;
+                    }
+
+                    return 0;
+                }
+            ),
+            0
+        );
+
+    // Values row by row
+    for (
+        let row_index = 0;
+        row_index < max_rows;
+        row_index++
+    ) {
+        help_data.push(
+            help_fields.map(
+                field => {
+
+                    const config =
+                        this.line_fields[field];
+
+                    if (config.values) {
+                        return (
+                            config.values[
+                                row_index
+                            ] ?? ""
+                        );
+                    }
+
+                    if (
+                        config.date &&
+                        row_index === 0
+                    ) {
+                        return "dd-mm-yyyy";
+                    }
+
+                    return "";
+                }
+            )
+        );
+    }
+
+    const help_worksheet =
+        utils.aoa_to_sheet(
+            help_data
+        );
+
+    help_worksheet["!cols"] =
+        help_fields.map(
+            field => ({
+                wch: Math.max(
+                    this.line_fields[field]
+                        .label.length + 5,
+                    25
+                )
+            })
+        );
+
+
+    /*
+     * ============================
+     * Workbook
+     * ============================
+     */
+
+    const workbook =
+        utils.book_new();
+
+    utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "PreDisclosure Lines"
+    );
+
+    utils.book_append_sheet(
+        workbook,
+        help_worksheet,
+        "Help"
+    );
+
+    writeFile(
+        workbook,
+        "PreDisclosure_Line_Template.xlsx"
+    );
+},
+
+
+
+
+
+
+
+
+
 line_fields: {
     account_name: {
         label: "Account Name",
