@@ -1,3 +1,27 @@
+created() {
+    this.load_predisclosure();
+
+    loadOptions(api_endpoints.prediclosure_lines)
+        .then(response => {
+            return response.json();
+        })
+        .then(data => {
+            if ("actions" in data) {
+                this.options["predisclosure_line"] =
+                    data.actions.POST;
+            }
+        })
+        .catch(error_response => {
+            this.display_error(
+                error_response,
+                "Failed to load PreDisclosure Line Items"
+            );
+        });
+},
+
+
+
+
 {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
 
 is_empty_line(line) {
