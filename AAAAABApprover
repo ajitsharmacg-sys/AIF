@@ -1,3 +1,59 @@
+async export_lines_to_excel() {
+
+    const columns = this.predisclosure_line_columns.filter(
+        field => this.line_fields[field]?.export
+    );
+
+    const headers = columns.map(
+        field => this.line_fields[field].label
+    );
+
+    const export_data = (this.lines || []).map(item => {
+        return columns.map(
+            field => item[field] ?? ""
+        );
+    });
+
+    const worksheet = utils.aoa_to_sheet([
+        headers,
+        ...export_data,
+    ]);
+
+    worksheet["!cols"] = columns.map(
+        (field, index) => {
+
+            const max_length = Math.max(
+                this.line_fields[field].label.length,
+                ...export_data.map(
+                    row => String(row[index] ?? "").length
+                )
+            );
+
+            return {
+                wch: Math.min(
+                    Math.max(max_length + 3, 15),
+                    50
+                ),
+            };
+        }
+    );
+
+    const workbook = utils.book_new();
+
+    utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "PreDisclosure Lines"
+    );
+
+    writeFile(
+        workbook,
+        "PreDisclosure_Lines.xlsx"
+    );
+},
+
+
+
 async export_lines_to_excel(items) {
 
     const columns = this.predisclosure_line_columns;
