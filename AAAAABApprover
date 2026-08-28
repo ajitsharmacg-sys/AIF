@@ -1,3 +1,60 @@
+
+<django-paged-table
+    ref="lineTable"
+    :api_endpoint="predisclosure_line_url"
+    :columns="predisclosure_line_columns"
+    :fixed_query_filter="line_filter"
+    title="PreDisclosure Lines"
+    :filter_items="line_filter_items"
+    @export-excel="(items) => { export_lines_to_excel(items); }"
+    @row-select="(item,index)=>{selected_lines.push(item);}"
+    @row-unselect="(item,index)=>{selected_lines.splice(selected_lines.indexOf(item),1);}"
+    :row_select_active="true"
+    v-model:data_refresh_trigger="update_triggered"
+    :custom_format="custom_format">
+
+
+async export_lines_to_excel(items) {
+
+    this.show_notification(
+        "Only current page has been exported."
+    );
+
+    const export_items = items?.results?.map(item => {
+
+        const {
+            meta_created_by,
+            meta_edited_by,
+            ...export_item
+        } = item;
+
+        if (export_item.previous_status) {
+            export_item.previous_status =
+                export_item.previous_status;
+        }
+
+        return export_item;
+    });
+
+    const workbook = utils.book_new();
+
+    const worksheet =
+        utils.json_to_sheet(export_items);
+
+    utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "Lines"
+    );
+
+    writeFile(
+        workbook,
+        "PreDisclosure_Lines.xlsx"
+    );
+},
+
+========================================
+
 if stage_name:
                     stage_name = stage_name.removesuffix(
                         " Approval"
