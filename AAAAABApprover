@@ -678,6 +678,239 @@ def get_workflow_progress(
 
 
 
+APIVIEW:
+----------------------
+
+from common.api_views import StandardPagination
+
+from predisclosure.models import (
+    PreDisclosure,
+    PreDisclosureLine,
+    PreDisclosureStatus,
+    PreDisclosureLineStatus,
+    PreDisclosureLineStatusChoices,
+    PreDisclosureStatusChoices,
+    PreDisclosureProduct,
+    PreDisclosureApprover,
+)
+
+from predisclosure.serializers import (
+    PreDisclosureStatusSerializer,
+    PreDisclosureLineStatusSerializer,
+    PreDisclosureLineReadSerializer,
+    PreDisclosureLineWriteSerializer,
+    PreDisclosureReadSerializer,
+    PreDisclosureWriteSerializer,
+    PreDisclosureProductSerializer,
+    PreDisclosureApproverSerializer,
+)
+
+from predisclosure.api_permissions import IsApplicationUser
+
+from predisclosure.roles import (
+    NSO_USER,
+    ADMIN_ROLE,
+)
+
+from predisclosure.workflow import (
+    WORKFLOW_MATRIX,
+    get_workflow,
+    get_next_status,
+    can_user_approve,
+)
+
+from predisclosure.email_templates import (
+    get_predisclosure_email_subject,
+    get_predisclosure_email_body,
+    get_predisclosure_cc,
+)
+
+from common.models import (
+    NotificationGroup,
+    Organization,
+)
+
+from common.email_notifications import (
+    send_email,
+    send_emails,
+)
+
+from rest_framework.exceptions import PermissionDenied
+from rest_framework import filters
+from rest_framework import viewsets
+from django_filters.rest_framework import DjangoFilterBackend
+from django.utils import timezone
+from django.http import HttpRequest
+from django.contrib.auth import get_user_model
+
+Remove:
+--------
+allowed_roles = get_role_from_status(latest_status.status)
+allowed_roles = get_role_from_status(
+    latest_status.status
+)
+
+if not self.request.user.groups.filter(
+    name__in=allowed_roles
+).exists():
+    raise PermissionDenied(...)
+----------------------
+
+class PreDisclosureLineStatusView(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+    queryset = PreDisclosureLineStatus.objects.all()
+    serializer_class = PreDisclosureLineStatusSerializer
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+
+    ordering_fields = "__all__"
+    ordering = ("-meta_created_date",)
+
+    filterset_fields = {
+        "line": ["exact"],
+    }
+
+    def perform_create(self, serializer):
+
+        line = serializer.validated_data["line"]
+
+        latest_status = (
+            PreDisclosureLineStatus.objects
+            .filter(line=line)
+            .latest("meta_created_date")
+        )
+
+        # -------------------------------------------------
+        # APPROVAL AUTHORIZATION
+        #
+        # Admin:
+        #     Can approve/reject every phase.
+        #
+        # Normal approver:
+        #     Must match the approver_type configured for
+        #     the current status.
+        #
+        # No role-based approval check here.
+        # -------------------------------------------------
+
+        if not can_user_approve(
+            self.request.user,
+            latest_status.status,
+        ):
+            raise PermissionDenied(
+                "You are not authorized to approve or reject this line."
+            )
+
+        # -------------------------------------------------
+        # Save APPROVED / REJECTED status
+        # -------------------------------------------------
+
+        instance = serializer.save(
+            meta_created_by=self.request.user,
+        )
+
+        # -------------------------------------------------
+        # Optional notification from request
+        # -------------------------------------------------
+
+        notification = self.request.data.get(
+            "notification",
+            "",
+        )
+
+        # -------------------------------------------------
+        # Continue workflow
+        # -------------------------------------------------
+
+        process_line_approval(
+            self.request,
+            instance,
+            notification,
+        )
+
+
+-------------
+def set_initial_line_status(
+    predisclosure,
+    request,
+):
+    workflow = get_workflow(
+        predisclosure.predisclosure_type,
+        predisclosure.product_category,
+    )
+
+    if not workflow:
+        raise ValueError(
+            "No workflow configured for the selected "
+            "disclosure type and product category."
+        )
+
+    first_status = workflow.get(1)
+
+    if not first_status:
+        raise ValueError(
+            "No initial approval status configured."
+        )
+
+    for line in PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    ):
+
+        latest = (
+            PreDisclosureLineStatus.objects
+            .filter(line=line)
+            .latest("meta_created_date")
+        )
+
+        if latest.status != PreDisclosureLineStatusChoices.DRAFT:
+            continue
+
+        PreDisclosureLineStatus.objects.create(
+            line=line,
+            status=first_status,
+            meta_created_by=request.user,
+        )
+
+    notify_predisclosure_approvers(
+        request,
+        predisclosure,
+        first_status,
+    )
+---------------------
+
+def update_all_lines_status(
+    status,
+    predisclosure,
+    request,
+):
+
+    for line in PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    ):
+
+        latest = (
+            PreDisclosureLineStatus.objects
+            .filter(line=line)
+            .latest("meta_created_date")
+        )
+
+        if latest.status not in [
+            PreDisclosureLineStatusChoices.APPROVED,
+            PreDisclosureLineStatusChoices.REJECTED,
+        ]:
+            continue
+
+        PreDisclosureLineStatus.objects.create(
+            line=line,
+            status=status,
+            meta_created_by=request.user,
+        )
+
+
 
 
 
