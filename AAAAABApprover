@@ -1,3 +1,8 @@
+if stage_name:
+                    stage_name = stage_name.removesuffix(
+                        " Approval"
+                    )
+
 from predisclosure.workflow import get_approver_stage_name
 
 def get_previous_status(self, obj):
