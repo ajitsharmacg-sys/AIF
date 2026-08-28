@@ -1,3 +1,26 @@
+resetDisclosureFields() {
+    for (const line of this.lines) {
+        if (
+            this.selected_predisclosure.predisclosure_type === "PARTNER"
+        ) {
+            line.sda_partner_level = null;
+            line.account_in_sda_partner_list = null;
+            line.retailer_ranking = "";
+        }
+
+        if (
+            this.selected_predisclosure.predisclosure_type === "END_CUSTOMER"
+        ) {
+            line.disclosed_last_2_years = null;
+            line.b2b_business_type = "";
+            line.estimated_business = "";
+            line.annual_sales = "";
+        }
+    }
+},
+
+
+
 async download_line_template() {
     const disclosure_type =
         String(
