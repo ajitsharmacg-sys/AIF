@@ -47,22 +47,35 @@ showField(fieldName) {
     const disclosure_type =
         this.selected_predisclosure.predisclosure_type;
 
+    // Initial load - no disclosure type selected
+    // Show all fields.
+    if (!disclosure_type) {
+        return true;
+    }
+
     return this.line_fields[fieldName]?.types.includes(
         disclosure_type
     );
 },
 
 
+
+
 predisclosure_line_columns() {
     const disclosure_type =
         this.selected_predisclosure.predisclosure_type;
 
-    return Object.keys(this.line_fields)
-        .filter(field =>
+    // Initial load - show all columns
+    if (!disclosure_type) {
+        return Object.keys(this.line_fields);
+    }
+
+    return Object.keys(this.line_fields).filter(
+        field =>
             this.line_fields[field].types.includes(
                 disclosure_type
             )
-        );
+    );
 },
 
 
