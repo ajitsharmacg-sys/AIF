@@ -1,179 +1,132 @@
+data() {
+    return {
+        current_screen: current_screen,
+        nav_context: nav_context,
+        selected_predisclosure: selected_predisclosure,
+        loading: false,
+        show_notification_dialog: false,
+        notification_message: "",
+        products: [],
+        approvers: [],
+        options: options,
+
+        common_fields: [
+            "account_name",
+            "website",
+            "nda_confirmed",
+            "disclosure_format",
+            "reason_for_disclosure",
+            "meeting_date",
+            "meeting_location",
+            "canon_responsible_person",
+            "individuals_being_disclosed_to",
+            "information_to_be_disclosed",
+        ],
+
+        partner_fields: [
+            "sda_partner_level",
+            "account_in_sda_partner_list",
+            "retailer_ranking",
+        ],
+
+        end_customer_fields: [
+            "disclosed_last_2_years",
+            "b2b_business_type",
+            "estimated_business",
+            "annual_sales",
+        ],
+
+        changes: {
+            new_lines_count: 0,
+            deleted_lines: new Set([]),
+            edited_lines: new Set([]),
+        },
+    };
+},
+
+
 computed: {
+    form_fields() {
+        const disclosure_type =
+            String(
+                this.selected_predisclosure
+                    ?.predisclosure_type ?? ""
+            )
+            .trim()
+            .toUpperCase();
+
+        const fields = [
+            ...this.common_fields,
+        ];
+
+        if (disclosure_type === "PARTNER") {
+            fields.push(
+                ...this.partner_fields
+            );
+        }
+
+        if (disclosure_type === "END_CUSTOMER") {
+            fields.push(
+                ...this.end_customer_fields
+            );
+        }
+
+        return fields;
+    },
+
     line_fields() {
         const api_fields =
             this.options["predisclosure_line"] || {};
 
-        const fields = {
-            account_name: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
-            website: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
-            nda_confirmed: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
-            disclosure_format: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
-            reason_for_disclosure: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
-            meeting_date: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
-            meeting_location: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
-            canon_responsible_person: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
-            individuals_being_disclosed_to: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
-            information_to_be_disclosed: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
-            sda_partner_level: ["PARTNER"],
-            account_in_sda_partner_list: ["PARTNER"],
-            retailer_ranking: ["PARTNER"],
-            disclosed_last_2_years: ["END_CUSTOMER"],
-            b2b_business_type: ["END_CUSTOMER"],
-            estimated_business: ["END_CUSTOMER"],
-            annual_sales: ["END_CUSTOMER"],
-        };
-
         return Object.fromEntries(
-            Object.entries(fields)
-                .filter(([field]) => api_fields[field])
-                .map(([field, types]) => [
-                    field,
-                    {
-                        ...api_fields[field],
-                        types,
-                        values:
-                            api_fields[field].choices?.map(
-                                choice => choice.value
-                            ),
-                        date:
-                            api_fields[field].type === "date",
-                    },
-                ])
+            this.form_fields
+                .filter(
+                    field => api_fields[field]
+                )
+                .map(field => {
+                    const option =
+                        api_fields[field];
+
+                    return [
+                        field,
+                        {
+                            ...option,
+
+                            values:
+                                option.choices?.map(
+                                    choice => choice.value
+                                ) || [],
+
+                            date:
+                                option.type === "date",
+                        },
+                    ];
+                })
+        );
+    },
+
+    predisclosure_line_columns() {
+        return Object.keys(
+            this.line_fields
+        );
+    },
+
+    lines() {
+        return (
+            this.selected_predisclosure
+                ?.predisclosure_line ?? []
+        );
+    },
+
+    is_edit_mode() {
+        return (
+            this.nav_context.context === "edit"
         );
     },
 },
 
 
-
-line_fields: {
-    account_name: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
-    website: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
-    nda_confirmed: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
-    disclosure_format: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
-    reason_for_disclosure: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
-    meeting_date: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
-    meeting_location: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
-    canon_responsible_person: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
-    individuals_being_disclosed_to: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
-    information_to_be_disclosed: ["PARTNER", "END_CUSTOMER", "PR_SOCIAL"],
-    sda_partner_level: ["PARTNER"],
-    account_in_sda_partner_list: ["PARTNER"],
-    retailer_ranking: ["PARTNER"],
-    disclosed_last_2_years: ["END_CUSTOMER"],
-    b2b_business_type: ["END_CUSTOMER"],
-    estimated_business: ["END_CUSTOMER"],
-    annual_sales: ["END_CUSTOMER"],
-},
-
-options: {
-            predisclosure_line: {}
-        },
-prepare_line_fields(api_fields) {
-    Object.keys(this.line_fields).forEach(field => {
-        if (!api_fields[field]) {
-            return;
-        }
-
-        const types =
-            this.line_fields[field].types;
-
-        this.line_fields[field] = {
-            ...api_fields[field],
-            types,
-            values:
-                api_fields[field].choices
-                    ?.map(choice => choice.value),
-            date:
-                api_fields[field].type === "date",
-        };
-    });
-},
-
-created() {
-    loadOptions(api_endpoints.predisclosure_line)
-        .then(response => {
-            if (!response.ok) {
-                return Promise.reject(response);
-            }
-
-            return response.json();
-        })
-        .then(data => {
-            console.log(
-                "PreDisclosure Line Options:",
-                data
-            );
-
-            if (data.actions?.POST) {
-                this.options["predisclosure_line"] =
-                    data.actions.POST;
-
-                this.prepare_line_fields(this.options["predisclosure_line"]);
-            }
-        })
-        .catch(error_response => {
-            this.display_error(
-                error_response,
-                "Failed to load PreDisclosure Line Items"
-            );
-        });
-},
-
-
-
-
-
-
-
-
-created() {
-    loadOptions(api_endpoints.predisclosure_line)
-        .then(response => {
-            if (!response.ok) {
-                return Promise.reject(response);
-            }
-
-            return response.json();
-        })
-        .then(data => {
-            console.log("PreDisclosure Line Options:", data);
-
-            if (data.actions?.POST) {
-                this.options["predisclosure_line"] =
-                    data.actions.POST;
-            }
-        })
-        .catch(error_response => {
-            this.display_error(
-                error_response,
-                "Failed to load PreDisclosure Line Items"
-            );
-        });
-},
-
-
-
-
-{{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
-
-is_empty_line(line) {
-    if (!line) {
-        return true;
-    }
-
-    return Object.keys(line)
-        .filter(
-            key => key !== "id"
-        )
-        .every(
-            key =>
-                line[key] === null ||
-                line[key] === undefined ||
-                String(line[key]).trim() === ""
-        );
-},
-
-validate_pasted_line(line) {
+showField(fieldName) {
     const disclosure_type =
         String(
             this.selected_predisclosure
@@ -182,6 +135,193 @@ validate_pasted_line(line) {
         .trim()
         .toUpperCase();
 
+    if (!disclosure_type) {
+        return true;
+    }
+
+    return this.form_fields.includes(
+        fieldName
+    );
+},
+
+
+get_download_datetime() {
+    const now = new Date();
+
+    const date =
+        `${String(now.getDate()).padStart(2, "0")}-` +
+        `${String(
+            now.getMonth() + 1
+        ).padStart(2, "0")}`;
+
+    const time =
+        `${String(now.getHours()).padStart(2, "0")}-` +
+        `${String(now.getMinutes()).padStart(2, "0")}`;
+
+    return `${date}_${time}`;
+},
+
+
+async download_line_template() {
+    const disclosure_type =
+        String(
+            this.selected_predisclosure
+                ?.predisclosure_type ?? ""
+        )
+        .trim()
+        .toUpperCase();
+
+    if (!disclosure_type) {
+        this.show_notification(
+            "Please select a Disclosure Type before downloading the template."
+        );
+        return;
+    }
+
+    const columns =
+        this.predisclosure_line_columns;
+
+    if (!columns.length) {
+        this.show_notification(
+            "PreDisclosure Line options are not loaded."
+        );
+        return;
+    }
+
+    const headers =
+        columns.map(
+            field => this.line_fields[field].label
+        );
+
+    /*
+     * Main Template Sheet
+     */
+    const worksheet =
+        utils.aoa_to_sheet([
+            headers,
+        ]);
+
+    worksheet["!cols"] =
+        columns.map(field => ({
+            wch: Math.max(
+                this.line_fields[field]
+                    .label.length + 5,
+                20
+            ),
+        }));
+
+    /*
+     * Help Sheet
+     * Only dropdown fields and date
+     */
+    const help_fields = [
+        "nda_confirmed",
+        "disclosure_format",
+        "sda_partner_level",
+        "account_in_sda_partner_list",
+        "disclosed_last_2_years",
+        "meeting_date",
+    ].filter(
+        field => columns.includes(field)
+    );
+
+    const help_data = [
+        help_fields.map(
+            field => this.line_fields[field].label
+        ),
+    ];
+
+    const max_rows =
+        Math.max(
+            ...help_fields.map(field => {
+                const config =
+                    this.line_fields[field];
+
+                if (
+                    config.values &&
+                    config.values.length
+                ) {
+                    return config.values.length;
+                }
+
+                if (config.date) {
+                    return 1;
+                }
+
+                return 0;
+            }),
+            1
+        );
+
+    for (
+        let row_index = 0;
+        row_index < max_rows;
+        row_index++
+    ) {
+        help_data.push(
+            help_fields.map(field => {
+                const config =
+                    this.line_fields[field];
+
+                if (
+                    config.values &&
+                    config.values.length
+                ) {
+                    return (
+                        config.values[row_index] ?? ""
+                    );
+                }
+
+                if (
+                    config.date &&
+                    row_index === 0
+                ) {
+                    return "dd-mm-yyyy";
+                }
+
+                return "";
+            })
+        );
+    }
+
+    const help_worksheet =
+        utils.aoa_to_sheet(help_data);
+
+    help_worksheet["!cols"] =
+        help_fields.map(field => ({
+            wch: Math.max(
+                this.line_fields[field]
+                    .label.length + 5,
+                25
+            ),
+        }));
+
+    /*
+     * Workbook
+     */
+    const workbook =
+        utils.book_new();
+
+    utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "PreDisclosure Lines"
+    );
+
+    utils.book_append_sheet(
+        workbook,
+        help_worksheet,
+        "Help"
+    );
+
+    writeFile(
+        workbook,
+        `PreDisclosure_${disclosure_type}_${this.get_download_datetime()}_Template.xlsx`
+    );
+},
+
+
+validate_pasted_line(line) {
     for (
         const field of Object.keys(
             this.line_fields
@@ -190,15 +330,7 @@ validate_pasted_line(line) {
         const config =
             this.line_fields[field];
 
-        if (
-            !config.types.includes(
-                disclosure_type
-            )
-        ) {
-            continue;
-        }
-
-        if (!config.mandatory) {
+        if (!config.required) {
             continue;
         }
 
@@ -210,12 +342,13 @@ validate_pasted_line(line) {
             value === null ||
             String(value).trim() === ""
         ) {
-            return `${config.label} is mandatory.`;
+            return `${config.label} is required.`;
         }
     }
 
     return null;
 },
+
 
 validate_pasted_date(value) {
     const date_value =
@@ -232,7 +365,7 @@ validate_pasted_date(value) {
     const [
         day,
         month,
-        year
+        year,
     ] =
         date_value
             .split("-")
@@ -252,7 +385,6 @@ validate_pasted_date(value) {
     );
 },
 
-
 validate_pasted_value(field, value) {
     const config =
         this.line_fields[field];
@@ -265,65 +397,70 @@ validate_pasted_value(field, value) {
         String(value ?? "").trim();
 
     /*
-     * Dropdown
+     * Blank values are handled
+     * separately by required validation
      */
-    if (config.values) {
-        if (
-            !config.values.includes(
-                trimmed_value
-            )
-        ) {
-            this.show_notification(
-                `${config.label}: invalid value "${trimmed_value}". Please enter a valid value manually.`
-            );
-
-            return false;
-        }
+    if (!trimmed_value) {
+        return true;
     }
 
     /*
-     * Date
+     * Dropdown validation
      */
-    if (config.date) {
-        if (
-            !this.validate_pasted_date(
-                trimmed_value
-            )
-        ) {
-            this.show_notification(
-                `${config.label}: invalid date "${trimmed_value}". Please enter the date in dd-mm-yyyy format manually.`
-            );
+    if (
+        config.values?.length &&
+        !config.values.includes(
+            trimmed_value
+        )
+    ) {
+        this.show_notification(
+            `${config.label}: invalid value "${trimmed_value}". ` +
+            "Please enter a valid value manually."
+        );
 
-            return false;
-        }
+        return false;
+    }
+
+    /*
+     * Date validation
+     */
+    if (
+        config.date &&
+        !this.validate_pasted_date(
+            trimmed_value
+        )
+    ) {
+        this.show_notification(
+            `${config.label}: invalid date "${trimmed_value}". ` +
+            "Please enter the date in dd-mm-yyyy format manually."
+        );
+
+        return false;
     }
 
     return true;
 },
 
-async paste_lines_from_excel(line_items, index, event) {
+
+async paste_lines_from_excel(
+    line_items,
+    index,
+    event
+) {
     this.loading = true;
 
     try {
         const text =
-            event.clipboardData.getData("text/plain");
+            event.clipboardData.getData(
+                "text/plain"
+            );
 
         if (!text || !text.trim()) {
             return;
         }
 
-        const copied_lines =
-            text
-                .trim()
-                .split(/\r?\n/)
-                .filter(line => line.trim() !== "");
-
-        if (!copied_lines.length) {
-            return;
-        }
-
         /*
-         * Disclosure type is mandatory
+         * Disclosure type must be selected
          */
         const disclosure_type =
             String(
@@ -340,26 +477,33 @@ async paste_lines_from_excel(line_items, index, event) {
             return;
         }
 
-        /*
-         * The downloaded template uses line_fields
-         * labels as Excel headers.
-         *
-         * Example:
-         *
-         * Account Name
-         * Website Name
-         * Is NDA Confirmed
-         * Pre Disclosure Format
-         * Meeting Date
-         */
+        const copied_lines =
+            text
+                .trim()
+                .split(/\r?\n/)
+                .filter(
+                    line => line.trim() !== ""
+                );
 
+        if (!copied_lines.length) {
+            return;
+        }
+
+        /*
+         * First row contains headers
+         */
         const headers =
             copied_lines[0]
                 .split("\t")
-                .map(header => header.trim());
+                .map(
+                    header => header.trim()
+                );
 
         const field_mapping = [];
 
+        /*
+         * Map Excel headers to line fields
+         */
         for (
             let column_index = 0;
             column_index < headers.length;
@@ -369,28 +513,21 @@ async paste_lines_from_excel(line_items, index, event) {
                 headers[column_index];
 
             const field =
-                Object.keys(this.line_fields).find(
+                Object.keys(
+                    this.line_fields
+                ).find(
                     field_name =>
-                        this.line_fields[field_name]
-                            .label
+                        this.line_fields[
+                            field_name
+                        ].label
                             .trim()
                             .toLowerCase() ===
-                        header.toLowerCase()
+                        header
+                            .trim()
+                            .toLowerCase()
                 );
 
             if (!field) {
-                continue;
-            }
-
-            /*
-             * Only fields applicable to the
-             * selected disclosure type.
-             */
-            if (
-                !this.line_fields[field]
-                    .types
-                    .includes(disclosure_type)
-            ) {
                 continue;
             }
 
@@ -408,9 +545,7 @@ async paste_lines_from_excel(line_items, index, event) {
         }
 
         /*
-         * Create each pasted row.
-         *
-         * First Excel row is treated as header.
+         * Start from row 2
          */
         for (
             let row_index = 1;
@@ -450,10 +585,8 @@ async paste_lines_from_excel(line_items, index, event) {
                 }
 
                 /*
-                 * Validate dropdown/date values.
-                 *
-                 * Invalid values are skipped and
-                 * user can enter them manually.
+                 * Invalid dropdown/date value:
+                 * skip only this field
                  */
                 if (
                     value &&
@@ -470,17 +603,19 @@ async paste_lines_from_excel(line_items, index, event) {
             }
 
             /*
-             * Ignore completely blank rows.
+             * Ignore completely blank rows
              */
             if (!has_value) {
                 continue;
             }
 
             /*
-             * Mandatory field validation.
+             * Required field validation
              */
             const mandatory_error =
-                this.validate_pasted_line(row);
+                this.validate_pasted_line(
+                    row
+                );
 
             if (mandatory_error) {
                 this.show_notification(
@@ -490,10 +625,8 @@ async paste_lines_from_excel(line_items, index, event) {
             }
 
             /*
-             * Same behavior as AIF:
-             *
-             * First row uses the existing empty
-             * row. Additional rows are inserted.
+             * First pasted row updates
+             * existing empty row
              */
             if (
                 row_index === 1 &&
@@ -515,25 +648,50 @@ async paste_lines_from_excel(line_items, index, event) {
             }
 
             /*
-             * In edit mode pasted rows are new
-             * rows and must therefore remain temp.
+             * Edit mode tracking
              */
             if (
                 this.nav_context.context === "edit"
             ) {
-                line_items[index].id = "temp";
+                line_items[index].id =
+                    "temp";
 
-                this.changes.new_lines_count++;
+                this.changes
+                    .new_lines_count++;
             }
 
             index++;
         }
-
     } finally {
         this.loading = false;
     }
 },
 
 
+resetDisclosureFields() {
+    const disclosure_type =
+        String(
+            this.selected_predisclosure
+                ?.predisclosure_type ?? ""
+        )
+        .trim()
+        .toUpperCase();
 
+    let fields_to_reset = [];
 
+    if (disclosure_type === "PARTNER") {
+        fields_to_reset =
+            this.end_customer_fields;
+    }
+
+    if (disclosure_type === "END_CUSTOMER") {
+        fields_to_reset =
+            this.partner_fields;
+    }
+
+    for (const line of this.lines) {
+        for (const field of fields_to_reset) {
+            line[field] = "";
+        }
+    }
+},
