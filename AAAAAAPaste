@@ -1,3 +1,33 @@
+let pasted_row_count = 0;
+
+    for (
+        let row_index = 1;
+        row_index < copied_lines.length;
+        row_index++
+    ) {
+
+
+
+if (pasted_row_count === 0) {
+    line_items.splice(index, 1, row);
+}
+else {
+    line_items.splice(
+        index + pasted_row_count,
+        0,
+        row
+    );
+}
+
+pasted_row_count++;
+
+if (this.nav_context.context === "edit") {
+    this.changes.new_lines_count++;
+}
+
+
+
+
 validate_pasted_date(value) {
     const date_value =
         String(value ?? "").trim();
