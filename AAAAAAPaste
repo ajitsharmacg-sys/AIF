@@ -1,3 +1,43 @@
+format_pasted_date(value) {
+    const date_pattern = /^\d{2}\/\d{2}\/\d{4}$/;
+
+    if (!date_pattern.test(value)) {
+        return null;
+    }
+
+    const [day, month, year] = value.split("/");
+
+    const date = new Date(
+        `${year}-${month}-${day}`
+    );
+
+    if (
+        date.getFullYear() !== Number(year) ||
+        date.getMonth() + 1 !== Number(month) ||
+        date.getDate() !== Number(day)
+    ) {
+        return null;
+    }
+
+    return `${year}-${month}-${day}`;
+},
+
+
+if (this.line_fields[mapping.field]?.date && value) {
+    const formatted_date =
+        this.format_pasted_date(value);
+
+    if (!formatted_date) {
+        this.show_notification(
+            `${this.line_fields[mapping.field].label}: invalid date "${value}". ` +
+            `Please enter the date in dd/mm/yyyy format manually.`
+        );
+        continue;
+    }
+
+    value = formatted_date;
+}
+
 async export_lines_to_excel(items) {
     this.show_notification(
         "Only current page has been exported."
