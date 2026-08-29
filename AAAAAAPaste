@@ -2,12 +2,21 @@ validate_pasted_date(value) {
     const date_value =
         String(value ?? "").trim();
 
-    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(date_value)) {
+    let day;
+    let month;
+    let year;
+
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(date_value)) {
+        [day, month, year] =
+            date_value.split("/").map(Number);
+    }
+    else if (/^\d{4}-\d{2}-\d{2}$/.test(date_value)) {
+        [year, month, day] =
+            date_value.split("-").map(Number);
+    }
+    else {
         return null;
     }
-
-    const [day, month, year] =
-        date_value.split("/").map(Number);
 
     const date =
         new Date(year, month - 1, day);
@@ -22,7 +31,6 @@ validate_pasted_date(value) {
 
     return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 },
-
 
 if (this.line_fields[mapping.field]?.date && value) {
     value = this.validate_pasted_date(value);
