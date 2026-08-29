@@ -1,41 +1,39 @@
-format_pasted_date(value) {
-    const date_pattern = /^\d{2}\/\d{2}\/\d{4}$/;
+validate_pasted_date(value) {
+    const date_value =
+        String(value ?? "").trim();
 
-    if (!date_pattern.test(value)) {
+    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(date_value)) {
         return null;
     }
 
-    const [day, month, year] = value.split("/");
+    const [day, month, year] =
+        date_value.split("/").map(Number);
 
-    const date = new Date(
-        `${year}-${month}-${day}`
-    );
+    const date =
+        new Date(year, month - 1, day);
 
     if (
-        date.getFullYear() !== Number(year) ||
-        date.getMonth() + 1 !== Number(month) ||
-        date.getDate() !== Number(day)
+        date.getFullYear() !== year ||
+        date.getMonth() !== month - 1 ||
+        date.getDate() !== day
     ) {
         return null;
     }
 
-    return `${year}-${month}-${day}`;
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 },
 
 
 if (this.line_fields[mapping.field]?.date && value) {
-    const formatted_date =
-        this.format_pasted_date(value);
+    value = this.validate_pasted_date(value);
 
-    if (!formatted_date) {
+    if (!value) {
         this.show_notification(
-            `${this.line_fields[mapping.field].label}: invalid date "${value}". ` +
+            `${this.line_fields[mapping.field].label}: invalid date. ` +
             `Please enter the date in dd/mm/yyyy format manually.`
         );
         continue;
     }
-
-    value = formatted_date;
 }
 
 async export_lines_to_excel(items) {
