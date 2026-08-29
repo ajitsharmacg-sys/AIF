@@ -1,3 +1,48 @@
+predisclosure_line_columns() {
+    const disclosure_type =
+        this.selected_predisclosure?.predisclosure_type;
+
+    const common_fields = [
+        "account_name",
+        "website",
+        "nda_confirmed",
+        "disclosure_format",
+        "reason_for_disclosure",
+        "meeting_date",
+        "meeting_location",
+        "canon_responsible_person",
+        "individuals_being_disclosed_to",
+        "information_to_be_disclosed",
+    ];
+
+    const fields_by_type = {
+        PARTNER: [
+            "sda_partner_level",
+            "account_in_sda_partner_list",
+            "retailer_ranking",
+        ],
+        END_CUSTOMER: [
+            "disclosed_last_2_years",
+            "b2b_business_type",
+            "estimated_business",
+            "annual_sales",
+        ],
+        PR_SOCIAL: [],
+    };
+
+    const status_fields = [
+        "previous_status",
+        "predisclosure_line_status",
+    ];
+
+    return [
+        ...common_fields,
+        ...(fields_by_type[disclosure_type] || []),
+        ...status_fields,
+    ];
+},
+
+
 async export_lines_to_excel(items) {
     this.show_notification(
         "Only current page has been exported."
