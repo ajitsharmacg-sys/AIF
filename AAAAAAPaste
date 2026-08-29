@@ -32,17 +32,24 @@ validate_pasted_date(value) {
     return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 },
 
-if (this.line_fields[mapping.field]?.date && value) {
-    value = this.validate_pasted_date(value);
+
+if (
+    this.line_fields[mapping.field]?.date &&
+    value
+) {
+    value =
+        this.validate_pasted_date(value);
 
     if (!value) {
         this.show_notification(
             `${this.line_fields[mapping.field].label}: invalid date. ` +
-            `Please enter the date in dd/mm/yyyy format manually.`
+            `Please enter a valid date.`
         );
         continue;
     }
 }
+
+row[mapping.field] = value;
 
 async export_lines_to_excel(items) {
     this.show_notification(
