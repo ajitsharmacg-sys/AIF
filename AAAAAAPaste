@@ -243,17 +243,30 @@ validate_pasted_value(field, value) {
     }
 
     /*
-     * Validate only dropdown fields
+     * Dropdown validation
      */
     if (
         config.values?.length &&
-        !config.values.includes(
-            trimmed_value
-        )
+        !config.values.includes(trimmed_value)
     ) {
         this.show_notification(
             `${config.label}: invalid value "${trimmed_value}". ` +
             "Please enter a valid value manually."
+        );
+
+        return false;
+    }
+
+    /*
+     * Date validation
+     */
+    if (
+        config.date &&
+        !this.validate_pasted_date(trimmed_value)
+    ) {
+        this.show_notification(
+            `${config.label}: invalid date "${trimmed_value}". ` +
+            "Please use dd/mm/yyyy format."
         );
 
         return false;
