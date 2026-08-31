@@ -1,3 +1,108 @@
+create_initial_sales_ops_email.py
+
+from django.core.management.base import BaseCommand
+
+from aif.models import AifSalesOpsEmail
+
+
+class Command(BaseCommand):
+    help = "Create initial Sales Ops email configuration"
+
+    def handle(self, *args, **options):
+        email = "cci.pricing@canon-europe.com"
+
+        _, created = (
+            AifSalesOpsEmail.objects.get_or_create(
+                email=email,
+            )
+        )
+
+        if created:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Sales Ops email created: {email}"
+                )
+            )
+        else:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Sales Ops email already exists: {email}"
+                )
+            )
+
+
+
+
+# aif/models.py
+
+class AifSalesOpsEmail(models.Model):
+    email = models.EmailField(
+        unique=True,
+    )
+
+    def __str__(self):
+        return self.email
+
+
+# aif/admin.py
+
+from .models import (
+    AifApprover,
+    NSOCurrencyOpUnitConfig,
+    OMEmailsConfig,
+    AifSalesOpsEmail,
+)
+
+
+@admin.register(AifSalesOpsEmail)
+class AifSalesOpsEmailAdmin(admin.ModelAdmin):
+
+    list_display = (
+        "id",
+        "email",
+    )
+
+    search_fields = (
+        "email",
+    )
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.groups.filter(
+            name=ADMIN_ROLE
+        ).exists()
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.groups.filter(
+            name=ADMIN_ROLE
+        ).exists()
+
+    def has_add_permission(self, request):
+        return request.user.groups.filter(
+            name=ADMIN_ROLE
+        ).exists()
+
+def build_sales_ops_cc(cc_mail):
+    configured_emails = list(
+        AifSalesOpsEmail.objects.values_list(
+            "email",
+            flat=True,
+        )
+    )
+
+    emails = []
+
+    if isinstance(cc_mail, str) and cc_mail:
+        emails.append(cc_mail)
+
+    emails.extend(configured_emails)
+
+    return ";".join(emails)
+
+
+
+
+
+
 def update_aif_workflow(
     *,
     request: HttpRequest,
