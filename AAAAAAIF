@@ -1,3 +1,22 @@
+def build_sales_ops_cc(cc_mail):
+    configured_emails = list(
+        AifSalesOpsEmail.objects.values_list(
+            "email",
+            flat=True,
+        )
+    )
+
+    emails = []
+
+    if isinstance(cc_mail, str) and cc_mail:
+        emails.append(cc_mail)
+
+    emails.extend(configured_emails)
+
+    return ";".join(emails)
+
+
+
 create_initial_sales_ops_email.py
 
 from django.core.management.base import BaseCommand
