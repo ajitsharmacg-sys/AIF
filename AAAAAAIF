@@ -1,3 +1,83 @@
+def update_aif_workflow(
+    *,
+    request: HttpRequest,
+    aif: Aif,
+    new_status: str,
+    comment: str | None = None,
+):
+    current_status = get_aif_status(aif).status
+
+    if current_status == new_status:
+        return
+
+    if not is_valid_aif_transition(
+        current_status=current_status,
+        new_status=new_status,
+    ):
+        raise PermissionDenied(
+            f"Invalid AIF status transition from "
+            f"{current_status} to {new_status}."
+        )
+
+    AifStatus.objects.create(
+        aif=aif,
+        status=new_status,
+        comment=comment,
+        meta_created_by=request.user,
+    )
+
+    Aif.objects.filter(
+        pk=aif.pk
+    ).update(
+        meta_edited_date=timezone.now(),
+        meta_edited_by=request.user,
+    )
+
+    if new_status == AifStatusChoices.CLOSED:
+        update_all_lines_status(
+            status=AifLineStatusChoices.CLOSED,
+            aif=aif,
+            request=request,
+        )
+
+    if new_status == AifStatusChoices.PLANNED:
+        set_initial_line_status(
+            aif,
+            request,
+        )
+
+        notify_aif_approvers(
+            request,
+            aif=aif,
+            comment=comment,
+        )
+
+    if new_status == AifStatusChoices.INVALID:
+        reject_all_lines(
+            AifLines.objects.filter(
+                aif=aif
+            ),
+            request,
+        )
+
+    if new_status == AifStatusChoices.AWAITING_VALIDATION:
+        update_all_lines_status(
+            status=AifLineStatusChoices.AWAITING_VALIDATION,
+            aif=aif,
+            request=request,
+        )
+
+    send_aif_status_notification(
+        request=request,
+        aif=aif,
+        new_status=new_status,
+        comment=comment,
+    )
+
+
+
+
+
 from collections import defaultdict
 
 from aif.roles import (
