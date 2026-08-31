@@ -1,0 +1,685 @@
+from collections import defaultdict
+
+from aif.roles import (
+    NSO_USER,
+    PSBD_TEAM_USER,
+    SALES_OPS_USER,
+    ADMIN_ROLE,
+)
+from aif.models import (
+    AifStatusChoices,
+    AifLineStatusChoices,
+)
+
+
+# ============================================================
+# AIF STATUS TRANSITIONS
+# ============================================================
+
+AIF_STATUS_GRAPH = {
+    AifStatusChoices.DRAFT: [
+        AifStatusChoices.PLANNED,
+    ],
+
+    AifStatusChoices.PLANNED: [
+        AifStatusChoices.COMMERCIALLY_APPROVED,
+        AifStatusChoices.INVALID,
+    ],
+
+    AifStatusChoices.COMMERCIALLY_APPROVED: [
+        AifStatusChoices.AWAITING_VALIDATION,
+        AifStatusChoices.INVALID,
+    ],
+
+    AifStatusChoices.AWAITING_VALIDATION: [
+        AifStatusChoices.CLOSED,
+        AifStatusChoices.INVALID,
+    ],
+
+    AifStatusChoices.CLOSED: [],
+
+    AifStatusChoices.INVALID: [
+        AifStatusChoices.DRAFT,
+    ],
+}
+
+
+# ============================================================
+# AIF LINE STATUS TRANSITIONS
+# ============================================================
+
+AIF_LINE_STATUS_GRAPH = {
+    AifLineStatusChoices.DRAFT: [
+        AifLineStatusChoices.AWAITING_APPROVAL,
+    ],
+
+    AifLineStatusChoices.AWAITING_APPROVAL: [
+        AifLineStatusChoices.APPROVED,
+        AifLineStatusChoices.REJECTED,
+    ],
+
+    AifLineStatusChoices.APPROVED: [
+        AifLineStatusChoices.AWAITING_VALIDATION,
+        AifLineStatusChoices.REJECTED,
+    ],
+
+    AifLineStatusChoices.AWAITING_VALIDATION: [
+        AifLineStatusChoices.CLOSED,
+        AifLineStatusChoices.REJECTED,
+    ],
+
+    AifLineStatusChoices.CLOSED: [],
+
+    AifLineStatusChoices.REJECTED: [
+        AifLineStatusChoices.DRAFT,
+    ],
+}
+
+
+# ============================================================
+# AIF TARGET STATUS → ALLOWED ROLES
+# ============================================================
+
+AIF_STATUS_TO_ROLE = {
+    AifStatusChoices.DRAFT: [
+        NSO_USER,
+        ADMIN_ROLE,
+    ],
+
+    AifStatusChoices.PLANNED: [
+        PSBD_TEAM_USER,
+        ADMIN_ROLE,
+    ],
+
+    AifStatusChoices.COMMERCIALLY_APPROVED: [
+        SALES_OPS_USER,
+        ADMIN_ROLE,
+    ],
+
+    AifStatusChoices.AWAITING_VALIDATION: [
+        NSO_USER,
+        ADMIN_ROLE,
+    ],
+
+    AifStatusChoices.CLOSED: [
+        NSO_USER,
+        ADMIN_ROLE,
+    ],
+
+    AifStatusChoices.INVALID: [
+        NSO_USER,
+        PSBD_TEAM_USER,
+        SALES_OPS_USER,
+        ADMIN_ROLE,
+    ],
+}
+
+
+# ============================================================
+# LINE TARGET STATUS → ALLOWED ROLES
+# ============================================================
+
+LINE_STATUS_TO_ROLE = {
+    AifLineStatusChoices.DRAFT: [
+        NSO_USER,
+        ADMIN_ROLE,
+    ],
+
+    AifLineStatusChoices.AWAITING_APPROVAL: [
+        PSBD_TEAM_USER,
+        ADMIN_ROLE,
+    ],
+
+    AifLineStatusChoices.APPROVED: [
+        SALES_OPS_USER,
+        ADMIN_ROLE,
+    ],
+
+    AifLineStatusChoices.AWAITING_VALIDATION: [
+        NSO_USER,
+        ADMIN_ROLE,
+    ],
+
+    AifLineStatusChoices.CLOSED: [
+        NSO_USER,
+        ADMIN_ROLE,
+    ],
+
+    AifLineStatusChoices.REJECTED: [
+        NSO_USER,
+        PSBD_TEAM_USER,
+        SALES_OPS_USER,
+        ADMIN_ROLE,
+    ],
+}
+
+
+# ============================================================
+# HELPER: CREATE REVERSE ROLE → STATUS MAPPING
+# ============================================================
+
+def build_role_to_status_mapping(status_to_role):
+    role_to_status = defaultdict(list)
+
+    for status, roles in status_to_role.items():
+        for role in roles:
+            role_to_status[role].append(status)
+
+    return dict(role_to_status)
+
+
+# ============================================================
+# GENERATED REVERSE MAPPINGS
+# ============================================================
+
+ROLE_TO_AIF_STATUS = build_role_to_status_mapping(
+    AIF_STATUS_TO_ROLE
+)
+
+
+ROLE_TO_LINE_STATUS = build_role_to_status_mapping(
+    LINE_STATUS_TO_ROLE
+)
+
+
+def get_available_transitions(
+    current_status,
+    status_graph,
+):
+    return status_graph.get(
+        current_status,
+        [],
+    )
+
+
+def is_valid_transition(
+    current_status,
+    new_status,
+    status_graph,
+):
+    allowed_statuses = get_available_transitions(
+        current_status=current_status,
+        status_graph=status_graph,
+    )
+
+    return new_status in allowed_statuses
+
+
+def is_valid_aif_transition(
+    current_status,
+    new_status,
+):
+    return is_valid_transition(
+        current_status=current_status,
+        new_status=new_status,
+        status_graph=AIF_STATUS_GRAPH,
+    )
+
+
+def is_valid_line_transition(
+    current_status,
+    new_status,
+):
+    return is_valid_transition(
+        current_status=current_status,
+        new_status=new_status,
+        status_graph=AIF_LINE_STATUS_GRAPH,
+    )
+
+
+def is_role_allowed_for_status(
+    user_roles,
+    target_status,
+    status_to_role,
+):
+    allowed_roles = status_to_role.get(
+        target_status,
+        []
+    )
+
+    return bool(
+        set(user_roles).intersection(
+            allowed_roles
+        )
+    )
+
+def is_role_allowed_for_aif_status(
+    user_roles,
+    target_status,
+):
+    return is_role_allowed_for_status(
+        user_roles=user_roles,
+        target_status=target_status,
+        status_to_role=AIF_STATUS_TO_ROLE,
+    )
+
+
+def is_role_allowed_for_line_status(
+    user_roles,
+    target_status,
+):
+    return is_role_allowed_for_status(
+        user_roles=user_roles,
+        target_status=target_status,
+        status_to_role=LINE_STATUS_TO_ROLE,
+    )
+
+
+----------------------------------------------------------
+
+from aif.workflow import (
+    is_valid_aif_transition,
+    is_valid_line_transition,
+    is_role_allowed_for_aif_status,
+    is_role_allowed_for_line_status,
+)
+
+
+def get_user_roles(user):
+    return set(
+        user.groups.values_list(
+            "name",
+            flat=True,
+        )
+    )
+
+
+
+class AifView(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+        AifByStatusFilter,
+    ]
+
+    pagination_class = StandardPagination
+
+    filterset_fields = {
+        "aif_id": ["exact"],
+        "meta_created_date": [
+            "exact",
+            "gt",
+            "lt",
+        ],
+    }
+
+    search_fields = [
+        "aif_id",
+        "nso",
+    ]
+
+    @action(detail=True, methods=["get"])
+    def conflicts(self, request, pk=None):
+        aif = self.get_object()
+
+        conflict_ids = get_conflicting_aif_ids(aif)
+
+        return Response({
+            "conflicting_rows": conflict_ids,
+        })
+
+    def get_serializer_class(self):
+        if self.action in [
+            "create",
+            "update",
+            "partial_update",
+            "destroy",
+        ]:
+            return AifWriteSerializer
+
+        return AifReadSerializer
+
+    def perform_create(self, serializer):
+        instance: Aif = serializer.save(
+            meta_created_by=self.request.user,
+            meta_edited_date=timezone.now(),
+        )
+
+        AifStatus.objects.create(
+            aif=instance,
+            status=AifStatusChoices.DRAFT,
+            meta_created_by=self.request.user,
+        )
+
+        return instance
+
+    def perform_update(self, serializer):
+        current_status = get_aif_status(
+            self.kwargs["pk"]
+        )
+
+        if current_status.status not in [
+            AifStatusChoices.DRAFT,
+            AifStatusChoices.INVALID,
+        ]:
+            raise PermissionDenied(
+                "You can't edit this AIF!"
+            )
+
+        instance = serializer.save(
+            meta_edited_date=timezone.now(),
+            meta_edited_by=self.request.user,
+        )
+
+        if current_status.status == AifStatusChoices.INVALID:
+
+            update_aif_workflow(
+                request=self.request,
+                aif=instance,
+                new_status=AifStatusChoices.DRAFT,
+            )
+
+            update_all_lines_status(
+                status=AifLineStatusChoices.DRAFT,
+                aif=instance,
+                request=self.request,
+            )
+
+        return instance
+
+    def get_queryset(self):
+        if self.request.user.groups.filter(
+            name=NSO_USER
+        ).exists():
+
+            return Aif.objects.filter(
+                nso__in=Organization.objects.filter(
+                    cluster=self.request.user.cluster
+                ).values_list(
+                    "organization_name",
+                    flat=True,
+                )
+            )
+
+        if self.request.user.groups.filter(
+            name=PSBD_TEAM_USER
+        ).exists():
+
+            allowed_product_groups = (
+                AifApprover.objects.filter(
+                    approver=self.request.user
+                )
+                .values_list(
+                    "product_group",
+                    flat=True,
+                )
+            )
+
+            return (
+                Aif.objects.filter(
+                    aif_lines__product_group__in=
+                    allowed_product_groups
+                )
+                .distinct()
+            )
+
+        return Aif.objects.all()
+
+
+
+class AifStatusView(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+
+    queryset = AifStatus.objects.all()
+
+    serializer_class = AifStatusSerializer
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+
+    filterset_fields = {
+        "aif": ["exact"],
+    }
+
+    def perform_create(self, serializer):
+        aif = serializer.validated_data["aif"]
+
+        new_status = serializer.validated_data[
+            "status"
+        ]
+
+        comment = serializer.validated_data.get(
+            "comment"
+        )
+
+        current_status = get_aif_status(
+            aif
+        ).status
+
+        user_roles = get_user_roles(
+            self.request.user
+        )
+
+        if not is_valid_aif_transition(
+            current_status=current_status,
+            new_status=new_status,
+        ):
+            raise PermissionDenied(
+                f"Invalid AIF status transition from "
+                f"{current_status} to {new_status}."
+            )
+
+        if not is_role_allowed_for_aif_status(
+            user_roles=user_roles,
+            target_status=new_status,
+        ):
+            raise PermissionDenied(
+                "You are not allowed to perform "
+                "this status transition."
+            )
+
+        update_aif_workflow(
+            request=self.request,
+            aif=aif,
+            new_status=new_status,
+            comment=comment,
+        )
+
+
+class AifLineView(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+
+    queryset = AifLines.objects.all()
+
+    serializer_class = AifLineSerializer
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+
+    filterset_fields = {
+        "aif": ["exact"],
+    }
+
+    def perform_create(self, serializer):
+        instance: AifLines = serializer.save(
+            meta_created_by=self.request.user,
+        )
+
+        AifLineStatus.objects.create(
+            aif_line=instance,
+            status=AifLineStatusChoices.DRAFT,
+            meta_created_by=self.request.user,
+        )
+
+    def perform_update(self, serializer):
+        serializer.save(
+            meta_edited_date=timezone.now(),
+            meta_edited_by=self.request.user,
+        )
+
+
+
+class AifLineStatusView(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+
+    queryset = AifLineStatus.objects.all()
+
+    serializer_class = AifLinesStatusSerializer
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+
+    def perform_create(self, serializer):
+        aif_line = serializer.validated_data[
+            "aif_line"
+        ]
+
+        new_status = serializer.validated_data[
+            "status"
+        ]
+
+        current_status = (
+            AifLineStatus.objects
+            .filter(aif_line=aif_line)
+            .order_by("-meta_created_date")
+            .first()
+        )
+
+        if not current_status:
+            raise PermissionDenied(
+                "Current line status was not found."
+            )
+
+        user_roles = get_user_roles(
+            self.request.user
+        )
+
+        if not is_valid_line_transition(
+            current_status=current_status.status,
+            new_status=new_status,
+        ):
+            raise PermissionDenied(
+                f"Invalid line status transition from "
+                f"{current_status.status} to {new_status}."
+            )
+
+        if not is_role_allowed_for_line_status(
+            user_roles=user_roles,
+            target_status=new_status,
+        ):
+            raise PermissionDenied(
+                "You are not allowed to perform "
+                "this line status transition."
+            )
+
+        instance: AifLineStatus = serializer.save(
+            meta_created_by=self.request.user,
+        )
+
+        aif = instance.aif_line.aif
+
+        new_aif_status = determine_aif_status(
+            aif_lines=AifLines.objects.filter(
+                aif=aif
+            ),
+            current_status=get_aif_status(aif).status,
+        )
+
+        update_aif_workflow(
+            request=self.request,
+            aif=aif,
+            new_status=new_aif_status,
+            comment=instance.comment,
+        )
+
+
+def get_aif_status(aif_id) -> AifStatus:
+    status = (
+        AifStatus.objects
+        .filter(aif=aif_id)
+        .order_by("-meta_created_date")
+        .first()
+    )
+
+    if not status:
+        raise PermissionDenied(
+            "Current AIF status was not found."
+        )
+
+    return status
+
+
+def determine_aif_status(
+    aif_lines,
+    current_status: str,
+) -> str:
+
+    all_statuses = {
+        status: 0
+        for status in AifLineStatusChoices.values
+    }
+
+    total_lines = 0
+
+    for line in aif_lines:
+        total_lines += 1
+
+        latest_status = (
+            AifLineStatus.objects
+            .filter(aif_line=line)
+            .order_by("-meta_created_date")
+            .first()
+        )
+
+        if not latest_status:
+            all_statuses[
+                AifLineStatusChoices.DRAFT
+            ] += 1
+            continue
+
+        all_statuses[
+            latest_status.status
+        ] += 1
+
+    if not total_lines:
+        return current_status
+
+    if (
+        all_statuses[
+            AifLineStatusChoices.REJECTED
+        ] > 0
+    ):
+        return AifStatusChoices.INVALID
+
+    if (
+        all_statuses[
+            AifLineStatusChoices.CLOSED
+        ] == total_lines
+    ):
+        return AifStatusChoices.CLOSED
+
+    if (
+        all_statuses[
+            AifLineStatusChoices.APPROVED
+        ] == total_lines
+    ):
+        return AifStatusChoices.COMMERCIALLY_APPROVED
+
+    if (
+        all_statuses[
+            AifLineStatusChoices.AWAITING_VALIDATION
+        ] == total_lines
+    ):
+        return AifStatusChoices.AWAITING_VALIDATION
+
+    if (
+        all_statuses[
+            AifLineStatusChoices.DRAFT
+        ] == total_lines
+    ):
+        return AifStatusChoices.DRAFT
+
+    return current_status
+
