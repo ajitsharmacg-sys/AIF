@@ -10,8 +10,41 @@
             <table class="table table-sm table-bordered mb-0 predisclosure-table">
 
                 <thead>
-                    ...
-                </thead>
+
+    <tr>
+
+        <th class="sticky-col sticky-index">
+            #
+        </th>
+
+
+        {% for field in predisclosure_line_form.visible_fields %}
+
+            <th
+                v-if="showField('{{ field.name }}')"
+
+                {% if field.name == "account_name" %}
+                    class="sticky-col sticky-account"
+                {% elif field.name == "website" %}
+                    class="sticky-col sticky-website"
+                {% endif %}
+            >
+
+                {{ field.label }}
+
+            </th>
+
+        {% endfor %}
+
+
+        <th>
+            Actions
+        </th>
+
+    </tr>
+
+</thead>
+
 
                 <tbody>
 
