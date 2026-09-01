@@ -1,3 +1,251 @@
+<div class="card">
+
+    <div class="card-header d-flex justify-content-between align-items-center">
+
+        <strong>Account Details</strong>
+
+        <div class="d-flex gap-2">
+
+            <export-excel-button
+                title="Download Pre-Disclosure Template"
+                @click="download_line_template()">
+            </export-excel-button>
+
+        </div>
+
+    </div>
+
+
+    <div class="card-body p-2">
+
+        <form
+            id="predisclosure_line_form"
+            @submit.prevent="">
+
+            <div class="d-flex align-items-start">
+
+
+                <!-- ACCOUNT DETAILS -->
+                <div class="flex-shrink-0">
+
+                    <div class="border rounded">
+
+                        <div class="px-2 py-2 border-bottom fw-bold">
+                            Account Details
+                        </div>
+
+                        <table
+                            class="table table-bordered table-sm align-middle mb-0">
+
+                            <thead class="table-light">
+
+                                <tr>
+
+                                    <th class="p-1 text-center">
+                                        #
+                                    </th>
+
+                                    <th class="p-1">
+                                        Account Name
+                                    </th>
+
+                                    <th class="p-1">
+                                        Website Name
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+                                <tr
+                                    v-for="(line, index) in lines"
+                                    :key="'account-' + index">
+
+                                    <!-- Row Number -->
+                                    <td class="p-1 text-center align-middle">
+
+                                        [[ index + 1 ]]
+
+                                    </td>
+
+
+                                    <!-- Account Name -->
+                                    <td class="p-1 align-middle">
+
+                                        {% for field in predisclosure_line_form.visible_fields %}
+
+                                            {% if field.name == "account_name" %}
+
+                                                {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+                                            {% endif %}
+
+                                        {% endfor %}
+
+                                    </td>
+
+
+                                    <!-- Website -->
+                                    <td class="p-1 align-middle">
+
+                                        {% for field in predisclosure_line_form.visible_fields %}
+
+                                            {% if field.name == "website" %}
+
+                                                {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+                                            {% endif %}
+
+                                        {% endfor %}
+
+                                    </td>
+
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- DISCLOSURE DETAILS -->
+                <div class="flex-grow-1 ms-2 overflow-auto">
+
+                    <div class="border rounded">
+
+                        <div class="px-2 py-2 border-bottom fw-bold">
+                            Disclosure Details
+                        </div>
+
+
+                        <table
+                            class="table table-bordered table-sm align-middle mb-0">
+
+                            <thead class="table-light">
+
+                                <tr>
+
+                                    {% for field in predisclosure_line_form.visible_fields %}
+
+                                        {% if field.name != "account_name" and field.name != "website" %}
+
+                                            <th
+                                                class="p-1"
+                                                v-if="showField('{{ field.name }}')">
+
+                                                {{ field.label }}
+
+                                            </th>
+
+                                        {% endif %}
+
+                                    {% endfor %}
+
+
+                                    <!-- Action -->
+                                    <th class="p-1 text-center">
+
+                                        Action
+
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+                                <tr
+                                    v-for="(line, index) in lines"
+                                    :key="'disclosure-' + index">
+
+                                    {% for field in predisclosure_line_form.visible_fields %}
+
+                                        {% if field.name != "account_name" and field.name != "website" %}
+
+                                            <td
+                                                class="p-1 align-middle"
+                                                v-if="showField('{{ field.name }}')">
+
+                                                {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+                                            </td>
+
+                                        {% endif %}
+
+                                    {% endfor %}
+
+
+                                    <!-- Actions -->
+                                    <td class="p-1 align-middle text-center">
+
+                                        <div class="btn-group">
+
+                                            <template-button
+                                                :size="18"
+                                                @click="copy_line(line, index)">
+                                            </template-button>
+
+                                            <delete-button
+                                                :size="18"
+                                                @delete-confirm="delete_line(line, index)">
+                                            </delete-button>
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </form>
+
+
+        <!-- ADD BUTTON -->
+        <div class="mt-2">
+
+            <add-button
+                :size="18"
+                @click="add_line()">
+            </add-button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 app data
 
 elif config.get("textarea"):
