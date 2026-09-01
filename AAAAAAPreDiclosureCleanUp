@@ -1,3 +1,471 @@
+from common.forms import (
+    EnhancedModelForm,
+    DatalistSelectPredefinedWidget,
+)
+
+from django import forms
+from django.forms import (
+    TextInput,
+    Textarea,
+    Select,
+    DateInput,
+)
+
+from common.models import Organization
+
+from predisclosure.models import (
+    PreDisclosure,
+    PreDisclosureLine,
+    PreDisclosureProduct,
+    PreDisclosureApprover,
+)
+
+
+class PreDisclosureForm(EnhancedModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        orgs = (
+            Organization.objects.exclude(
+                organization_name__in=["CENV", "CEL"]
+            )
+            .values_list(
+                "organization_name",
+                flat=True,
+            )
+        )
+
+        org_choices = [
+            ("", "---------")
+        ] + [
+            (org, org)
+            for org in orgs
+        ]
+
+        self.fields["region"].choices = org_choices
+        self.fields["region"].widget = Select(
+            attrs={
+                "class": "form-select form-select-sm",
+                "required": self.fields["region"].required,
+            },
+            choices=org_choices,
+        )
+
+        self.fields["predisclosure_type"].widget = Select(
+            attrs={
+                "class": "form-select form-select-sm",
+            },
+            choices=self.fields[
+                "predisclosure_type"
+            ].choices,
+        )
+
+        self.fields["product_category"].widget = Select(
+            attrs={
+                "class": "form-select form-select-sm",
+            },
+            choices=self.fields[
+                "product_category"
+            ].choices,
+        )
+
+    class Meta:
+        model = PreDisclosure
+
+        fields = [
+            "region",
+            "predisclosure_type",
+            "product_category",
+            "products",
+        ]
+
+
+class PreDisclosureLineForm(EnhancedModelForm):
+
+    # =========================================================
+    # COMMON ACCOUNT FIELDS
+    # These fields are applicable to ALL Pre-Disclosure types
+    # =========================================================
+
+    ACCOUNT_FIELDS = [
+        "account_name",
+        "website",
+    ]
+
+
+    # =========================================================
+    # DISCLOSURE DETAIL FIELD CONFIGURATION
+    # =========================================================
+
+    DISCLOSURE_FIELD_CONFIG = {
+
+        "nda_confirmed": {
+            "width": "110px",
+            "select": True,
+        },
+
+        "disclosure_format": {
+            "width": "190px",
+            "select": True,
+        },
+
+        "reason_for_disclosure": {
+            "width": "350px",
+            "textarea": True,
+            "placeholder": "Enter reason for disclosure",
+        },
+
+        "meeting_date": {
+            "width": "140px",
+            "date": True,
+        },
+
+        "meeting_location": {
+            "width": "250px",
+            "textarea": True,
+            "placeholder": "Enter meeting location",
+        },
+
+        "canon_responsible_person": {
+            "width": "250px",
+            "textarea": True,
+            "placeholder": "Enter Canon responsible person",
+        },
+
+        "individuals_being_disclosed_to": {
+            "width": "350px",
+            "textarea": True,
+            "placeholder": "Enter individuals receiving disclosure",
+        },
+
+        "information_to_be_disclosed": {
+            "width": "350px",
+            "textarea": True,
+            "placeholder": "Enter information to be disclosed",
+        },
+
+        "sda_partner_level": {
+            "width": "120px",
+            "select": True,
+        },
+
+        "account_in_sda_partner_list": {
+            "width": "120px",
+            "select": True,
+        },
+
+        "retailer_ranking": {
+            "width": "120px",
+        },
+
+        "disclosed_last_2_years": {
+            "width": "120px",
+            "select": True,
+        },
+
+        "b2b_business_type": {
+            "width": "250px",
+        },
+
+        "estimated_business": {
+            "width": "150px",
+        },
+
+        "annual_sales": {
+            "width": "150px",
+        },
+    }
+
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.configure_account_name()
+        self.configure_website()
+        self.configure_disclosure_fields()
+
+
+    # =========================================================
+    # ACCOUNT NAME
+    # =========================================================
+
+    def configure_account_name(self):
+
+        distinct_accounts = sorted(
+            PreDisclosureLine.objects.exclude(
+                account_name__isnull=True
+            )
+            .exclude(
+                account_name=""
+            )
+            .values_list(
+                "account_name",
+                flat=True,
+            )
+            .distinct()
+        )
+
+        self.fields[
+            "account_name"
+        ].widget = DatalistSelectPredefinedWidget(
+            attrs={
+                "class": "form-control form-control-sm",
+                "style": "width:240px;",
+            },
+            choices=[
+                (account, account)
+                for account in distinct_accounts
+            ],
+        )
+
+
+    # =========================================================
+    # WEBSITE
+    # =========================================================
+
+    def configure_website(self):
+
+        distinct_websites = sorted(
+            PreDisclosureLine.objects.exclude(
+                website__isnull=True
+            )
+            .exclude(
+                website=""
+            )
+            .values_list(
+                "website",
+                flat=True,
+            )
+            .distinct()
+        )
+
+        self.fields[
+            "website"
+        ].widget = DatalistSelectPredefinedWidget(
+            attrs={
+                "class": "form-control form-control-sm",
+                "style": "width:200px;",
+            },
+            choices=[
+                (website, website)
+                for website in distinct_websites
+            ],
+        )
+
+
+    # =========================================================
+    # DISCLOSURE FIELDS
+    # =========================================================
+
+    def configure_disclosure_fields(self):
+
+        for field_name, config in (
+            self.DISCLOSURE_FIELD_CONFIG.items()
+        ):
+
+            if field_name not in self.fields:
+                continue
+
+            field = self.fields[field_name]
+
+            base_attrs = {
+                "class": "form-control form-control-sm",
+                "style": (
+                    f"width:{config['width']};"
+                ),
+            }
+
+            if config.get("select"):
+
+                field.widget = Select(
+                    attrs={
+                        "class": (
+                            "form-select form-select-sm"
+                        ),
+                        "style": (
+                            f"width:{config['width']};"
+                        ),
+                    },
+                    choices=field.choices,
+                )
+
+            elif config.get("textarea"):
+
+                field.widget = Textarea(
+                    attrs={
+                        **base_attrs,
+                        "rows": 2,
+                        "placeholder": config.get(
+                            "placeholder",
+                            "",
+                        ),
+                    }
+                )
+
+            elif config.get("date"):
+
+                field.widget = DateInput(
+                    attrs={
+                        **base_attrs,
+                        "type": "date",
+                    }
+                )
+
+            else:
+
+                field.widget = TextInput(
+                    attrs=base_attrs
+                )
+
+
+    class Meta:
+
+        model = PreDisclosureLine
+
+        fields = [
+
+            # =====================================
+            # ACCOUNT DETAILS TABLE
+            # =====================================
+
+            "account_name",
+            "website",
+
+
+            # =====================================
+            # DISCLOSURE DETAILS TABLE
+            # =====================================
+
+            "nda_confirmed",
+            "disclosure_format",
+            "reason_for_disclosure",
+            "meeting_date",
+            "meeting_location",
+            "canon_responsible_person",
+            "individuals_being_disclosed_to",
+            "information_to_be_disclosed",
+            "sda_partner_level",
+            "account_in_sda_partner_list",
+            "retailer_ranking",
+            "disclosed_last_2_years",
+            "b2b_business_type",
+            "estimated_business",
+            "annual_sales",
+        ]
+
+
+class PreDisclosureProductAdminForm(EnhancedModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["product_category"].choices = [
+            ("ISB", "ISB"),
+            ("ICB", "ICB"),
+        ]
+
+    class Meta:
+        model = PreDisclosureProduct
+
+        fields = (
+            "product_category",
+            "product_name",
+            "is_active",
+        )
+
+    def clean(self):
+
+        cleaned_data = super().clean()
+
+        product_name = cleaned_data.get(
+            "product_name"
+        )
+
+        product_category = cleaned_data.get(
+            "product_category"
+        )
+
+        if (
+            product_name
+            and product_category
+            and PreDisclosureProduct.objects.filter(
+                product_name__iexact=product_name,
+                product_category=product_category,
+            )
+            .exclude(
+                pk=self.instance.pk
+            )
+            .exists()
+        ):
+            raise forms.ValidationError(
+                "This product already exists for the "
+                "selected Product Category."
+            )
+
+        return cleaned_data
+
+
+class PreDisclosureApproverAdminForm(EnhancedModelForm):
+
+    class Meta:
+        model = PreDisclosureApprover
+
+        fields = (
+            "approver_type",
+            "approver",
+        )
+
+    def clean(self):
+
+        cleaned_data = super().clean()
+
+        approver = cleaned_data.get(
+            "approver"
+        )
+
+        approver_type = cleaned_data.get(
+            "approver_type"
+        )
+
+        if not approver or not approver_type:
+            return cleaned_data
+
+        exists = (
+            PreDisclosureApprover.objects.filter(
+                approver=approver,
+                approver_type=approver_type,
+            )
+            .exclude(
+                pk=self.instance.pk
+            )
+            .exists()
+        )
+
+        if exists:
+            raise forms.ValidationError(
+                "This approver is already configured "
+                "for the selected Approver Type."
+            )
+
+        return cleaned_data
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+=================================================================================
 PreDisclosureLineStatusView.perform_create
 ---------------------
 def perform_create(self, serializer):
