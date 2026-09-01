@@ -8,7 +8,6 @@
             Account Details
         </strong>
 
-
         <div class="d-flex gap-2">
 
             <export-excel-button
@@ -36,6 +35,7 @@
                 class="card mb-3"
             >
 
+
                 <!-- ACCOUNT HEADER -->
 
                 <div
@@ -46,8 +46,6 @@
                         Account #[[ index + 1 ]]
                     </strong>
 
-
-                    <!-- ACTION BUTTONS -->
 
                     <div class="btn-group">
 
@@ -69,76 +67,29 @@
 
                 <!-- ACCOUNT BODY -->
 
-                <div class="card-body p-3">
+                <div class="card-body py-3">
 
+                    <!--
+                        6 COLUMN RESPONSIVE GRID
 
-                    <!-- =====================================
-                         NORMAL FIELDS
-                         6 FIELDS PER ROW
-                    ====================================== -->
+                        Normal fields = 1 column
+                        Textarea fields = 2 columns
+                    -->
 
-                    <div
-                        class="
-                            row
-                            row-cols-1
-                            row-cols-sm-2
-                            row-cols-md-3
-                            row-cols-lg-4
-                            row-cols-xl-6
-                            g-2
-                            mb-3
-                        "
-                    >
+                    <div class="row g-3">
+
 
                         {% for field in predisclosure_line_form.visible_fields %}
 
-                            {% if field.field.widget.template_name != "django/forms/widgets/textarea.html" %}
-
-                                <div
-                                    v-if="showField('{{ field.name }}')"
-                                    class="col"
-                                >
-
-                                    <label class="form-label small mb-1">
-
-                                        {{ field.label }}
-
-                                    </label>
-
-
-                                    {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
-
-                                </div>
-
-                            {% endif %}
-
-                        {% endfor %}
-
-                    </div>
-
-
-                    <!-- =====================================
-                         TEXTAREA FIELDS
-                         SEPARATE ROW
-                    ====================================== -->
-
-                    <div
-                        class="
-                            row
-                            row-cols-1
-                            row-cols-md-2
-                            row-cols-lg-3
-                            g-2
-                        "
-                    >
-
-                        {% for field in predisclosure_line_form.visible_fields %}
 
                             {% if field.field.widget.template_name == "django/forms/widgets/textarea.html" %}
 
+
+                                <!-- TEXTAREA FIELD : SPANS 2 COLUMNS -->
+
                                 <div
                                     v-if="showField('{{ field.name }}')"
-                                    class="col"
+                                    class="col-12 col-md-6 col-xl-4"
                                 >
 
                                     <label class="form-label small mb-1">
@@ -152,12 +103,36 @@
 
                                 </div>
 
+
+                            {% else %}
+
+
+                                <!-- NORMAL FIELD -->
+
+                                <div
+                                    v-if="showField('{{ field.name }}')"
+                                    class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2"
+                                >
+
+                                    <label class="form-label small mb-1">
+
+                                        {{ field.label }}
+
+                                    </label>
+
+
+                                    {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+                                </div>
+
+
                             {% endif %}
+
 
                         {% endfor %}
 
-                    </div>
 
+                    </div>
 
                 </div>
 
