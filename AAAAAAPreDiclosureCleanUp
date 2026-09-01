@@ -1,0 +1,206 @@
+FINAL_LINE_STATUSES = {
+    PreDisclosureLineStatusChoices.APPROVED,
+    PreDisclosureLineStatusChoices.REJECTED,
+}
+
+
+def get_latest_line_status(line):
+    return (
+        PreDisclosureLineStatus.objects
+        .filter(line=line)
+        .latest("meta_created_date")
+    )
+
+
+def get_previous_status(line):
+    statuses = list(
+        PreDisclosureLineStatus.objects
+        .filter(line=line)
+        .order_by("-meta_created_date")[:2]
+    )
+
+    return statuses[1] if len(statuses) > 1 else None
+
+
+def get_predisclosure_status(predisclosure_id):
+    return (
+        PreDisclosureStatus.objects
+        .filter(predisclosure_id=predisclosure_id)
+        .latest("meta_created_date")
+    )
+
+
+def update_all_lines_status(status, predisclosure, request):
+    for line in PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    ):
+        latest_status = get_latest_line_status(line)
+
+        if latest_status.status not in FINAL_LINE_STATUSES:
+            continue
+
+        PreDisclosureLineStatus.objects.create(
+            line=line,
+            status=status,
+            meta_created_by=request.user,
+        )
+
+
+def set_initial_line_status(predisclosure, request):
+
+    workflow = get_workflow(
+        predisclosure.predisclosure_type,
+        predisclosure.product_category,
+    )
+
+    if not workflow:
+        raise ValueError(
+            "No workflow configured for the selected "
+            "disclosure type and product category."
+        )
+
+    first_status = workflow.get(1)
+
+    if not first_status:
+        raise ValueError(
+            "No initial approval status configured."
+        )
+
+    for line in PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    ):
+        latest_status = get_latest_line_status(line)
+
+        if latest_status.status != PreDisclosureLineStatusChoices.DRAFT:
+            continue
+
+        PreDisclosureLineStatus.objects.create(
+            line=line,
+            status=first_status,
+            meta_created_by=request.user,
+        )
+
+    notify_predisclosure_approvers(
+        request,
+        predisclosure,
+        first_status,
+    )
+
+
+def is_stage_completed(predisclosure):
+    for line in PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    ):
+        if get_latest_line_status(line).status not in FINAL_LINE_STATUSES:
+            return False
+
+    return True
+
+
+def finalize_workflow(
+    predisclosure,
+    request,
+    notification="",
+):
+    lines = PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    )
+
+    all_rejected = all(
+        get_latest_line_status(line).status
+        == PreDisclosureLineStatusChoices.REJECTED
+        for line in lines
+    )
+
+    status = (
+        PreDisclosureStatusChoices.REJECTED
+        if all_rejected
+        else PreDisclosureStatusChoices.COMPLETED
+    )
+
+    PreDisclosureStatus.objects.create(
+        predisclosure=predisclosure,
+        status=status,
+        meta_created_by=request.user,
+    )
+
+    latest_comment = (
+        PreDisclosureLineStatus.objects
+        .filter(
+            line__predisclosure=predisclosure,
+            comment__isnull=False,
+        )
+        .exclude(comment="")
+        .order_by("-meta_created_date")
+        .values_list("comment", flat=True)
+        .first()
+    )
+
+    link = predisclosure_url(
+        request,
+        predisclosure.predisclosure_id,
+    )
+
+    send_email(
+        to=predisclosure.meta_created_by.email,
+        subject=get_predisclosure_email_subject(
+            predisclosure,
+            status,
+        ),
+        body=get_predisclosure_email_body(
+            predisclosure,
+            status,
+            link,
+            comment=latest_comment,
+            notification=notification,
+        ),
+        cc=get_predisclosure_cc(
+            predisclosure,
+            status,
+        ),
+    )
+
+
+def process_line_approval(
+    request,
+    line_status,
+    notification="",
+):
+    predisclosure = line_status.line.predisclosure
+
+    if not is_stage_completed(predisclosure):
+        return
+
+    previous_status = get_previous_status(
+        line_status.line
+    )
+
+    if previous_status is None:
+        return
+
+    next_status = get_next_status(
+        predisclosure.predisclosure_type,
+        predisclosure.product_category,
+        previous_status.status,
+    )
+
+    if not next_status:
+        finalize_workflow(
+            predisclosure,
+            request,
+            notification,
+        )
+        return
+
+    update_all_lines_status(
+        next_status,
+        predisclosure,
+        request,
+    )
+
+    notify_predisclosure_approvers(
+        request,
+        predisclosure,
+        next_status,
+        notification,
+    )
