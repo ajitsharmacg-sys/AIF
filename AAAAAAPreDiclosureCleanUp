@@ -1,3 +1,46 @@
+attrs = {
+    "class": "form-control form-control-sm",
+    "style": (
+        f"width:{config['width']};"
+        "height:38px;"
+        "margin:0;"
+        "padding:4px 8px;"
+    ),
+}
+
+field.widget = Select(
+    attrs={
+        "class": "form-select form-select-sm",
+        "style": (
+            f"width:{config['width']};"
+            "height:38px;"
+            "margin:0;"
+            "padding:4px 8px;"
+        ),
+    },
+    choices=field.choices,
+)
+
+
+field.widget = Textarea(
+    attrs={
+        **attrs,
+        "rows": 1,
+        "style": (
+            f"width:{config['width']};"
+            "height:38px;"
+            "min-height:38px;"
+            "margin:0;"
+            "padding:6px 8px;"
+            "resize:none;"
+        ),
+        "placeholder": config.get(
+            "placeholder",
+            "",
+        ),
+    }
+)
+
 <div class="card">
 
 	<div class="card-header d-flex justify-content-between align-items-center">
