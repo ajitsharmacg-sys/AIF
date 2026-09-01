@@ -1,16 +1,20 @@
 <div class="card">
+
 	<div class="card-header d-flex justify-content-between align-items-center">
 
 		<strong>Account Details</strong>
 
 		<div class="d-flex gap-2">
+
 			<export-excel-button
 				title="Download Pre-Disclosure Template"
 				@click="download_line_template()">
 			</export-excel-button>
+
 		</div>
 
 	</div>
+
 
 	<div class="card-body p-2">
 
@@ -55,18 +59,21 @@
 
 						</thead>
 
+
 						<tbody>
 
 							<tr
 								v-for="(line, index) in lines"
 								:key="'account-' + index"
+								style="height: 64px;"
 							>
 
-								<td class="text-center">
+								<td class="text-center align-middle">
 									[[ index + 1 ]]
 								</td>
 
-								<td>
+
+								<td class="align-middle">
 
 									{% for field in predisclosure_line_form.visible_fields %}
 
@@ -80,7 +87,8 @@
 
 								</td>
 
-								<td>
+
+								<td class="align-middle">
 
 									{% for field in predisclosure_line_form.visible_fields %}
 
@@ -136,7 +144,8 @@
 
 								{% endfor %}
 
-								<th>
+
+								<th class="text-center">
 									Action
 								</th>
 
@@ -144,11 +153,13 @@
 
 						</thead>
 
+
 						<tbody>
 
 							<tr
 								v-for="(line, index) in lines"
 								:key="'disclosure-' + index"
+								style="height: 64px;"
 							>
 
 								{% for field in predisclosure_line_form.visible_fields %}
@@ -157,6 +168,7 @@
 
 										<td
 											v-if="showField('{{ field.name }}')"
+											class="align-middle"
 										>
 
 											{{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
@@ -168,7 +180,7 @@
 								{% endfor %}
 
 
-								<td class="text-center">
+								<td class="text-center align-middle">
 
 									<div class="btn-group">
 
@@ -210,6 +222,7 @@
 		</div>
 
 	</div>
+
 </div>
 ===============================
 
