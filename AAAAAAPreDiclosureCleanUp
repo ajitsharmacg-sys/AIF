@@ -1,3 +1,66 @@
+def perform_create(self, serializer):
+    line = serializer.validated_data["line"]
+    latest_status = get_latest_line_status(line)
+
+    if not can_user_approve(
+        self.request.user,
+        latest_status.status,
+    ):
+        raise PermissionDenied(
+            "You are not authorized to approve or reject this line."
+        )
+
+    instance = serializer.save(
+        meta_created_by=self.request.user,
+    )
+
+    notification = self.request.data.get("notification", "")
+
+    process_line_approval(
+        self.request,
+        instance,
+        notification,
+    )
+
+update_all_lines_status
+=============
+latest = get_latest_line_status(line)
+
+if latest.status not in FINAL_LINE_STATUSES:
+    continue
+
+set_initial_line_status
+------------------
+for line in PreDisclosureLine.objects.filter(
+    predisclosure=predisclosure
+):
+    latest = get_latest_line_status(line)
+
+    if latest.status != PreDisclosureLineStatusChoices.DRAFT:
+        continue
+
+    PreDisclosureLineStatus.objects.create(
+        line=line,
+        status=first_status,
+        meta_created_by=request.user,
+    )
+
+
+def is_stage_completed(predisclosure):
+
+    for line in PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    ):
+        latest = get_latest_line_status(line)
+
+        if latest.status not in FINAL_LINE_STATUSES:
+            return False
+
+    return True
+
+
+
+
 # predisclosure/workflows.py
 
 FINAL_LINE_STATUSES = {
