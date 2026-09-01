@@ -1,5 +1,22 @@
 app data
 
+elif config.get("textarea"):
+    field.widget = Textarea(
+        attrs={
+            **attrs,
+            "rows": 1,
+            "style": (
+                f"width:{config['width']}; "
+                "height:38px; "
+                "resize:none;"
+            ),
+            "placeholder": config.get(
+                "placeholder",
+                "",
+            ),
+        }
+    )
+
 
 
 <div class="card">
