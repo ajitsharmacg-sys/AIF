@@ -1,3 +1,5 @@
+PreDisclosureLineStatusView.perform_create
+---------------------
 def perform_create(self, serializer):
     line = serializer.validated_data["line"]
     latest_status = get_latest_line_status(line)
@@ -58,6 +60,17 @@ def is_stage_completed(predisclosure):
 
     return True
 
+finalize_workflow
+-----------------
+for line in PreDisclosureLine.objects.filter(
+    predisclosure=predisclosure
+):
+    total += 1
+
+    latest = get_latest_line_status(line)
+
+    if latest.status == PreDisclosureLineStatusChoices.REJECTED:
+        rejected += 1
 
 
 
