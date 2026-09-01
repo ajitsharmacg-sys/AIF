@@ -1,0 +1,154 @@
+<div class="card">
+
+    <!-- CARD HEADER -->
+    <div class="card-header d-flex justify-content-between align-items-center">
+
+        <strong>Account Details</strong>
+
+        <div class="d-flex gap-2">
+
+            <export-excel-button
+                title="Download Pre-Disclosure Template"
+                @click="download_line_template()">
+            </export-excel-button>
+
+        </div>
+
+    </div>
+
+
+    <!-- CARD BODY -->
+    <div class="card-body p-2">
+
+        <form
+            id="predisclosure_line_form"
+            @submit.prevent=""
+        >
+
+            <!-- SINGLE TABLE -->
+            <div class="table-responsive predisclosure-table-wrapper">
+
+                <table
+                    class="table table-bordered table-sm align-middle mb-0 predisclosure-line-table"
+                >
+
+                    <!-- TABLE HEADER -->
+                    <thead>
+
+                        <tr>
+
+                            <!-- ROW NUMBER -->
+                            <th class="text-center column-index">
+                                #
+                            </th>
+
+
+                            <!-- DYNAMIC FORM FIELDS -->
+                            {% for field in predisclosure_line_form.visible_fields %}
+
+                                <th
+                                    v-if="showField('{{ field.name }}')"
+                                    class="
+                                        {% if field.name == 'account_name' %}
+                                            column-account-name
+                                        {% elif field.name == 'website' %}
+                                            column-website
+                                        {% endif %}
+                                    "
+                                >
+
+                                    {{ field.label }}
+
+                                </th>
+
+                            {% endfor %}
+
+
+                            <!-- ACTION -->
+                            <th class="text-center column-action">
+                                Action
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <!-- TABLE BODY -->
+                    <tbody>
+
+                        <tr
+                            v-for="(line, index) in lines"
+                            :key="line.id || index"
+                        >
+
+                            <!-- ROW NUMBER -->
+                            <td class="text-center align-middle">
+
+                                [[ index + 1 ]]
+
+                            </td>
+
+
+                            <!-- DYNAMIC FIELDS -->
+                            {% for field in predisclosure_line_form.visible_fields %}
+
+                                <td
+                                    v-if="showField('{{ field.name }}')"
+                                    class="align-middle"
+                                >
+
+                                    {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+                                </td>
+
+                            {% endfor %}
+
+
+                            <!-- ACTION BUTTONS -->
+                            <td class="text-center align-middle">
+
+                                <div
+                                    class="btn-group"
+                                    role="group"
+                                >
+
+                                    <template-button
+                                        :size="18"
+                                        @click="copy_line(line, index)">
+                                    </template-button>
+
+
+                                    <delete-button
+                                        :size="18"
+                                        @delete-confirm="delete_line(line)">
+                                    </delete-button>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </form>
+
+
+        <!-- ADD BUTTON -->
+        <div class="mt-2">
+
+            <add-button
+                :size="18"
+                @click="add_line()">
+            </add-button>
+
+        </div>
+
+    </div>
+
+</div>
