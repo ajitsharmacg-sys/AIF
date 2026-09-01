@@ -1,3 +1,273 @@
+app data
+------
+account_fields: [
+    "account_name",
+    "website",
+],
+
+common_fields: [
+    "nda_confirmed",
+    "disclosure_format",
+    "reason_for_disclosure",
+    "meeting_date",
+    "meeting_location",
+    "canon_responsible_person",
+    "individuals_being_disclosed_to",
+    "information_to_be_disclosed",
+],
+
+
+form_fields() {
+    const disclosure_type =
+        String(
+            this.selected_predisclosure?.predisclosure_type ?? ""
+        )
+        .trim()
+        .toUpperCase();
+
+    const fields = [
+        ...this.common_fields
+    ];
+
+    if (disclosure_type === "PARTNER") {
+        fields.push(
+            ...this.partner_fields
+        );
+    }
+
+    if (disclosure_type === "END_CUSTOMER") {
+        fields.push(
+            ...this.end_customer_fields
+        );
+    }
+
+    return fields;
+},
+
+
+----------------------
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+
+        <strong>Account Details</strong>
+
+        <div class="d-flex gap-2">
+            <export-excel-button
+                title="Download Pre-Disclosure Template"
+                @click="download_line_template()">
+            </export-excel-button>
+        </div>
+
+    </div>
+
+    <div class="card-body p-2">
+
+        <form
+            id="predisclosure_line_form"
+            @submit.prevent=""
+        >
+
+            <div class="d-flex">
+
+                <!-- ACCOUNT DETAILS -->
+                <div class="flex-shrink-0">
+
+                    <div class="border rounded">
+
+                        <div class="px-2 py-2 border-bottom fw-bold">
+                            Account Details
+                        </div>
+
+                        <table
+                            class="table table-bordered table-sm align-middle mb-0"
+                        >
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>#</th>
+
+                                    <th>
+                                        Account Name
+                                    </th>
+
+                                    <th>
+                                        Website Name
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody>
+
+                                <tr
+                                    v-for="(line, index) in lines"
+                                    :key="'account-' + index"
+                                >
+
+                                    <td>
+                                        [[ index + 1 ]]
+                                    </td>
+
+                                    <td>
+
+                                        {% for field in predisclosure_line_form.visible_fields %}
+
+                                            {% if field.name == "account_name" %}
+
+                                                {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+                                            {% endif %}
+
+                                        {% endfor %}
+
+                                    </td>
+
+                                    <td>
+
+                                        {% for field in predisclosure_line_form.visible_fields %}
+
+                                            {% if field.name == "website" %}
+
+                                                {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+                                            {% endif %}
+
+                                        {% endfor %}
+
+                                    </td>
+
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+
+                <!-- DISCLOSURE DETAILS -->
+                <div class="flex-grow-1 ms-2 overflow-auto">
+
+                    <div class="border rounded">
+
+                        <div class="px-2 py-2 border-bottom fw-bold">
+                            Disclosure Details
+                        </div>
+
+                        <table
+                            class="table table-bordered table-sm align-middle mb-0"
+                        >
+
+                            <thead>
+
+                                <tr>
+
+                                    {% for field in predisclosure_line_form.visible_fields %}
+
+                                        {% if field.name != "account_name" and field.name != "website" %}
+
+                                            <th
+                                                v-if="showField('{{ field.name }}')"
+                                            >
+                                                {{ field.label }}
+                                            </th>
+
+                                        {% endif %}
+
+                                    {% endfor %}
+
+                                    <th>
+                                        Action
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody>
+
+                                <tr
+                                    v-for="(line, index) in lines"
+                                    :key="'disclosure-' + index"
+                                >
+
+                                    {% for field in predisclosure_line_form.visible_fields %}
+
+                                        {% if field.name != "account_name" and field.name != "website" %}
+
+                                            <td
+                                                v-if="showField('{{ field.name }}')"
+                                            >
+
+                                                {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+                                            </td>
+
+                                        {% endif %}
+
+                                    {% endfor %}
+
+
+                                    <td>
+
+                                        <div class="btn-group">
+
+                                            <template-button
+                                                :size="18"
+                                                @click="copy_line(line, index)">
+                                            </template-button>
+
+                                            <delete-button
+                                                :size="18"
+                                                @delete-confirm="delete_line(line)">
+                                            </delete-button>
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </form>
+
+
+        <!-- ADD BUTTON -->
+
+        <div class="mt-2">
+
+            <add-button
+                :size="18"
+                @click="add_line()">
+            </add-button>
+
+        </div>
+
+    </div>
+
+</div>
+-----------------------------------
+
+
+
+
+
+
+==================================
 from common.forms import (
     EnhancedModelForm,
     DatalistSelectPredefinedWidget,
