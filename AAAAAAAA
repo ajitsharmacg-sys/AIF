@@ -1,3 +1,110 @@
+<th class="sticky-col sticky-index">
+    #
+</th>
+
+{% for field in predisclosure_line_form.visible_fields %}
+
+    <th
+        v-if="showField('{{ field.name }}')"
+        {% if field.name == "account_name" %}
+            class="sticky-col sticky-account"
+        {% elif field.name == "website" %}
+            class="sticky-col sticky-website"
+        {% endif %}
+    >
+
+        {{ field.label }}
+
+    </th>
+
+{% endfor %}
+
+
+<td class="sticky-col sticky-index align-middle text-center">
+
+    [[ index + 1 ]]
+
+</td>
+
+
+<td
+    v-if="showField('{{ field.name }}')"
+    class="align-middle
+    {% if field.name == 'account_name' %}
+        sticky-col sticky-account
+    {% elif field.name == 'website' %}
+        sticky-col sticky-website
+    {% endif %}"
+>
+
+
+.table-responsive {
+    position: relative;
+    overflow-x: auto;
+}
+
+.table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+/* Common sticky column */
+
+.sticky-col {
+    position: sticky;
+    background: var(--bs-body-bg, #fff);
+    z-index: 2;
+}
+
+
+/* Header should stay above body */
+
+thead .sticky-col {
+    z-index: 5;
+}
+
+
+/* Index */
+
+.sticky-index {
+    left: 0;
+    min-width: 45px;
+}
+
+
+/* Account Name */
+
+.sticky-account {
+    left: 45px;
+    min-width: 320px;
+}
+
+
+/* Website Name */
+
+.sticky-website {
+    left: 365px;
+    min-width: 280px;
+}
+
+
+/* Shadow separator after sticky columns */
+
+.sticky-website {
+    box-shadow: 3px 0 4px rgba(0, 0, 0, 0.08);
+}
+
+
+
+
+
+
+
+
+
+----------------------------------------------------------
+
+
 <div class="card">
 
 	<div class="card-header d-flex justify-content-between align-items-center">
