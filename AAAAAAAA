@@ -1,3 +1,100 @@
+/* ========================================
+   PREDISCLOSURE TABLE
+======================================== */
+
+.predisclosure-table-wrapper {
+    overflow-x: auto;
+    position: relative;
+}
+
+
+/* Important for sticky columns */
+
+.predisclosure-table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    width: max-content;
+    min-width: 100%;
+}
+
+
+/* ========================================
+   STICKY COMMON
+======================================== */
+
+.predisclosure-table .sticky-col {
+    position: sticky;
+    background-color: var(--bs-body-bg, #fff);
+    z-index: 2;
+}
+
+
+/* Header above body */
+
+.predisclosure-table thead .sticky-col {
+    z-index: 10;
+}
+
+
+/* ========================================
+   COLUMN 1 - INDEX
+======================================== */
+
+.predisclosure-table .sticky-index {
+    left: 0;
+    width: 70px;
+    min-width: 70px;
+    max-width: 70px;
+}
+
+
+/* ========================================
+   COLUMN 2 - ACCOUNT NAME
+======================================== */
+
+.predisclosure-table .sticky-account {
+    left: 70px;
+    width: 380px;
+    min-width: 380px;
+    max-width: 380px;
+}
+
+
+/* ========================================
+   COLUMN 3 - WEBSITE
+======================================== */
+
+.predisclosure-table .sticky-website {
+    left: 450px; /* 70 + 380 */
+
+    width: 280px;
+    min-width: 280px;
+    max-width: 280px;
+
+    box-shadow: 4px 0 5px rgba(0, 0, 0, 0.08);
+}
+
+
+/* ========================================
+   KEEP INPUT WIDTH INSIDE CELL
+======================================== */
+
+.predisclosure-table td,
+.predisclosure-table th {
+    white-space: normal;
+    box-sizing: border-box;
+}
+
+
+/* Optional better alignment */
+
+.predisclosure-table tbody td {
+    vertical-align: middle;
+}
+
+
+
+
 <th class="sticky-col sticky-index">
     #
 </th>
