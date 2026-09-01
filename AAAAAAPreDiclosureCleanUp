@@ -25,9 +25,10 @@
 
 			<div class="d-flex align-items-start gap-2">
 
+
 				<!-- ACCOUNT DETAILS -->
 				<div
-					class="flex-shrink-0 border rounded overflow-auto"
+					class="flex-shrink-0 border rounded"
 					style="width: 38%;"
 				>
 
@@ -35,174 +36,230 @@
 						Account Details
 					</div>
 
-					<table
-						class="table table-bordered table-sm align-middle mb-0"
-					>
+					<div class="overflow-auto">
 
-						<thead>
+						<table
+							class="table table-bordered table-sm align-middle mb-0"
+							style="border-collapse: collapse;"
+						>
 
-							<tr>
+							<thead>
 
-								<th class="text-center">
-									#
-								</th>
+								<tr>
 
-								<th>
-									Account Name
-								</th>
+									<th
+										class="text-center"
+										style="
+											padding: 6px;
+											vertical-align: middle;
+										"
+									>
+										#
+									</th>
 
-								<th>
-									Website Name
-								</th>
+									<th
+										style="
+											padding: 6px;
+											vertical-align: middle;
+										"
+									>
+										Account Name
+									</th>
 
-							</tr>
+									<th
+										style="
+											padding: 6px;
+											vertical-align: middle;
+										"
+									>
+										Website Name
+									</th>
 
-						</thead>
+								</tr>
 
-
-						<tbody>
-
-							<tr
-								v-for="(line, index) in lines"
-								:key="'account-' + index"
-								style="height: 64px;"
-							>
-
-								<td class="text-center align-middle">
-									[[ index + 1 ]]
-								</td>
-
-
-								<td class="align-middle">
-
-									{% for field in predisclosure_line_form.visible_fields %}
-
-										{% if field.name == "account_name" %}
-
-											{{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
-
-										{% endif %}
-
-									{% endfor %}
-
-								</td>
+							</thead>
 
 
-								<td class="align-middle">
+							<tbody>
 
-									{% for field in predisclosure_line_form.visible_fields %}
+								<tr
+									v-for="(line, index) in lines"
+									:key="'account-' + index"
+								>
 
-										{% if field.name == "website" %}
+									<td
+										class="text-center align-middle"
+										style="padding: 4px 6px;"
+									>
+										[[ index + 1 ]]
+									</td>
 
-											{{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
 
-										{% endif %}
+									<td
+										class="align-middle"
+										style="padding: 4px 6px;"
+									>
 
-									{% endfor %}
+										{% for field in predisclosure_line_form.visible_fields %}
 
-								</td>
+											{% if field.name == "account_name" %}
 
-							</tr>
+												{{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
 
-						</tbody>
+											{% endif %}
 
-					</table>
+										{% endfor %}
+
+									</td>
+
+
+									<td
+										class="align-middle"
+										style="padding: 4px 6px;"
+									>
+
+										{% for field in predisclosure_line_form.visible_fields %}
+
+											{% if field.name == "website" %}
+
+												{{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+											{% endif %}
+
+										{% endfor %}
+
+									</td>
+
+								</tr>
+
+							</tbody>
+
+						</table>
+
+					</div>
 
 				</div>
 
 
 				<!-- DISCLOSURE DETAILS -->
 				<div
-					class="flex-grow-1 border rounded overflow-auto"
+					class="flex-grow-1 border rounded"
+					style="min-width: 0;"
 				>
 
 					<div class="px-2 py-2 border-bottom fw-bold">
 						Disclosure Details
 					</div>
 
-					<table
-						class="table table-bordered table-sm align-middle mb-0"
-					>
+					<div class="overflow-auto">
 
-						<thead>
+						<table
+							class="table table-bordered table-sm align-middle mb-0"
+							style="border-collapse: collapse;"
+						>
 
-							<tr>
+							<thead>
 
-								{% for field in predisclosure_line_form.visible_fields %}
+								<tr>
 
-									{% if field.name != "account_name" and field.name != "website" %}
+									{% for field in predisclosure_line_form.visible_fields %}
 
-										<th
-											v-if="showField('{{ field.name }}')"
-										>
+										{% if field.name != "account_name" and field.name != "website" %}
 
-											{{ field.label }}
+											<th
+												v-if="showField('{{ field.name }}')"
+												style="
+													padding: 6px;
+													vertical-align: middle;
+													white-space: nowrap;
+												"
+											>
 
-										</th>
+												{{ field.label }}
 
-									{% endif %}
+											</th>
 
-								{% endfor %}
+										{% endif %}
 
-
-								<th class="text-center">
-									Action
-								</th>
-
-							</tr>
-
-						</thead>
-
-
-						<tbody>
-
-							<tr
-								v-for="(line, index) in lines"
-								:key="'disclosure-' + index"
-								style="height: 64px;"
-							>
-
-								{% for field in predisclosure_line_form.visible_fields %}
-
-									{% if field.name != "account_name" and field.name != "website" %}
-
-										<td
-											v-if="showField('{{ field.name }}')"
-											class="align-middle"
-										>
-
-											{{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
-
-										</td>
-
-									{% endif %}
-
-								{% endfor %}
+									{% endfor %}
 
 
-								<td class="text-center align-middle">
+									<th
+										class="text-center"
+										style="
+											padding: 6px;
+											vertical-align: middle;
+											white-space: nowrap;
+										"
+									>
+										Action
+									</th>
 
-									<div class="btn-group">
+								</tr>
 
-										<template-button
-											:size="18"
-											@click="copy_line(line, index)">
-										</template-button>
+							</thead>
 
-										<delete-button
-											:size="18"
-											@delete-confirm="delete_line(line)">
-										</delete-button>
 
-									</div>
+							<tbody>
 
-								</td>
+								<tr
+									v-for="(line, index) in lines"
+									:key="'disclosure-' + index"
+								>
 
-							</tr>
+									{% for field in predisclosure_line_form.visible_fields %}
 
-						</tbody>
+										{% if field.name != "account_name" and field.name != "website" %}
 
-					</table>
+											<td
+												v-if="showField('{{ field.name }}')"
+												class="align-middle"
+												style="
+													padding: 4px 6px;
+													vertical-align: middle;
+												"
+											>
+
+												{{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+											</td>
+
+										{% endif %}
+
+									{% endfor %}
+
+
+									<td
+										class="text-center align-middle"
+										style="
+											padding: 4px 6px;
+											vertical-align: middle;
+										"
+									>
+
+										<div class="btn-group">
+
+											<template-button
+												:size="18"
+												@click="copy_line(line, index)">
+											</template-button>
+
+											<delete-button
+												:size="18"
+												@delete-confirm="delete_line(line)">
+											</delete-button>
+
+										</div>
+
+									</td>
+
+								</tr>
+
+							</tbody>
+
+						</table>
+
+					</div>
 
 				</div>
 
