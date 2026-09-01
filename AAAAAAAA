@@ -1,10 +1,13 @@
 <div class="card">
 
-    <!-- CARD HEADER -->
+    <!-- MAIN HEADER -->
 
     <div class="card-header d-flex justify-content-between align-items-center">
 
-        <strong>Account Details</strong>
+        <strong>
+            Account Details
+        </strong>
+
 
         <div class="d-flex gap-2">
 
@@ -17,8 +20,6 @@
 
     </div>
 
-
-    <!-- CARD BODY -->
 
     <div class="card-body p-2">
 
@@ -55,6 +56,7 @@
                             @click="copy_line(line, index)">
                         </template-button>
 
+
                         <delete-button
                             :size="18"
                             @delete-confirm="delete_line(line)">
@@ -65,41 +67,97 @@
                 </div>
 
 
-                <!-- ACCOUNT FIELDS -->
+                <!-- ACCOUNT BODY -->
 
                 <div class="card-body p-3">
 
+
+                    <!-- =====================================
+                         NORMAL FIELDS
+                         6 FIELDS PER ROW
+                    ====================================== -->
+
                     <div
-                        class="row
-                               row-cols-1
-                               row-cols-sm-2
-                               row-cols-md-3
-                               row-cols-lg-4
-                               row-cols-xl-5
-                               g-3"
+                        class="
+                            row
+                            row-cols-1
+                            row-cols-sm-2
+                            row-cols-md-3
+                            row-cols-lg-4
+                            row-cols-xl-6
+                            g-2
+                            mb-3
+                        "
                     >
 
                         {% for field in predisclosure_line_form.visible_fields %}
 
-                            <div
-                                v-if="showField('{{ field.name }}')"
-                                class="col"
-                            >
+                            {% if field.field.widget.template_name != "django/forms/widgets/textarea.html" %}
 
-                                <label class="form-label small mb-1">
+                                <div
+                                    v-if="showField('{{ field.name }}')"
+                                    class="col"
+                                >
 
-                                    {{ field.label }}
+                                    <label class="form-label small mb-1">
 
-                                </label>
+                                        {{ field.label }}
+
+                                    </label>
 
 
-                                {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+                                    {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
 
-                            </div>
+                                </div>
+
+                            {% endif %}
 
                         {% endfor %}
 
                     </div>
+
+
+                    <!-- =====================================
+                         TEXTAREA FIELDS
+                         SEPARATE ROW
+                    ====================================== -->
+
+                    <div
+                        class="
+                            row
+                            row-cols-1
+                            row-cols-md-2
+                            row-cols-lg-3
+                            g-2
+                        "
+                    >
+
+                        {% for field in predisclosure_line_form.visible_fields %}
+
+                            {% if field.field.widget.template_name == "django/forms/widgets/textarea.html" %}
+
+                                <div
+                                    v-if="showField('{{ field.name }}')"
+                                    class="col"
+                                >
+
+                                    <label class="form-label small mb-1">
+
+                                        {{ field.label }}
+
+                                    </label>
+
+
+                                    {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+                                </div>
+
+                            {% endif %}
+
+                        {% endfor %}
+
+                    </div>
+
 
                 </div>
 
@@ -108,7 +166,7 @@
         </form>
 
 
-        <!-- ADD ACCOUNT BUTTON -->
+        <!-- ADD ACCOUNT -->
 
         <div class="mt-2">
 
