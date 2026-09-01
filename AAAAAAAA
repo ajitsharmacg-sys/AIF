@@ -1,102 +1,173 @@
-<div class="card-body p-2">
+<div class="card">
 
-    <div class="table-responsive predisclosure-table-wrapper">
+    <div class="card-header d-flex justify-content-between align-items-center">
+
+        <strong>Account Details</strong>
+
+        <div class="d-flex gap-2">
+
+            <export-excel-button
+                title="Download Pre-Disclosure Template"
+                @click="download_line_template()">
+            </export-excel-button>
+
+        </div>
+
+    </div>
+
+
+    <div class="card-body p-2">
 
         <form
             id="predisclosure_line_form"
             @submit.prevent=""
         >
 
-            <table class="table table-sm table-bordered mb-0 predisclosure-table">
+            <!-- ACCOUNT CARDS -->
 
-                <thead>
-
-    <tr>
-
-        <th class="sticky-col sticky-index">
-            #
-        </th>
-
-
-        {% for field in predisclosure_line_form.visible_fields %}
-
-            <th
-                v-if="showField('{{ field.name }}')"
-
-                {% if field.name == "account_name" %}
-                    class="sticky-col sticky-account"
-                {% elif field.name == "website" %}
-                    class="sticky-col sticky-website"
-                {% endif %}
+            <div
+                v-for="(line, index) in lines"
+                :key="'line-' + index"
+                class="card mb-3"
             >
 
-                {{ field.label }}
+                <!-- ACCOUNT HEADER -->
 
-            </th>
+                <div
+                    class="card-header py-2 d-flex justify-content-between align-items-center"
+                >
 
-        {% endfor %}
-
-
-        <th>
-            Actions
-        </th>
-
-    </tr>
-
-</thead>
+                    <strong>
+                        Account #[[ index + 1 ]]
+                    </strong>
 
 
-                <tbody>
+                    <div class="btn-group">
 
-                    <tr
-                        v-for="(line, index) in lines"
-                        :key="'predisclosure-line-' + index"
-                    >
+                        <template-button
+                            :size="18"
+                            @click="copy_line(line, index)">
+                        </template-button>
 
-                        <td class="sticky-col sticky-index text-center align-middle">
-                            [[ index + 1 ]]
-                        </td>
+                        <delete-button
+                            :size="18"
+                            @delete-confirm="delete_line(line)">
+                        </delete-button>
+
+                    </div>
+
+                </div>
+
+
+                <div class="card-body">
+
+                    <!-- =========================
+                         ROW 1
+                    ========================== -->
+
+                    <div class="row g-2 mb-3">
 
                         {% for field in predisclosure_line_form.visible_fields %}
 
-                            <td
-                                v-if="showField('{{ field.name }}')"
-                                class="align-middle {% if field.name == 'account_name' %}sticky-col sticky-account{% elif field.name == 'website' %}sticky-col sticky-website{% endif %}"
-                            >
+                            {% if forloop.counter <= 6 %}
 
-                                {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+                                <div
+                                    v-if="showField('{{ field.name }}')"
+                                    class="col-md-4"
+                                >
 
-                            </td>
+                                    <label class="form-label small mb-1">
+
+                                        {{ field.label }}
+
+                                    </label>
+
+
+                                    {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+                                </div>
+
+                            {% endif %}
 
                         {% endfor %}
 
-                        <td class="align-middle text-center">
+                    </div>
 
-                            <div class="btn-group">
 
-                                <template-button
-                                    :size="18"
-                                    @click="copy_line(line, index)">
-                                </template-button>
+                    <!-- =========================
+                         ROW 2
+                    ========================== -->
 
-                                <delete-button
-                                    :size="18"
-                                    @delete-confirm="delete_line(line)">
-                                </delete-button>
+                    <div class="row g-2 mb-3">
 
-                            </div>
+                        {% for field in predisclosure_line_form.visible_fields %}
 
-                        </td>
+                            {% if forloop.counter > 6 and forloop.counter <= 12 %}
 
-                    </tr>
+                                <div
+                                    v-if="showField('{{ field.name }}')"
+                                    class="col-md-4"
+                                >
 
-                </tbody>
+                                    <label class="form-label small mb-1">
 
-            </table>
+                                        {{ field.label }}
+
+                                    </label>
+
+
+                                    {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+                                </div>
+
+                            {% endif %}
+
+                        {% endfor %}
+
+                    </div>
+
+
+                    <!-- =========================
+                         ROW 3
+                    ========================== -->
+
+                    <div class="row g-2">
+
+                        {% for field in predisclosure_line_form.visible_fields %}
+
+                            {% if forloop.counter > 12 %}
+
+                                <div
+                                    v-if="showField('{{ field.name }}')"
+                                    class="col-md-4"
+                                >
+
+                                    <label class="form-label small mb-1">
+
+                                        {{ field.label }}
+
+                                    </label>
+
+
+                                    {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+                                </div>
+
+                            {% endif %}
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+            </div>
 
         </form>
 
+
         <!-- ADD BUTTON -->
+
         <div class="mt-2">
 
             <add-button
@@ -107,473 +178,5 @@
         </div>
 
     </div>
-
-</div>
-
-
-
-
-
-
-
-<tbody>
-
-    <tr
-        v-for="(line, index) in lines"
-        :key="'predisclosure-line-' + index"
-    >
-
-        <!-- INDEX -->
-
-        <td class="sticky-col sticky-index text-center align-middle">
-
-            [[ index + 1 ]]
-
-        </td>
-
-
-        <!-- FIELDS -->
-
-        {% for field in predisclosure_line_form.visible_fields %}
-
-            <td
-                v-if="showField('{{ field.name }}')"
-
-                class="
-                    align-middle
-
-                    {% if field.name == 'account_name' %}
-                        sticky-col sticky-account
-                    {% elif field.name == 'website' %}
-                        sticky-col sticky-website
-                    {% endif %}
-                "
-            >
-
-                {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
-
-            </td>
-
-        {% endfor %}
-
-
-        <!-- ACTION -->
-
-        <td class="align-middle text-center">
-
-            <div class="btn-group">
-
-                <template-button
-                    :size="18"
-                    @click="copy_line(line, index)">
-                </template-button>
-
-                <delete-button
-                    :size="18"
-                    @delete-confirm="delete_line(line)">
-                </delete-button>
-
-            </div>
-
-        </td>
-
-    </tr>
-
-</tbody>
-
-
-<thead>
-
-    <tr>
-
-        <th class="sticky-col sticky-index">
-            #
-        </th>
-
-
-        {% for field in predisclosure_line_form.visible_fields %}
-
-            <th
-                v-if="showField('{{ field.name }}')"
-
-                {% if field.name == "account_name" %}
-                    class="sticky-col sticky-account"
-                {% elif field.name == "website" %}
-                    class="sticky-col sticky-website"
-                {% endif %}
-            >
-
-                {{ field.label }}
-
-            </th>
-
-        {% endfor %}
-
-
-        <th>
-            Actions
-        </th>
-
-    </tr>
-
-</thead>
-
-
-<div class="table-responsive predisclosure-table-wrapper">
-
-    <form
-        id="predisclosure_line_form"
-        @submit.prevent=""
-    >
-
-        <table class="table table-sm table-bordered mb-0 predisclosure-table">
-
-
-
-/* ========================================
-   PREDISCLOSURE TABLE
-======================================== */
-
-.predisclosure-table-wrapper {
-    overflow-x: auto;
-    position: relative;
-}
-
-
-/* Important for sticky columns */
-
-.predisclosure-table {
-    border-collapse: separate !important;
-    border-spacing: 0 !important;
-    width: max-content;
-    min-width: 100%;
-}
-
-
-/* ========================================
-   STICKY COMMON
-======================================== */
-
-.predisclosure-table .sticky-col {
-    position: sticky;
-    background-color: var(--bs-body-bg, #fff);
-    z-index: 2;
-}
-
-
-/* Header above body */
-
-.predisclosure-table thead .sticky-col {
-    z-index: 10;
-}
-
-
-/* ========================================
-   COLUMN 1 - INDEX
-======================================== */
-
-.predisclosure-table .sticky-index {
-    left: 0;
-    width: 70px;
-    min-width: 70px;
-    max-width: 70px;
-}
-
-
-/* ========================================
-   COLUMN 2 - ACCOUNT NAME
-======================================== */
-
-.predisclosure-table .sticky-account {
-    left: 70px;
-    width: 380px;
-    min-width: 380px;
-    max-width: 380px;
-}
-
-
-/* ========================================
-   COLUMN 3 - WEBSITE
-======================================== */
-
-.predisclosure-table .sticky-website {
-    left: 450px; /* 70 + 380 */
-
-    width: 280px;
-    min-width: 280px;
-    max-width: 280px;
-
-    box-shadow: 4px 0 5px rgba(0, 0, 0, 0.08);
-}
-
-
-/* ========================================
-   KEEP INPUT WIDTH INSIDE CELL
-======================================== */
-
-.predisclosure-table td,
-.predisclosure-table th {
-    white-space: normal;
-    box-sizing: border-box;
-}
-
-
-/* Optional better alignment */
-
-.predisclosure-table tbody td {
-    vertical-align: middle;
-}
-
-
-
-
-<th class="sticky-col sticky-index">
-    #
-</th>
-
-{% for field in predisclosure_line_form.visible_fields %}
-
-    <th
-        v-if="showField('{{ field.name }}')"
-        {% if field.name == "account_name" %}
-            class="sticky-col sticky-account"
-        {% elif field.name == "website" %}
-            class="sticky-col sticky-website"
-        {% endif %}
-    >
-
-        {{ field.label }}
-
-    </th>
-
-{% endfor %}
-
-
-<td class="sticky-col sticky-index align-middle text-center">
-
-    [[ index + 1 ]]
-
-</td>
-
-
-<td
-    v-if="showField('{{ field.name }}')"
-    class="align-middle
-    {% if field.name == 'account_name' %}
-        sticky-col sticky-account
-    {% elif field.name == 'website' %}
-        sticky-col sticky-website
-    {% endif %}"
->
-
-
-.table-responsive {
-    position: relative;
-    overflow-x: auto;
-}
-
-.table {
-    border-collapse: separate;
-    border-spacing: 0;
-}
-
-/* Common sticky column */
-
-.sticky-col {
-    position: sticky;
-    background: var(--bs-body-bg, #fff);
-    z-index: 2;
-}
-
-
-/* Header should stay above body */
-
-thead .sticky-col {
-    z-index: 5;
-}
-
-
-/* Index */
-
-.sticky-index {
-    left: 0;
-    min-width: 45px;
-}
-
-
-/* Account Name */
-
-.sticky-account {
-    left: 45px;
-    min-width: 320px;
-}
-
-
-/* Website Name */
-
-.sticky-website {
-    left: 365px;
-    min-width: 280px;
-}
-
-
-/* Shadow separator after sticky columns */
-
-.sticky-website {
-    box-shadow: 3px 0 4px rgba(0, 0, 0, 0.08);
-}
-
-
-
-
-
-
-
-
-
-----------------------------------------------------------
-
-
-<div class="card">
-
-	<div class="card-header d-flex justify-content-between align-items-center">
-
-		<strong>Account Details</strong>
-
-		<div class="d-flex gap-2">
-
-			<export-excel-button
-				title="Download Pre-Disclosure Template"
-				@click="download_line_template()">
-			</export-excel-button>
-
-		</div>
-
-	</div>
-
-
-	<div class="card-body p-2">
-
-		<div class="table-responsive">
-
-			<form
-				id="predisclosure_line_form"
-				@submit.prevent=""
-			>
-
-				<table class="table table-sm table-bordered mb-0">
-
-					<thead>
-
-						<tr class="align-top">
-
-							<th>
-								#
-							</th>
-
-
-							{% for field in predisclosure_line_form.visible_fields %}
-
-								<th
-									v-if="showField('{{ field.name }}')"
-								>
-
-									{{ field.label }}
-
-								</th>
-
-							{% endfor %}
-
-
-							<th>
-								Actions
-							</th>
-
-						</tr>
-
-					</thead>
-
-
-					<tbody>
-
-						<template
-							v-for="(line, index) in lines"
-							:key="'predisclosure-line-' + index"
-						>
-
-							<tr>
-
-								<td class="align-middle text-center">
-
-									[[ index + 1 ]]
-
-								</td>
-
-
-								{% for field in predisclosure_line_form.visible_fields %}
-
-									<td
-										v-if="showField('{{ field.name }}')"
-										class="align-middle"
-									>
-
-										{{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
-
-									</td>
-
-								{% endfor %}
-
-
-								<td class="align-middle">
-
-									<div
-										class="btn-group"
-										role="group"
-									>
-
-										<template-button
-											:size="18"
-											@click="copy_line(line, index)">
-										</template-button>
-
-
-										<delete-button
-											:size="18"
-											@delete-confirm="delete_line(line)">
-										</delete-button>
-
-									</div>
-
-								</td>
-
-							</tr>
-
-						</template>
-
-
-						<!-- ADD BUTTON ROW -->
-
-						<tr>
-
-							<td>
-
-								<add-button
-									:size="18"
-									@click="add_line()">
-								</add-button>
-
-							</td>
-
-						</tr>
-
-					</tbody>
-
-				</table>
-
-			</form>
-
-		</div>
-
-	</div>
 
 </div>
