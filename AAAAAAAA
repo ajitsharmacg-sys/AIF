@@ -1,21 +1,15 @@
 <div class="card">
 
-    <!-- MAIN HEADER -->
-
     <div class="card-header d-flex justify-content-between align-items-center">
 
         <strong>
             Account Details
         </strong>
 
-        <div class="d-flex gap-2">
-
-            <export-excel-button
-                title="Download Pre-Disclosure Template"
-                @click="download_line_template()">
-            </export-excel-button>
-
-        </div>
+        <export-excel-button
+            title="Download Pre-Disclosure Template"
+            @click="download_line_template()">
+        </export-excel-button>
 
     </div>
 
@@ -27,25 +21,19 @@
             @submit.prevent=""
         >
 
-            <!-- ACCOUNT CARDS -->
-
             <div
                 v-for="(line, index) in lines"
                 :key="'line-' + index"
                 class="card mb-3"
             >
 
-
                 <!-- ACCOUNT HEADER -->
 
-                <div
-                    class="card-header py-2 d-flex justify-content-between align-items-center"
-                >
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
 
                     <strong>
                         Account #[[ index + 1 ]]
                     </strong>
-
 
                     <div class="btn-group">
 
@@ -53,7 +41,6 @@
                             :size="18"
                             @click="copy_line(line, index)">
                         </template-button>
-
 
                         <delete-button
                             :size="18"
@@ -65,74 +52,177 @@
                 </div>
 
 
-                <!-- ACCOUNT BODY -->
-
-                <div class="card-body py-3">
-
-                    <!--
-                        6 COLUMN RESPONSIVE GRID
-
-                        Normal fields = 1 column
-                        Textarea fields = 2 columns
-                    -->
-
-                    <div class="row g-3">
+                <div class="card-body p-3">
 
 
-                        {% for field in predisclosure_line_form.visible_fields %}
+                    <!-- =========================
+                         ROW 1 - MAIN DETAILS
+                    ========================== -->
+
+                    <div class="row g-2 mb-3">
+
+                        <div class="col-md-2">
+                            <label class="form-label small mb-1">
+                                Account Name
+                            </label>
+
+                            <!-- account_name field -->
+                        </div>
 
 
-                            {% if field.field.widget.template_name == "django/forms/widgets/textarea.html" %}
+                        <div class="col-md-2">
+                            <label class="form-label small mb-1">
+                                Website Name
+                            </label>
+
+                            <!-- website field -->
+                        </div>
 
 
-                                <!-- TEXTAREA FIELD : SPANS 2 COLUMNS -->
+                        <div class="col-md-2">
+                            <label class="form-label small mb-1">
+                                Is NDA Confirmed
+                            </label>
 
-                                <div
-                                    v-if="showField('{{ field.name }}')"
-                                    class="col-12 col-md-6 col-xl-4"
-                                >
-
-                                    <label class="form-label small mb-1">
-
-                                        {{ field.label }}
-
-                                    </label>
+                            <!-- is_nda_confirmed field -->
+                        </div>
 
 
-                                    {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+                        <div class="col-md-2">
+                            <label class="form-label small mb-1">
+                                Pre Disclosure Format
+                            </label>
 
-                                </div>
-
-
-                            {% else %}
-
-
-                                <!-- NORMAL FIELD -->
-
-                                <div
-                                    v-if="showField('{{ field.name }}')"
-                                    class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2"
-                                >
-
-                                    <label class="form-label small mb-1">
-
-                                        {{ field.label }}
-
-                                    </label>
+                            <!-- pre_disclosure_format field -->
+                        </div>
 
 
-                                    {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+                        <div class="col-md-2">
+                            <label class="form-label small mb-1">
+                                Meeting Date
+                            </label>
 
-                                </div>
+                            <!-- meeting_date field -->
+                        </div>
 
 
-                            {% endif %}
+                        <div class="col-md-2">
+                            <label class="form-label small mb-1">
+                                Disclosed In Last 2 years
+                            </label>
 
-
-                        {% endfor %}
-
+                            <!-- disclosed_last_2_years field -->
+                        </div>
 
                     </div>
+
+
+                    <!-- =========================
+                         ROW 2 - BUSINESS DETAILS
+                    ========================== -->
+
+                    <div class="row g-2 mb-3">
+
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1">
+                                B2B Business Type
+                            </label>
+
+                            <!-- b2b_business_type field -->
+                        </div>
+
+
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1">
+                                Estimated Business
+                            </label>
+
+                            <!-- estimated_business field -->
+                        </div>
+
+
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1">
+                                Annual Sales
+                            </label>
+
+                            <!-- annual_sales field -->
+                        </div>
+
+
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1">
+                                SDA Partner Level
+                            </label>
+
+                            <!-- sda_partner_level field -->
+                        </div>
+
+                    </div>
+
+
+                    <!-- =========================
+                         ROW 3 - TEXTAREAS
+                    ========================== -->
+
+                    <div class="row g-2">
+
+                        <div class="col-md-4">
+
+                            <label class="form-label small mb-1">
+                                Disclosure Reason
+                            </label>
+
+                            <!-- disclosure_reason field -->
+
+                        </div>
+
+
+                        <div class="col-md-4">
+
+                            <label class="form-label small mb-1">
+                                Meeting Location
+                            </label>
+
+                            <!-- meeting_location field -->
+
+                        </div>
+
+
+                        <div class="col-md-4">
+
+                            <label class="form-label small mb-1">
+                                Canon Responsible Person
+                            </label>
+
+                            <!-- canon_responsible_person field -->
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label small mb-1">
+                                Individual Disclosure Names
+                            </label>
+
+                            <!-- individual_disclosure_names field -->
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label small mb-1">
+                                Information Disclosure
+                            </label>
+
+                            <!-- information_disclosure field -->
+
+                        </div>
+
+                    </div>
+
 
                 </div>
 
