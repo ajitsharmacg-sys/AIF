@@ -1,3 +1,1022 @@
+
+
+def fetch_open_orders(aif):
+    mercury_codes = list(
+        aif.aif_lines.values_list(
+            "mercury_code",
+            flat=True,
+        )
+    )
+
+    if not mercury_codes:
+        return None
+
+    customers = list(
+        aif.aif_customer_lines.values_list(
+            "oracle_cust_number",
+            flat=True,
+        )
+    )
+
+    mercury_placeholders = ",".join(
+        ["%s"] * len(mercury_codes)
+    )
+
+    sql = f"""
+        SELECT
+            OPERATING_NAME,
+            CAST(ORDERED_DATE AS DATE) AS ORDERED_DATE,
+            ORDER_NUMBER,
+            ORDER_LINE_NUMBER_DETAIL,
+            PARTY_NUMBER,
+            ORDERED_ITEM,
+            CAST(PRICING_DATE AS DATE) AS PRICING_DATE,
+            UNIT_LIST_PRICE,
+            UNIT_SELLING_PRICE,
+            CUST_PO_NUMBER,
+            TRANSACTIONAL_CURR_CODE
+        FROM dbo.OpenOrders_AIF
+        WHERE CAST(PRICING_DATE AS DATE) = %s
+        AND LEFT(ORDERED_ITEM, 8) IN ({mercury_placeholders})
+    """
+
+    params = [aif.start_date, *mercury_codes]
+
+    if customers:
+        customer_placeholders = ",".join(
+            ["%s"] * len(customers)
+        )
+
+        sql += (
+            f" AND PARTY_NUMBER IN "
+            f"({customer_placeholders})"
+        )
+
+        params.extend(customers)
+
+    with connections["powerbi"].cursor() as cursor:
+        cursor.execute(sql, params)
+
+        columns = [
+            column[0]
+            for column in cursor.description
+        ]
+
+        rows = cursor.fetchall()
+
+    if not rows:
+        return None
+
+    return columns, rows
+
+
+def prepare_open_orders_attachment(aif):
+    open_orders = fetch_open_orders(aif)
+
+    if not open_orders:
+        return None
+
+    columns, rows = open_orders
+
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Open Orders"
+
+    headers = [
+        column.replace("_", " ").title()
+        for column in columns
+    ]
+
+    worksheet.append(headers)
+
+    for cell in worksheet[1]:
+        cell.font = Font(bold=True)
+
+    for row in rows:
+        worksheet.append(row)
+
+    worksheet.freeze_panes = "A2"
+
+    buffer = BytesIO()
+    workbook.save(buffer)
+
+    filename = (
+        f"OpenOrders_AIF_{aif.aif_id}_"
+        f"{timezone.now():%Y%m%d_%H%M}.xlsx"
+    )
+
+    return {
+        "Name": filename,
+        "ContentBytes": base64.b64encode(
+            buffer.getvalue()
+        ).decode("utf-8"),
+    }
+
+
+
+
+
+
+
+
+
+======================================
+
+
+from django.contrib.auth.models import Group
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.pagination import PageNumberPagination
+from rest_framework import viewsets
+from rest_framework import filters
+from django.http import HttpRequest
+from common.models import Organization
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from common.email_notifications import (
+    send_email,
+    send_email_to_group,
+    send_emails,
+    send_email_with_attachments,
+)
+from aif.serializers import (
+    AifReadSerializer,
+    AifWriteSerializer,
+    AifStatusSerializer,
+    AifLineSerializer,
+    AifLinesStatusSerializer,
+    AifCustomerLineSerializer,
+    MasterPriceListSerializer,
+    AifApproverSerializer,
+    ExchangeRatesSerializer,
+    CDHCustomerSerializer,
+    NSOCurrencyOpUnitConfigSerializer,
+    OMEmailsConfigSerializer,
+)
+from aif.models import (
+    Aif,
+    AifStatus,
+    AifLines,
+    AifLineStatus,
+    AIFCustomerLines,
+    MasterPricelist,
+    AifApprover,
+    ExchangeRates,
+    CDHCustomer,
+    AifStatusChoices,
+    AifLineStatusChoices,
+    NSOCurrencyOpUnitConfig,
+    OMEmailsConfig,
+    AifSalesOpsEmail,
+)
+from aif.roles import NSO_USER, SALES_OPS_USER, PSBD_TEAM_USER
+from aif.api_permissions import IsApplicationUser
+from django.contrib.auth import get_user_model
+import base64
+from io import BytesIO
+from openpyxl import Workbook
+from openpyxl.styles import Font
+from django.utils import timezone 
+from django.db import connection,connections
+from openpyxl.utils import get_column_letter
+from aif.email_templates import (
+    get_aif_email_body,
+    get_aif_email_subject,
+    build_om_email_body,
+    get_om_email_subject,
+    get_aif_cc,
+)
+
+from aif.workflow import (
+    is_valid_aif_transition,
+    is_valid_line_transition,
+    is_role_allowed_for_aif_status,
+    is_role_allowed_for_line_status,
+)
+
+
+UserModel = get_user_model()
+
+
+PROMOTION_CATEGORY_TO_RESPONSIBILITY = {
+    "Product Support": "PSBD",
+    "Tender": "Tender",
+}
+
+
+class StandardPagination(PageNumberPagination):
+    page_size = 8
+    page_size_query_param = "page_size"
+    max_page_size = 25
+
+def get_user_roles(user):
+    return set(
+        user.groups.values_list(
+            "name",
+            flat=True,
+        )
+    )
+
+def get_conflicting_aif_ids(aif):
+    base_sql = """
+        SELECT
+            a.aif_id,
+            a.start_date,
+            a.end_date,
+            l.mercury_code,
+            l.promotional_elp,
+            {customer_column}
+        FROM aif_aif a
+        INNER JOIN aif_aiflines l ON l.aif_id = a.aif_id
+
+        INNER JOIN aif_aiflines current_l
+            ON current_l.aif_id = %s
+            AND current_l.mercury_code = l.mercury_code
+
+        {customer_join}
+
+        WHERE
+            a.aif_id != %s
+            AND a.nso = %s
+            AND a.end_date >= %s
+            AND (
+                SELECT TOP 1 status
+                FROM aif_aifstatus s
+                WHERE s.aif_id = a.aif_id
+                ORDER BY s.id DESC
+            ) != %s
+            {extra_condition}
+    """
+
+    # ALL NSO CASE (NO CUSTOMER)
+    if aif.is_all_nso_enabled:
+        customer_column = "NULL as customer"
+        customer_join = ""
+        extra_condition = "AND a.is_all_nso_enabled = 1"
+
+        params = [
+            aif.aif_id,     # current_l
+            aif.aif_id,     # exclude self
+            aif.nso,
+            aif.start_date,   # for a.end_date >= current.start_date
+            AifStatusChoices.INVALID,      # exclude invalid AIFs
+        ]
+
+    # CUSTOMER CASE
+    else:
+        customer_column = "c.oracle_cust_number as customer"
+        customer_join = """
+            INNER JOIN aif_aifcustomerlines c ON c.aif_id = a.aif_id
+            INNER JOIN aif_aifcustomerlines current_c
+                ON current_c.aif_id = %s
+                AND current_c.oracle_cust_number = c.oracle_cust_number
+        """
+        extra_condition = ""
+
+        params = [
+            aif.aif_id,     # current_l
+            aif.aif_id,     # current_c
+            aif.aif_id,     # exclude self
+            aif.nso,
+            aif.start_date, # >
+            AifStatusChoices.INVALID,      # exclude invalid AIFs
+        ]
+
+    sql = base_sql.format(
+        customer_column=customer_column,
+        customer_join=customer_join,
+        extra_condition=extra_condition,
+    )
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, params)
+        columns = [col[0] for col in cursor.description]
+        rows = cursor.fetchall()
+
+    return [dict(zip(columns, row)) for row in rows]
+
+    
+class AifByStatusFilter(filters.BaseFilterBackend):
+    """
+    Custom filter to filter Contract based on its last status.
+    """
+
+    def filter_queryset(self, request, queryset, view):
+        aif_status = request.query_params.get("aif_status", None)
+        if aif_status:
+            # validation
+            if aif_status in AifStatusChoices:
+                aif_statuses = AifStatus.objects.raw(
+                    f"""
+                                        SELECT [id],[meta_created_date],[status],[comment],[aif_id],[meta_created_by_id]  FROM
+                                        (SELECT [aif_id], MAX([id]) AS 'last_status_id' FROM [dbo].[aif_aifstatus]
+                                        GROUP BY [aif_id]) AS A
+                                        LEFT JOIN
+                                        (SELECT [id], [meta_created_date], [status],[comment],[meta_created_by_id] FROM [dbo].[aif_aifstatus]) AS B
+                                        ON A.last_status_id = B.id
+                                        WHERE [status] = '{aif_status}'
+                                        """
+                )
+                aif_ids = list(aif_statuses.values_list("aif_id", flat=True))
+                queryset = queryset.filter(aif_id__in=aif_ids)
+
+        return queryset
+
+
+def aif_url(request: HttpRequest, aif_id: str):
+    return f"{request.build_absolute_uri('/aifmgmt/aif/')}{aif_id}/"
+
+
+class AifView(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+        AifByStatusFilter,
+    ]
+    pagination_class = StandardPagination
+    filterset_fields = {
+        "aif_id": ["exact"],
+        "meta_created_date": ["exact", "gt", "lt"],
+    }
+    search_fields = ["aif_id","nso"]
+
+    @action(detail=True, methods=["get"])
+    def conflicts(self, request, pk=None):
+        aif = self.get_object()
+        conflict_ids = get_conflicting_aif_ids(aif)
+        return Response({
+            "conflicting_rows": conflict_ids
+        })
+
+    def get_serializer_class(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return AifWriteSerializer
+        return AifReadSerializer
+
+    def perform_create(self, serializer):
+        instance: Aif = serializer.save(meta_created_by=self.request.user,meta_edited_date=timezone.now())
+        AifStatus.objects.create(
+            aif=instance,
+            status=AifStatusChoices.DRAFT,
+            meta_created_by=self.request.user,
+        )
+
+        return instance
+        
+    def perform_update(self, serializer):
+        current_status = get_aif_status(
+            self.kwargs["pk"]
+        )
+
+        if current_status.status not in [
+            AifStatusChoices.DRAFT,
+            AifStatusChoices.INVALID,
+        ]:
+            raise PermissionDenied(
+                "You can't edit this AIF!"
+            )
+
+        instance = serializer.save(
+            meta_edited_date=timezone.now(),
+            meta_edited_by=self.request.user,
+        )
+
+        if current_status.status == AifStatusChoices.INVALID:
+            update_aif_workflow(
+                request=self.request,
+                aif=instance,
+                new_status=AifStatusChoices.DRAFT,
+            )
+            update_all_lines_status(
+                status=AifLineStatusChoices.DRAFT,
+                aif=instance,
+                request=self.request,
+            )
+
+        return instance
+
+    def get_queryset(self):
+        if self.request.user.groups.filter(name=NSO_USER).exists():
+            return Aif.objects.filter(
+                nso__in=Organization.objects.filter(
+                    cluster=self.request.user.cluster
+                ).values_list("organization_name", flat=True)
+            )
+
+        elif self.request.user.groups.filter(name=PSBD_TEAM_USER).exists():
+
+            allowed_product_groups = AifApprover.objects.filter(
+                approver=self.request.user
+            ).values_list(
+                "product_group",
+                flat=True
+            )
+
+            return Aif.objects.filter(
+                aif_lines__product_group__in=allowed_product_groups
+            ).distinct()
+
+        return Aif.objects.all()
+
+
+class AifCustomerLineView(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+    queryset = AIFCustomerLines.objects.all()
+    serializer_class = AifCustomerLineSerializer
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    filterset_fields = {
+        "aif": ["exact"],
+    }
+
+    def perform_create(self, serializer):
+        instance: AIFCustomerLines = serializer.save(meta_created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        instance = serializer.save(
+            meta_edited_date=timezone.now(), meta_edited_by=self.request.user
+        )
+
+
+def update_all_lines_status(status: str, aif: Aif, request: HttpRequest):
+    aif_lines = AifLines.objects.filter(aif=aif)
+    for line in aif_lines:
+        AifLineStatus.objects.create(
+            aif_line=line, status=status, meta_created_by=request.user
+        )
+
+
+def set_initial_line_status(aif: Aif, request: HttpRequest):
+    aif_lines = AifLines.objects.filter(aif=aif)
+
+    for line in aif_lines:
+        AifLineStatus.objects.create(
+            aif_line=line,
+            status=AifLineStatusChoices.AWAITING_APPROVAL,
+            meta_created_by=request.user,
+        )
+
+
+def reject_all_lines(aif_lines, request: HttpRequest):
+    for line in aif_lines:
+        AifLineStatus.objects.create(
+            aif_line=line,
+            status=AifLineStatusChoices.REJECTED,
+            meta_created_by=request.user,
+        )
+
+def get_open_orders(aif):
+    mercury_codes = list(aif.aif_lines.values_list("mercury_code", flat=True))
+    if not mercury_codes:
+        return None
+    customers = list(
+        aif.aif_customer_lines.values_list("oracle_cust_number", flat=True)
+    )
+    pricing_date = aif.start_date
+    mercury_placeholders = ",".join(["%s"] * len(mercury_codes))
+    sql = f"""
+            SELECT
+                OPERATING_NAME,
+                CAST(ORDERED_DATE AS DATE) AS ORDERED_DATE,
+                ORDER_NUMBER,
+                ORDER_LINE_NUMBER_DETAIL,
+                PARTY_NUMBER,
+                ORDERED_ITEM,
+                CAST(PRICING_DATE AS DATE) AS PRICING_DATE,
+                UNIT_LIST_PRICE,
+                UNIT_SELLING_PRICE,
+                CUST_PO_NUMBER,
+                TRANSACTIONAL_CURR_CODE
+            FROM dbo.OpenOrders_AIF
+            WHERE
+                CAST(PRICING_DATE AS DATE) = %s
+                AND LEFT(ORDERED_ITEM, 8) IN ({mercury_placeholders})
+        """
+    params = [pricing_date] + mercury_codes
+    if customers:
+        customer_placeholders = ",".join(["%s"] * len(customers))
+        sql += f" AND PARTY_NUMBER IN ({customer_placeholders})"
+        params += customers
+    
+    with connections["powerbi"].cursor() as cursor:
+        cursor.execute(sql, params)
+        columns = [col[0] for col in cursor.description]
+        rows = cursor.fetchall()
+    return columns, rows
+
+def create_open_orders_excel(columns, rows):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Open Orders"
+    headers = [
+        column.replace("_", " ").title()
+        for column in columns
+    ]
+    ws.append(headers)
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+
+    for column_index, header in enumerate(headers,start=1):
+        column_letter = get_column_letter(column_index)
+        ws.column_dimensions[column_letter].width = len(header) + 4
+
+    for row in rows:
+        ws.append(row)
+    
+    ws.freeze_panes = "A2"
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    return buffer
+
+def prepare_open_orders_attachment(aif):
+    columns, rows = get_open_orders(aif)
+    if not rows:
+        return None
+
+    buffer = create_open_orders_excel(columns,rows)
+    encoded_file = base64.b64encode(
+        buffer.getvalue()
+    ).decode("utf-8")
+
+    filename = (
+        f"OpenOrders_AIF_{aif.aif_id}_"
+        f"{timezone.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    )
+
+    return {
+        "Name": filename,
+        "ContentBytes": encoded_file,
+    }
+
+def build_sales_ops_cc(cc_mail):
+    if not cc_mail:
+        return cc_mail
+    
+    configured_emails = list(
+        AifSalesOpsEmail.objects.values_list(
+            "email",
+            flat=True,
+        )
+    )
+    emails = []
+    if isinstance(cc_mail, str) and cc_mail:
+        emails.append(cc_mail)
+
+    emails.extend(configured_emails)
+
+    return ";".join(emails)
+
+def send_aif_status_notification(
+    request: HttpRequest,
+    aif: Aif,
+    new_status: str,
+    comment: str,
+):
+    link = aif_url(request, aif.aif_id)
+    cc_mail = get_aif_cc(aif, new_status)
+    final_cc = build_sales_ops_cc(cc_mail)
+    if new_status == AifStatusChoices.AWAITING_VALIDATION:
+        attachment = prepare_open_orders_attachment(aif)
+        email_config = OMEmailsConfig.objects.filter(nso=aif.nso).first()
+        if email_config and email_config.om_emails:
+            if attachment:
+                send_email_with_attachments(
+                    to=email_config.om_emails,
+                    subject=get_om_email_subject(aif),
+                    body=build_om_email_body(aif, link),
+                    cc=None,
+                    attachments=[attachment],
+                )
+            else:
+                send_email(
+                    to=email_config.om_emails,
+                    subject=get_om_email_subject(aif),
+                    body=build_om_email_body(aif, link),
+                    cc=None,
+                )
+
+        send_email(
+            to=aif.meta_created_by.email,
+            cc=cc_mail,
+            subject=get_aif_email_subject(aif, new_status),
+            body=get_aif_email_body(aif, new_status, link, comment),
+        )
+
+
+    if new_status == AifStatusChoices.CLOSED:
+        send_email_to_group(
+            to=Group.objects.get(name=SALES_OPS_USER),
+            subject=get_aif_email_subject(aif, new_status, "validated"),
+            body=get_aif_email_body(aif, new_status, link, comment, "validated"),
+            cc=final_cc
+        )
+        send_email_to_group(
+            to=Group.objects.get(name=SALES_OPS_USER),
+            subject=get_aif_email_subject(aif, new_status, "completed"),
+            body=get_aif_email_body(aif, new_status, link, comment, "completed"),
+            cc=final_cc
+        )
+    
+    if new_status == AifStatusChoices.COMMERCIALLY_APPROVED:
+        send_email_to_group(
+            to=Group.objects.get(name=SALES_OPS_USER),
+            subject=get_aif_email_subject(aif, new_status),
+            body=get_aif_email_body(aif, new_status, link, comment),
+            cc=final_cc
+        )
+
+    if new_status == AifStatusChoices.INVALID:
+        send_email(
+            to=aif.meta_created_by.email,
+            cc=cc_mail,
+            subject=get_aif_email_subject(aif, new_status),
+            body=get_aif_email_body(aif, new_status, link, comment),
+        )
+
+
+def update_aif_workflow(
+    *,
+    request: HttpRequest,
+    aif: Aif,
+    new_status: str,
+    comment: str | None = None,
+):
+    current_status = get_aif_status(aif).status
+    if current_status == new_status:
+        return
+
+    if not is_valid_aif_transition(
+        current_status=current_status,
+        new_status=new_status,
+    ):
+        raise PermissionDenied(
+            f"Invalid AIF status transition from "
+            f"{current_status} to {new_status}."
+        )
+
+    AifStatus.objects.create(
+        aif=aif,
+        status=new_status,
+        comment=comment,
+        meta_created_by=request.user,
+    )
+    # Update AIF edited info
+    Aif.objects.filter(pk=aif.pk).update(
+        meta_edited_date=timezone.now(),
+        meta_edited_by=request.user,
+    )
+    
+    if new_status == AifStatusChoices.CLOSED:
+        update_all_lines_status(
+            status=AifLineStatusChoices.CLOSED,
+            aif=aif,
+            request=request,
+        )
+
+    if new_status == AifStatusChoices.PLANNED:
+        set_initial_line_status(
+            aif,
+            request,
+        )
+
+        notify_aif_approvers(
+            request,
+            aif=aif,
+            comment=comment,
+        )
+
+    if new_status == AifStatusChoices.INVALID:
+        reject_all_lines(
+            AifLines.objects.filter(
+                aif=aif
+            ),
+            request,
+        )
+
+    if new_status == AifStatusChoices.AWAITING_VALIDATION:
+        update_all_lines_status(
+            status=AifLineStatusChoices.AWAITING_VALIDATION,
+            aif=aif,
+            request=request,
+        )
+
+    send_aif_status_notification(
+        request=request,
+        aif=aif,
+        new_status=new_status,
+        comment=comment,
+    )
+
+def notify_aif_approvers(request, aif, comment=None):
+    responsibility = PROMOTION_CATEGORY_TO_RESPONSIBILITY.get(aif.promotion_category)
+
+    if not responsibility:
+        return
+
+    product_groups = set(aif.aif_lines.values_list("product_group", flat=True))
+
+    product_group_mail = ", ".join(sorted(product_groups))
+    total_support = sum(
+        aif.aif_lines.values_list("promotion_support", flat=True)
+    )
+
+    cc_mail = aif.email_cc if aif.email_cc else ""
+
+    for product_group in product_groups:
+        emails = list(
+            AifApprover.objects.filter(
+                product_group=product_group, responsibility=responsibility
+            )
+            .values_list("approver__email", flat=True)
+            .distinct()
+        )
+        if not emails:
+            continue
+
+        send_emails(
+            to=emails,
+            cc=cc_mail,
+            subject=f"Promotion Ref: {aif.aif_id} is awaiting Commercial Approval",
+            body=f"""
+                Dear PSBD Team,<br><br>
+
+                The ONINVOICE promotion request is awaiting Commercial Approval,
+                please approve within 24 hours.<br><br>
+
+                <b>NSO:</b> {aif.nso}<br>
+                <b>Product Group:</b> {product_group_mail}<br>
+                <b>Requester:</b> {aif.meta_created_by.get_full_name()}<br>
+                <b>Promo Campaign:</b> {aif.promotion_campaign or ''}<br>
+                <b>Promo Category:</b> {aif.promotion_category or ''}<br>
+                <b>Activity:</b> {aif.promotion_activity or ''}<br>
+                <b>TTL Support:</b> {total_support:,.2f}<br><br>
+
+                Please click the link below to review the promotion details:<br>
+                <a href="{aif_url(request, aif.aif_id)}">
+                    {aif_url(request, aif.aif_id)}
+                </a>
+
+                <br><br>
+
+                Thanks<br>
+                Kind Regards<br>
+                Rev Sales Ops Team
+            """,  
+        )
+
+class AifStatusView(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+    queryset = AifStatus.objects.all()
+    serializer_class = AifStatusSerializer
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    filterset_fields = {"aif": ["exact"]}
+
+    def perform_create(self, serializer):
+        aif = serializer.validated_data["aif"]
+        new_status = serializer.validated_data["status"]
+        comment = serializer.validated_data.get("comment")
+
+        current_status = get_aif_status(aif).status
+        user_roles = get_user_roles(self.request.user)
+
+        if not is_valid_aif_transition(
+            current_status=current_status,
+            new_status=new_status,
+        ):
+            raise PermissionDenied(
+                f"Invalid AIF status transition from "
+                f"{current_status} to {new_status}."
+            )
+
+        if not is_role_allowed_for_aif_status(
+            user_roles=user_roles,
+            target_status=new_status,
+        ):
+            raise PermissionDenied(
+                "You are not allowed to perform "
+                "this status transition."
+            )
+
+        update_aif_workflow(
+            request=self.request,
+            aif=aif,
+            new_status=new_status,
+            comment=comment,
+        )
+
+class AifLineView(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+    queryset = AifLines.objects.all()
+    serializer_class = AifLineSerializer
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    filterset_fields = {
+        "aif": ["exact"],
+    }
+
+    def perform_create(self, serializer):
+        instance: AifLines = serializer.save(meta_created_by=self.request.user)
+        AifLineStatus.objects.create(
+            aif_line=instance,
+            status=AifLineStatusChoices.DRAFT,
+            meta_created_by=self.request.user,
+        )
+
+    def perform_update(self, serializer):
+        instance = serializer.save(
+            meta_edited_date=timezone.now(), meta_edited_by=self.request.user
+        )
+
+
+class AifLineStatusView(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+    queryset = AifLineStatus.objects.all()
+    serializer_class = AifLinesStatusSerializer
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+
+    def perform_create(self, serializer):
+        aif_line = serializer.validated_data["aif_line"]
+        new_status = serializer.validated_data["status"]
+        current_status = (
+            AifLineStatus.objects
+            .filter(aif_line=aif_line)
+            .order_by("-meta_created_date")
+            .first()
+        )
+
+        if not current_status:
+            raise PermissionDenied(
+                "Current line status was not found."
+            )
+
+        user_roles = get_user_roles(self.request.user)
+
+        if not is_valid_line_transition(
+            current_status=current_status.status,
+            new_status=new_status,
+        ):
+            raise PermissionDenied(
+                f"Invalid line status transition from "
+                f"{current_status.status} to {new_status}."
+            )
+
+        if not is_role_allowed_for_line_status(
+            user_roles=user_roles,
+            target_status=new_status,
+        ):
+            raise PermissionDenied(
+                "You are not allowed to perform "
+                "this line status transition."
+            )
+        instance: AifLineStatus = serializer.save(meta_created_by=self.request.user)
+        aif = instance.aif_line.aif
+        
+        new_aif_status = determine_aif_status(
+            aif_lines=AifLines.objects.filter(
+                aif=aif
+            ),
+            current_status=get_aif_status(aif).status,
+        )
+
+        update_aif_workflow(
+            request=self.request,
+            aif=aif,
+            new_status=new_aif_status,
+            comment=instance.comment,
+        )
+
+
+def get_aif_status(aif_id) -> AifStatus:
+    """
+    Returns current AifStatus
+    """
+    return AifStatus.objects.filter(aif=aif_id).latest("meta_created_date")
+
+def determine_aif_status(aif_lines,current_status: str) -> str:
+    all_statuses = {}
+    for status in AifLineStatusChoices.values:
+        all_statuses[status] = 0
+
+    total_lines = 0
+
+    for line in aif_lines:
+        total_lines += 1
+        latest_status = AifLineStatus.objects.filter(aif_line=line).latest(
+                    "meta_created_date"
+                )
+        
+        if not latest_status:
+            continue
+        all_statuses[latest_status.status] += 1
+
+    if not total_lines:
+        return current_status
+
+    if (all_statuses[AifLineStatusChoices.REJECTED] > 0):
+        return AifStatusChoices.INVALID
+    if (all_statuses[AifLineStatusChoices.CLOSED] == total_lines):
+        return AifStatusChoices.CLOSED
+    if (all_statuses[AifLineStatusChoices.APPROVED] == total_lines):
+        return AifStatusChoices.COMMERCIALLY_APPROVED
+    if (all_statuses[AifLineStatusChoices.AWAITING_VALIDATION] == total_lines):
+        return AifStatusChoices.AWAITING_VALIDATION
+    if (all_statuses[AifLineStatusChoices.DRAFT] == total_lines):
+        return AifStatusChoices.DRAFT
+    return current_status
+
+class AifApproverView(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+    queryset = AifApprover.objects.all()
+    serializer_class = AifApproverSerializer
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+
+
+class MasterPriceListView(viewsets.ReadOnlyModelViewSet):
+    queryset = MasterPricelist.objects.using("elppricelist").all()
+    permission_classes = [IsApplicationUser]
+    serializer_class = MasterPriceListSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = {"item_code_1st_layer": ["exact"]}
+
+
+class ExchangeRatesViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+    serializer_class = ExchangeRatesSerializer
+    filter_backends = [DjangoFilterBackend]
+
+    def get_queryset(self):
+        qs = ExchangeRates.objects.using("powerbi")
+
+        to_currency = self.request.query_params.get("to_currency")
+
+        if not to_currency:
+            return qs.none()
+
+        return qs.filter(from_currency="EUR", to_currency=to_currency).order_by(
+            "-record_date"
+        )[:1]
+
+class CDHCustomerViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = CDHCustomer.objects.using("powerbi").all()
+    permission_classes = [IsApplicationUser]
+    serializer_class = CDHCustomerSerializer
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    filterset_fields = {"party_number": ["exact"]}
+    search_fields = ["^customer_name"]
+
+
+class NSOCurrencyOpUnitConfigViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+    queryset = NSOCurrencyOpUnitConfig.objects.all()
+    serializer_class = NSOCurrencyOpUnitConfigSerializer
+
+    filter_backends = [
+        DjangoFilterBackend,
+    ]
+
+    filterset_fields = {
+        "nso": ["exact"],
+    }
+
+
+class OMEmailsConfigViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+    queryset = OMEmailsConfig.objects.all()
+    serializer_class = OMEmailsConfigSerializer
+
+    filter_backends = [
+        DjangoFilterBackend,
+    ]
+
+    filter
+
+
+
+
+
+
 def get_open_orders(aif):
     mercury_codes = list(
         aif.aif_lines.values_list(
