@@ -1,3 +1,88 @@
+<div class="card-body p-2">
+
+    <div class="table-responsive predisclosure-table-wrapper">
+
+        <form
+            id="predisclosure_line_form"
+            @submit.prevent=""
+        >
+
+            <table class="table table-sm table-bordered mb-0 predisclosure-table">
+
+                <thead>
+                    ...
+                </thead>
+
+                <tbody>
+
+                    <tr
+                        v-for="(line, index) in lines"
+                        :key="'predisclosure-line-' + index"
+                    >
+
+                        <td class="sticky-col sticky-index text-center align-middle">
+                            [[ index + 1 ]]
+                        </td>
+
+                        {% for field in predisclosure_line_form.visible_fields %}
+
+                            <td
+                                v-if="showField('{{ field.name }}')"
+                                class="align-middle {% if field.name == 'account_name' %}sticky-col sticky-account{% elif field.name == 'website' %}sticky-col sticky-website{% endif %}"
+                            >
+
+                                {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+                            </td>
+
+                        {% endfor %}
+
+                        <td class="align-middle text-center">
+
+                            <div class="btn-group">
+
+                                <template-button
+                                    :size="18"
+                                    @click="copy_line(line, index)">
+                                </template-button>
+
+                                <delete-button
+                                    :size="18"
+                                    @delete-confirm="delete_line(line)">
+                                </delete-button>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </form>
+
+        <!-- ADD BUTTON -->
+        <div class="mt-2">
+
+            <add-button
+                :size="18"
+                @click="add_line()">
+            </add-button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
 <tbody>
 
     <tr
