@@ -1,3 +1,41 @@
+validate_paste_column_count(
+    predisclosureType,
+    columnCount
+) {
+
+    const expectedColumns = {
+        "End Customer": 14,
+        "Dealer": 12,
+        "B2B": 10,
+    };
+
+    return (
+        expectedColumns[predisclosureType] ===
+        columnCount
+    );
+
+},
+
+
+if (
+    !this.validate_paste_column_count(
+        this.selected_predisclosure.predisclosure_type,
+        headerColumns.length
+    )
+) {
+    alert("Invalid Excel template column count.");
+    return;
+}
+
+
+
+
+
+
+
+
+
+=========================================
 from common.forms import (
     Select,
     EnhancedModelForm,
