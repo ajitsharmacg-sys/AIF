@@ -1,3 +1,128 @@
+handleInvalidField(event) {
+
+    // Prevent browser from trying to focus
+    // the field while accordion is collapsed
+    event.preventDefault();
+
+    const invalidField = event.target;
+
+    const accountCard = invalidField.closest(
+        "#predisclosure_line_form > .card.mb-3"
+    );
+
+    if (!accountCard) {
+        return;
+    }
+
+    const accountCards = document.querySelectorAll(
+        "#predisclosure_line_form > .card.mb-3"
+    );
+
+    const accountIndex = Array.from(accountCards).indexOf(accountCard);
+
+    if (accountIndex === -1) {
+        return;
+    }
+
+    // Open the account
+    this.openAccounts[accountIndex] = true;
+
+    // Wait until Vue renders expanded accordion
+    this.$nextTick(() => {
+
+        setTimeout(() => {
+
+            invalidField.focus();
+
+            invalidField.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+            });
+
+        }, 100);
+
+    });
+
+},
+
+
+<form
+    id="predisclosure_line_form"
+    @submit.prevent=""
+    @invalid.capture="handleInvalidField"
+>
+
+validate_forms() {
+
+    const form = document.getElementById(
+        "predisclosure_line_form"
+    );
+
+    if (!form) {
+        return false;
+    }
+
+    const invalidFields = form.querySelectorAll(":invalid");
+
+    if (invalidFields.length === 0) {
+        return true;
+    }
+
+    // Find first invalid field
+    const firstInvalidField = invalidFields[0];
+
+    const accountCard = firstInvalidField.closest(
+        "#predisclosure_line_form > .card.mb-3"
+    );
+
+    if (accountCard) {
+
+        const accountCards = document.querySelectorAll(
+            "#predisclosure_line_form > .card.mb-3"
+        );
+
+        const accountIndex = Array.from(
+            accountCards
+        ).indexOf(accountCard);
+
+        if (accountIndex >= 0) {
+            this.openAccounts[accountIndex] = true;
+        }
+    }
+
+    this.$nextTick(() => {
+
+        setTimeout(() => {
+
+            firstInvalidField.focus();
+
+            firstInvalidField.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+            });
+
+        }, 100);
+
+    });
+
+    return false;
+},
+
+if (!this.validate_forms()) {
+    return;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <strong>Pre-Disclosure Account Details</strong>
