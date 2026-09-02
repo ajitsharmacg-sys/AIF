@@ -1,0 +1,72 @@
+<form
+    class="mt-2"
+    id="predisclosure_form"
+    @submit.prevent=""
+>
+
+    <fieldset
+        class="row"
+        :disabled="loading"
+    >
+
+        {% for field in predisclosure_form.visible_fields %}
+
+            <div
+                class="col-md-3 mb-1"
+                id="field_group_{{ field.name }}"
+                v-if="field_group_{{ field.name }}_show ?? true"
+            >
+
+                {{ field.errors }}
+
+                <label
+                    class="form-label"
+                    for="{{ field.id_for_label }}"
+                >
+                    {{ field.label }}
+                </label>
+
+
+                {% if field.name == "products" %}
+
+                    <select
+                        multiple
+                        class="form-select form-select-sm"
+                        v-model="selected_predisclosure.products"
+                        @change="handle_change($event)"
+                    >
+
+                        <option
+                            v-for="product in products"
+                            :key="product.id"
+                            :value="product.id"
+                        >
+                            [[ product.product_name ]]
+                        </option>
+
+                    </select>
+
+                {% else %}
+
+                    {{ field|add_attrs:"v-model=selected_predisclosure;@change=handle_change($event);:disabled=is_disabled_field" }}
+
+                {% endif %}
+
+
+                {% if field.help_text %}
+
+                    <small class="form-text text-muted">
+
+                        {{ field.help_text|safe }}
+
+                    </small>
+
+                {% endif %}
+
+            </div>
+
+        {% endfor %}
+
+    </fieldset>
+
+</form>
