@@ -1,3 +1,124 @@
+def finalize_workflow(
+    predisclosure,
+    request,
+):
+
+    # ==========================================
+    # PREVENT DUPLICATE FINALIZATION / EMAIL
+    # ==========================================
+
+    already_finalized = (
+        PreDisclosureStatus.objects.filter(
+            predisclosure=predisclosure,
+            status__in=[
+                PreDisclosureStatusChoices.COMPLETED,
+                PreDisclosureStatusChoices.REJECTED,
+            ],
+        )
+        .exists()
+    )
+
+    if already_finalized:
+        return
+
+
+    total = 0
+    rejected = 0
+
+    for line in PreDisclosureLine.objects.filter(
+        predisclosure=predisclosure
+    ):
+
+        total += 1
+
+        latest = (
+            PreDisclosureLineStatus.objects.filter(
+                line=line
+            ).latest("meta_created_date")
+        )
+
+        if (
+            latest.status
+            == PreDisclosureLineStatusChoices.REJECTED
+        ):
+            rejected += 1
+
+
+    if total == rejected:
+
+        status = (
+            PreDisclosureStatusChoices.REJECTED
+        )
+
+    else:
+
+        status = (
+            PreDisclosureStatusChoices.COMPLETED
+        )
+
+
+    # ==========================================
+    # CREATE FINAL STATUS ONLY ONCE
+    # ==========================================
+
+    PreDisclosureStatus.objects.create(
+        predisclosure=predisclosure,
+        status=status,
+        meta_created_by=request.user,
+    )
+
+
+    link = predisclosure_url(
+        request,
+        predisclosure.predisclosure_id,
+    )
+
+
+    latest_comment = (
+        PreDisclosureLineStatus.objects.filter(
+            line__predisclosure=predisclosure,
+            comment__isnull=False,
+        )
+        .exclude(comment="")
+        .order_by("-meta_created_date")
+        .values_list(
+            "comment",
+            flat=True,
+        )
+        .first()
+    )
+
+
+    # ==========================================
+    # SEND EMAIL ONLY ONCE
+    # ==========================================
+
+    send_email(
+        to=predisclosure.meta_created_by.email,
+        subject=get_predisclosure_email_subject(
+            predisclosure,
+            status,
+        ),
+        body=get_predisclosure_email_body(
+            predisclosure,
+            status,
+            link,
+            latest_comment,
+        ),
+        cc=get_predisclosure_cc(
+            predisclosure,
+            status,
+        ),
+    )
+
+
+
+
+
+
+
+
+
 validate_paste_column_count(
     predisclosureType,
     columnCount
