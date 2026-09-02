@@ -1,0 +1,173 @@
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>Pre-Disclosure Account Details</strong>
+
+        <export-excel-button
+            title="Download Pre-Disclosure Template"
+            @click="download_line_template()">
+        </export-excel-button>
+    </div>
+
+    <div class="card-body p-2">
+
+        <form
+            id="predisclosure_line_form"
+            @submit.prevent=""
+            @invalid.capture="handleInvalidField"
+        >
+
+            <div
+                v-for="(line, index) in lines"
+                :key="'line-' + index"
+                class="card mb-3"
+            >
+
+                <!-- ACCOUNT HEADER -->
+                <div
+                    class="card-header py-2 d-flex justify-content-between align-items-center"
+                    role="button"
+                    @click="toggleAccount(index)"
+                >
+
+                    <strong>
+                        Account #[[ index + 1 ]]
+                    </strong>
+
+                    <div
+                        class="btn-group"
+                        role="group"
+                        @click.stop
+                    >
+
+                        <template-button
+                            :size="18"
+                            @click="copy_line(line, index)">
+                        </template-button>
+
+                        <delete-button
+                            :size="18"
+                            @delete-confirm="delete_line(line, index)">
+                        </delete-button>
+
+                    </div>
+
+                </div>
+
+
+                <!-- COLLAPSIBLE ACCOUNT BODY -->
+                <div
+                    :id="'account-collapse-' + index"
+                    class="collapse"
+                    :class="{ show: openAccounts[index] }"
+                >
+
+                    <div class="card-body">
+
+                        <div class="row g-3">
+
+                            {% for field in predisclosure_line_form.visible_fields %}
+
+                                <div
+                                    v-if="showField('{{ field.name }}')"
+                                    class="col-12 col-md-6 col-lg-3"
+                                >
+
+                                    {{ field.errors }}
+
+                                    <label
+                                        class="form-label mb-1"
+                                        for="{{ field.id_for_label }}"
+                                    >
+                                        {{ field.label }}
+                                    </label>
+
+                                    {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+                                    {% if field.help_text %}
+                                        <small class="form-text text-muted">
+                                            {{ field.help_text|safe }}
+                                        </small>
+                                    {% endif %}
+
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- ADD ACCOUNT -->
+            <div class="mt-2">
+
+                <add-button
+                    :size="18"
+                    @click="add_line()">
+                </add-button>
+
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+
+
+data() {
+    return {
+        lines: [],
+        openAccounts: {},
+    }
+},
+
+
+toggleAccount(index) {
+    this.openAccounts[index] = !this.openAccounts[index];
+},
+
+
+handleInvalidField(event) {
+
+    const invalidField = event.target;
+
+    const accountCard = invalidField.closest(".card.mb-3");
+
+    if (!accountCard) {
+        return;
+    }
+
+    const accountCards = document.querySelectorAll(
+        "#predisclosure_line_form > .card.mb-3"
+    );
+
+    const accountIndex = Array.from(accountCards).indexOf(accountCard);
+
+    if (accountIndex === -1) {
+        return;
+    }
+
+    // Open the account containing the invalid field
+    this.openAccounts[accountIndex] = true;
+
+    this.$nextTick(() => {
+
+        setTimeout(() => {
+
+            invalidField.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+            });
+
+        }, 100);
+
+    });
+
+},
+
+
