@@ -54,58 +54,95 @@ handleInvalidField(event) {
 
 validate_forms() {
 
-    const form = document.getElementById(
+    const predisclosureForm = document.getElementById(
+        "predisclosure_form"
+    );
+
+    const predisclosureLineForm = document.getElementById(
         "predisclosure_line_form"
     );
 
-    if (!form) {
+
+    // ==============================
+    // VALIDATE PRE-DISCLOSURE HEADER
+    // ==============================
+
+    if (
+        predisclosureForm &&
+        !predisclosureForm.checkValidity()
+    ) {
+
+        predisclosureForm.reportValidity();
+
         return false;
     }
 
-    const invalidFields = form.querySelectorAll(":invalid");
 
-    if (invalidFields.length === 0) {
-        return true;
-    }
+    // =================================
+    // FIND INVALID ACCOUNT ACCORDIONS
+    // =================================
 
-    // Find first invalid field
-    const firstInvalidField = invalidFields[0];
+    if (predisclosureLineForm) {
 
-    const accountCard = firstInvalidField.closest(
-        "#predisclosure_line_form > .card.mb-3"
-    );
+        const invalidFields =
+            predisclosureLineForm.querySelectorAll(":invalid");
 
-    if (accountCard) {
 
-        const accountCards = document.querySelectorAll(
-            "#predisclosure_line_form > .card.mb-3"
-        );
+        if (invalidFields.length) {
 
-        const accountIndex = Array.from(
-            accountCards
-        ).indexOf(accountCard);
+            invalidFields.forEach((field) => {
 
-        if (accountIndex >= 0) {
-            this.openAccounts[accountIndex] = true;
-        }
-    }
+                const collapseElement =
+                    field.closest(".collapse");
 
-    this.$nextTick(() => {
 
-        setTimeout(() => {
+                if (
+                    collapseElement &&
+                    !collapseElement.classList.contains("show")
+                ) {
 
-            firstInvalidField.focus();
+                    const collapse =
+                        bootstrap.Collapse.getOrCreateInstance(
+                            collapseElement,
+                            {
+                                toggle: false
+                            }
+                        );
 
-            firstInvalidField.scrollIntoView({
-                behavior: "smooth",
-                block: "center",
+                    collapse.show();
+
+                }
+
             });
 
-        }, 100);
 
-    });
+            // Wait until accordion opens
+            setTimeout(() => {
 
-    return false;
+                const firstInvalid =
+                    predisclosureLineForm.querySelector(":invalid");
+
+
+                if (firstInvalid) {
+
+                    firstInvalid.focus();
+
+                    predisclosureLineForm.reportValidity();
+
+                }
+
+            }, 300);
+
+
+            return false;
+
+        }
+
+    }
+
+
+    return true;
+
 },
 
 if (!this.validate_forms()) {
