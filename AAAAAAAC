@@ -1,3 +1,193 @@
+from common.forms import (
+    Select,
+    EnhancedModelForm,
+    DatalistSelectPredefinedWidget,
+)
+
+from django.forms import (
+    TextInput,
+    Textarea,
+    Select,
+    DateInput,
+)
+
+from predisclosure.models import PreDisclosureLine
+
+
+class PreDisclosureLineForm(EnhancedModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # ==========================================
+        # ACCOUNT NAME
+        # ==========================================
+
+        distinct_accounts = sorted(
+            list(
+                PreDisclosureLine.objects.exclude(
+                    account_name__isnull=True
+                )
+                .exclude(
+                    account_name=""
+                )
+                .values_list(
+                    "account_name",
+                    flat=True,
+                )
+                .distinct()
+            )
+        )
+
+        self.fields["account_name"].widget = (
+            DatalistSelectPredefinedWidget(
+                attrs={
+                    "class": "form-control form-control-sm",
+                },
+                choices=[
+                    (account, account)
+                    for account in distinct_accounts
+                ],
+            )
+        )
+
+        # ==========================================
+        # WEBSITE
+        # ==========================================
+
+        distinct_website = sorted(
+            list(
+                PreDisclosureLine.objects.exclude(
+                    website__isnull=True
+                )
+                .exclude(
+                    website=""
+                )
+                .values_list(
+                    "website",
+                    flat=True,
+                )
+                .distinct()
+            )
+        )
+
+        self.fields["website"].widget = (
+            DatalistSelectPredefinedWidget(
+                attrs={
+                    "class": "form-control form-control-sm",
+                },
+                choices=[
+                    (website, website)
+                    for website in distinct_website
+                ],
+            )
+        )
+
+        # ==========================================
+        # STANDARDIZE ALL FIELD WIDGETS
+        # ==========================================
+
+        for field_name, field in self.fields.items():
+
+            # Skip already configured datalist fields
+            if field_name in [
+                "account_name",
+                "website",
+            ]:
+                continue
+
+            # SELECT / CHOICE FIELD
+            if field.choices:
+
+                field.widget = Select(
+                    attrs={
+                        "class": "form-select form-select-sm",
+                    },
+                    choices=field.choices,
+                )
+
+            # DATE FIELD
+            elif field_name == "meeting_date":
+
+                field.widget = DateInput(
+                    attrs={
+                        "class": "form-control form-control-sm",
+                        "type": "date",
+                    }
+                )
+
+            # TEXTAREA FIELDS
+            elif field_name in [
+                "meeting_location",
+                "canon_responsible_person",
+                "reason_for_disclosure",
+                "individuals_being_disclosed_to",
+                "information_to_be_disclosed",
+            ]:
+
+                placeholders = {
+                    "meeting_location":
+                        "Enter meeting location",
+
+                    "canon_responsible_person":
+                        "Enter Canon responsible person",
+
+                    "reason_for_disclosure":
+                        "Enter reason for disclosure",
+
+                    "individuals_being_disclosed_to":
+                        "Enter individuals receiving disclosure",
+
+                    "information_to_be_disclosed":
+                        "Enter information to be disclosed",
+                }
+
+                field.widget = Textarea(
+                    attrs={
+                        "class": "form-control form-control-sm",
+                        "rows": 2,
+                        "placeholder": placeholders.get(
+                            field_name,
+                            "",
+                        ),
+                    }
+                )
+
+            # NORMAL TEXT INPUT
+            else:
+
+                field.widget = TextInput(
+                    attrs={
+                        "class": "form-control form-control-sm",
+                    }
+                )
+
+    class Meta:
+
+        model = PreDisclosureLine
+
+        fields = [
+            "account_name",
+            "website",
+            "nda_confirmed",
+            "disclosure_format",
+            "reason_for_disclosure",
+            "meeting_date",
+            "meeting_location",
+            "canon_responsible_person",
+            "individuals_being_disclosed_to",
+            "information_to_be_disclosed",
+            "sda_partner_level",
+            "account_in_sda_partner_list",
+            "retailer_ranking",
+            "disclosed_last_2_years",
+            "b2b_business_type",
+            "estimated_business",
+            "annual_sales",
+        ]
+
+
+==============================================
 <div class="card">
 
     <!-- MAIN HEADER -->
