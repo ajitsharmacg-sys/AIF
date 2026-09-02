@@ -1,3 +1,200 @@
+<div class="card">
+
+    <!-- =========================================
+         CARD BODY 1 - HEADER SECTION
+    ========================================== -->
+
+    <div
+        class="card-body py-2 border-bottom d-flex justify-content-between align-items-center"
+    >
+
+        <strong>
+            Account Details
+        </strong>
+
+        <div class="d-flex gap-2">
+
+            <export-excel-button
+                title="Download Pre-Disclosure Template"
+                @click="download_line_template()">
+            </export-excel-button>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================
+         CARD BODY 2 - ACCOUNT DETAILS TABLE
+    ========================================== -->
+
+    <div class="card-body">
+
+        <form
+            id="predisclosure_line_form"
+            @submit.prevent=""
+            action=""
+        >
+
+            <div class="table-responsive">
+
+                <table class="table table-sm table-bordered mb-0">
+
+                    <!-- TABLE HEADER -->
+
+                    <thead>
+
+                        <tr class="align-top">
+
+                            <th class="text-bg-secondary text-center">
+                                #
+                            </th>
+
+
+                            {% for field in predisclosure_line_form.visible_fields %}
+
+                                <th
+                                    class="text-bg-secondary"
+                                    v-if="showField('{{ field.name }}')"
+                                >
+
+                                    {{ field.label }}
+
+                                    {% if field.help_text %}
+
+                                        <br>
+
+                                        <small class="form-text text-muted">
+
+                                            {{ field.help_text|safe }}
+
+                                        </small>
+
+                                    {% endif %}
+
+                                </th>
+
+                            {% endfor %}
+
+
+                            <th class="text-bg-secondary text-center">
+
+                                Actions
+
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <!-- TABLE BODY -->
+
+                    <tbody id="predisclosure_lines_input">
+
+
+                        <!-- ACCOUNT LINES -->
+
+                        <template v-for="(line, index) in lines">
+
+                            <tr>
+
+                                <!-- SERIAL NUMBER -->
+
+                                <td class="text-center align-middle">
+
+                                    [[ index + 1 ]]
+
+                                </td>
+
+
+                                <!-- DYNAMIC FIELDS -->
+
+                                {% for field in predisclosure_line_form.visible_fields %}
+
+                                    <td
+                                        v-if="showField('{{ field.name }}')"
+                                    >
+
+                                        {{ field|add_attrs:":index=index; v-model=lines; @change=handle_line_change(lines,index,$event); @paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+                                    </td>
+
+                                {% endfor %}
+
+
+                                <!-- ACTION BUTTONS -->
+
+                                <td class="align-middle">
+
+                                    <div
+                                        class="btn-group"
+                                        role="group"
+                                    >
+
+                                        <template-button
+                                            :size="18"
+                                            @click="copy_line(line, index)">
+                                        </template-button>
+
+
+                                        <delete-button
+                                            :size="18"
+                                            @delete-confirm="delete_line(line)">
+                                        </delete-button>
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                        </template>
+
+
+                        <!-- ADD BUTTON ROW -->
+
+                        <tr>
+
+                            <td>
+
+                                <add-button
+                                    :size="18"
+                                    @click="add_line()">
+                                </add-button>
+
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <form
     class="mt-2"
     id="predisclosure_form"
