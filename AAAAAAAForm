@@ -1,3 +1,168 @@
+<thead>
+
+    <tr class="align-top">
+
+        <!-- STICKY COLUMN 1 -->
+
+        <th
+            class="text-bg-secondary text-center position-sticky start-0"
+            style="left: 0; z-index: 3;"
+        >
+            #
+        </th>
+
+
+        <!-- STICKY COLUMN 2 -->
+
+        {% for field in predisclosure_line_form.visible_fields %}
+
+            {% if field.name == "account_name" %}
+
+                <th
+                    class="text-bg-secondary position-sticky"
+                    style="left: 50px; z-index: 3;"
+                >
+                    {{ field.label }}
+                </th>
+
+            {% elif field.name == "website" %}
+
+                <th
+                    class="text-bg-secondary position-sticky"
+                    style="left: 290px; z-index: 3;"
+                >
+                    {{ field.label }}
+                </th>
+
+            {% else %}
+
+                <th
+                    class="text-bg-secondary"
+                    v-if="showField('{{ field.name }}')"
+                >
+                    {{ field.label }}
+
+                    {% if field.help_text %}
+                        <br>
+                        <small class="form-text text-muted">
+                            {{ field.help_text|safe }}
+                        </small>
+                    {% endif %}
+                </th>
+
+            {% endif %}
+
+        {% endfor %}
+
+
+        <th class="text-bg-secondary text-center">
+            Actions
+        </th>
+
+    </tr>
+
+</thead>
+
+
+<tbody id="predisclosure_lines_input">
+
+    <template v-for="(line, index) in lines">
+
+        <tr>
+
+            <!-- STICKY COLUMN 1 -->
+
+            <td
+                class="text-center align-middle position-sticky bg-white"
+                style="left: 0; z-index: 2;"
+            >
+                [[ index + 1 ]]
+            </td>
+
+
+            {% for field in predisclosure_line_form.visible_fields %}
+
+                <!-- STICKY ACCOUNT NAME -->
+
+                {% if field.name == "account_name" %}
+
+                    <td
+                        class="align-middle position-sticky bg-white"
+                        style="left: 50px; z-index: 2;"
+                    >
+
+                        {{ field|add_attrs:":index=index; v-model=lines; @change=handle_line_change(lines,index,$event); @paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+                    </td>
+
+
+                <!-- STICKY WEBSITE -->
+
+                {% elif field.name == "website" %}
+
+                    <td
+                        class="align-middle position-sticky bg-white"
+                        style="left: 290px; z-index: 2;"
+                    >
+
+                        {{ field|add_attrs:":index=index; v-model=lines; @change=handle_line_change(lines,index,$event); @paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+                    </td>
+
+
+                <!-- OTHER FIELDS -->
+
+                {% else %}
+
+                    <td
+                        v-if="showField('{{ field.name }}')"
+                    >
+
+                        {{ field|add_attrs:":index=index; v-model=lines; @change=handle_line_change(lines,index,$event); @paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+                    </td>
+
+                {% endif %}
+
+            {% endfor %}
+
+
+            <!-- ACTION -->
+
+            <td class="align-middle">
+
+                <div class="btn-group" role="group">
+
+                    <template-button
+                        :size="18"
+                        @click="copy_line(line, index)">
+                    </template-button>
+
+                    <delete-button
+                        :size="18"
+                        @delete-confirm="delete_line(line)">
+                    </delete-button>
+
+                </div>
+
+            </td>
+
+        </tr>
+
+    </template>
+
+</tbody>
+
+
+
+
+
+
+
+=================================================
+
+
+
 <div class="card">
 
     <!-- =========================================
