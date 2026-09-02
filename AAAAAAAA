@@ -1,24 +1,20 @@
 <div class="card">
 
-    <!-- MAIN CARD HEADER -->
+    <!-- MAIN HEADER -->
 
     <div class="card-header d-flex justify-content-between align-items-center">
 
         <strong>Pre-Disclosure Details</strong>
 
-        <div class="d-flex gap-2">
-
-            <export-excel-button
-                title="Download Pre-Disclosure Template"
-                @click="download_line_template()">
-            </export-excel-button>
-
-        </div>
+        <export-excel-button
+            title="Download Pre-Disclosure Template"
+            @click="download_line_template()">
+        </export-excel-button>
 
     </div>
 
 
-    <!-- MAIN CARD BODY -->
+    <!-- MAIN BODY -->
 
     <div class="card-body p-2">
 
@@ -27,57 +23,38 @@
             @submit.prevent=""
         >
 
-            <!-- TWO TABLES -->
-
             <div class="row g-2">
 
-                <!-- ========================= -->
+                <!-- ================================= -->
                 <!-- ACCOUNT DETAILS TABLE -->
-                <!-- ========================= -->
+                <!-- ================================= -->
 
                 <div class="col-md-4">
 
                     <div class="card h-100">
 
                         <div class="card-header py-2">
-
                             <strong>Account Details</strong>
-
                         </div>
-
 
                         <div class="card-body p-0">
 
                             <div class="table-responsive">
 
-                                <table
-                                    class="table table-sm table-bordered align-middle mb-0"
-                                >
+                                <table class="table table-bordered table-sm mb-0">
 
-                                    <!-- HEADER -->
-
-                                    <thead class="table-secondary">
+                                    <thead class="text-bg-secondary">
 
                                         <tr>
 
-                                            <th
-                                                class="text-center"
-                                                style="width: 50px;"
-                                            >
-                                                #
-                                            </th>
-
+                                            <th>#</th>
 
                                             {% for field in predisclosure_line_form.visible_fields %}
 
-                                                {% if field.name == "account_name" or field.name == "website" %}
+                                                {% if field.name == "account_name" or field.name == "website_name" %}
 
-                                                    <th
-                                                        v-if="showField('{{ field.name }}')"
-                                                    >
-
+                                                    <th>
                                                         {{ field.label }}
-
                                                     </th>
 
                                                 {% endif %}
@@ -89,8 +66,6 @@
                                     </thead>
 
 
-                                    <!-- BODY -->
-
                                     <tbody>
 
                                         <tr
@@ -98,25 +73,16 @@
                                             :key="'account-' + index"
                                         >
 
-                                            <!-- SERIAL -->
-
-                                            <td class="text-center">
-
+                                            <td>
                                                 [[ index + 1 ]]
-
                                             </td>
 
 
-                                            <!-- ACCOUNT FIELDS -->
-
                                             {% for field in predisclosure_line_form.visible_fields %}
 
-                                                {% if field.name == "account_name" or field.name == "website" %}
+                                                {% if field.name == "account_name" or field.name == "website_name" %}
 
-                                                    <td
-                                                        v-if="showField('{{ field.name }}')"
-                                                        class="p-1"
-                                                    >
+                                                    <td>
 
                                                         {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
 
@@ -141,19 +107,16 @@
                 </div>
 
 
-
-                <!-- ========================= -->
+                <!-- ================================= -->
                 <!-- DISCLOSURE DETAILS TABLE -->
-                <!-- ========================= -->
+                <!-- ================================= -->
 
                 <div class="col-md-8">
 
                     <div class="card h-100">
 
                         <div class="card-header py-2">
-
                             <strong>Disclosure Details</strong>
-
                         </div>
 
 
@@ -161,26 +124,26 @@
 
                             <div class="table-responsive">
 
-                                <table
-                                    class="table table-sm table-bordered align-middle mb-0"
-                                >
+                                <table class="table table-bordered table-sm mb-0">
 
-                                    <!-- HEADER -->
-
-                                    <thead class="table-secondary">
+                                    <thead class="text-bg-secondary">
 
                                         <tr>
 
                                             {% for field in predisclosure_line_form.visible_fields %}
 
-                                                {% if field.name != "account_name" and field.name != "website" %}
+                                                {% if field.name != "account_name" and field.name != "website_name" %}
 
-                                                    <th
-                                                        v-if="showField('{{ field.name }}')"
-                                                        class="text-nowrap"
-                                                    >
+                                                    <th>
 
                                                         {{ field.label }}
+
+                                                        {% if field.help_text %}
+                                                            <br>
+                                                            <small class="form-text">
+                                                                {{ field.help_text|safe }}
+                                                            </small>
+                                                        {% endif %}
 
                                                     </th>
 
@@ -188,21 +151,14 @@
 
                                             {% endfor %}
 
-
-                                            <!-- ACTION -->
-
-                                            <th class="text-center">
-
+                                            <th>
                                                 Actions
-
                                             </th>
 
                                         </tr>
 
                                     </thead>
 
-
-                                    <!-- BODY -->
 
                                     <tbody>
 
@@ -211,16 +167,11 @@
                                             :key="'disclosure-' + index"
                                         >
 
-                                            <!-- DISCLOSURE FIELDS -->
-
                                             {% for field in predisclosure_line_form.visible_fields %}
 
-                                                {% if field.name != "account_name" and field.name != "website" %}
+                                                {% if field.name != "account_name" and field.name != "website_name" %}
 
-                                                    <td
-                                                        v-if="showField('{{ field.name }}')"
-                                                        class="p-1"
-                                                    >
+                                                    <td>
 
                                                         {{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
 
@@ -233,7 +184,7 @@
 
                                             <!-- ACTIONS -->
 
-                                            <td class="text-center">
+                                            <td>
 
                                                 <div
                                                     class="btn-group"
@@ -248,7 +199,7 @@
 
                                                     <delete-button
                                                         :size="18"
-                                                        @delete-confirm="delete_line(line)">
+                                                        @delete-confirm="delete_line(line, index)">
                                                     </delete-button>
 
                                                 </div>
@@ -272,7 +223,7 @@
             </div>
 
 
-            <!-- SINGLE ADD BUTTON -->
+            <!-- ADD BUTTON -->
 
             <div class="mt-2">
 
