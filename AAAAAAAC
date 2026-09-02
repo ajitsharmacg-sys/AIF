@@ -19,9 +19,9 @@ class PreDisclosureLineForm(EnhancedModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # ==========================================
+        # ==============================
         # ACCOUNT NAME
-        # ==========================================
+        # ==============================
 
         distinct_accounts = sorted(
             list(
@@ -51,9 +51,9 @@ class PreDisclosureLineForm(EnhancedModelForm):
             )
         )
 
-        # ==========================================
+        # ==============================
         # WEBSITE
-        # ==========================================
+        # ==============================
 
         distinct_website = sorted(
             list(
@@ -83,84 +83,82 @@ class PreDisclosureLineForm(EnhancedModelForm):
             )
         )
 
-        # ==========================================
-        # STANDARDIZE ALL FIELD WIDGETS
-        # ==========================================
+        # ==============================
+        # TEXTAREA FIELDS
+        # ==============================
 
-        for field_name, field in self.fields.items():
+        textarea_fields = [
+            "reason_for_disclosure",
+            "meeting_location",
+            "canon_responsible_person",
+            "individuals_being_disclosed_to",
+            "information_to_be_disclosed",
+        ]
 
-            # Skip already configured datalist fields
-            if field_name in [
-                "account_name",
-                "website",
-            ]:
-                continue
+        for field_name in textarea_fields:
 
-            # SELECT / CHOICE FIELD
-            if field.choices:
+            if field_name in self.fields:
 
-                field.widget = Select(
-                    attrs={
-                        "class": "form-select form-select-sm",
-                    },
-                    choices=field.choices,
-                )
-
-            # DATE FIELD
-            elif field_name == "meeting_date":
-
-                field.widget = DateInput(
-                    attrs={
-                        "class": "form-control form-control-sm",
-                        "type": "date",
-                    }
-                )
-
-            # TEXTAREA FIELDS
-            elif field_name in [
-                "meeting_location",
-                "canon_responsible_person",
-                "reason_for_disclosure",
-                "individuals_being_disclosed_to",
-                "information_to_be_disclosed",
-            ]:
-
-                placeholders = {
-                    "meeting_location":
-                        "Enter meeting location",
-
-                    "canon_responsible_person":
-                        "Enter Canon responsible person",
-
-                    "reason_for_disclosure":
-                        "Enter reason for disclosure",
-
-                    "individuals_being_disclosed_to":
-                        "Enter individuals receiving disclosure",
-
-                    "information_to_be_disclosed":
-                        "Enter information to be disclosed",
-                }
-
-                field.widget = Textarea(
+                self.fields[field_name].widget = Textarea(
                     attrs={
                         "class": "form-control form-control-sm",
                         "rows": 2,
-                        "placeholder": placeholders.get(
-                            field_name,
-                            "",
-                        ),
                     }
                 )
 
-            # NORMAL TEXT INPUT
+        # ==============================
+        # DATE FIELD
+        # ==============================
+
+        if "meeting_date" in self.fields:
+
+            self.fields["meeting_date"].widget = DateInput(
+                attrs={
+                    "class": "form-control form-control-sm",
+                    "type": "date",
+                }
+            )
+
+        # ==============================
+        # APPLY BOOTSTRAP CLASS
+        # TO REMAINING FIELDS
+        # ==============================
+
+        for field_name, field in self.fields.items():
+
+            # Skip fields already configured
+            if field_name in [
+                "account_name",
+                "website",
+                *textarea_fields,
+                "meeting_date",
+            ]:
+                continue
+
+            widget = field.widget
+
+            existing_class = widget.attrs.get("class", "")
+
+            # Select fields
+            if isinstance(widget, forms.Select):
+
+                widget.attrs.update({
+                    "class": (
+                        existing_class
+                        or "form-select form-select-sm"
+                    )
+                })
+
+            # Other input fields
             else:
 
-                field.widget = TextInput(
-                    attrs={
-                        "class": "form-control form-control-sm",
-                    }
-                )
+                widget.attrs.update({
+                    "class": (
+                        existing_class
+                        or "form-control form-control-sm"
+                    )
+                })
+
 
     class Meta:
 
@@ -185,7 +183,6 @@ class PreDisclosureLineForm(EnhancedModelForm):
             "estimated_business",
             "annual_sales",
         ]
-
 
 ==============================================
 <div class="card">
