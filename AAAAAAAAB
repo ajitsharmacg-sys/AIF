@@ -1,3 +1,12 @@
+SELECT *
+FROM dbo.django_migrations
+WHERE id = 494
+  AND app = 'aif';
+
+DELETE FROM dbo.django_migrations
+WHERE id = 494
+  AND app = 'aif';
+
 handleInvalidField(event) {
 
     // Prevent browser from trying to focus
