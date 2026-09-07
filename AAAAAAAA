@@ -1,3 +1,81 @@
+class PreDisclosureLineReadSerializer(serializers.ModelSerializer):
+    predisclosure_line_status = serializers.SerializerMethodField()
+    previous_status = serializers.SerializerMethodField()
+
+    products = PreDisclosureProductSerializer(
+        many=True,
+        read_only=True,
+    )
+
+    products_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PreDisclosureLine
+        fields = "__all__"
+        read_only_fields = [
+            "meta_created_date",
+            "meta_created_by",
+            "meta_edited_date",
+            "meta_edited_by",
+        ]
+
+    def get_products_display(self, obj):
+        return ", ".join(
+            obj.products.values_list(
+                "product_name",
+                flat=True
+            )
+        )
+
+    def get_predisclosure_line_status(self, obj):
+        latest = (
+            obj.predisclosure_line_status
+            .order_by("-meta_created_date")
+            .first()
+        )
+        return latest.status if latest else None
+
+    def get_previous_status(self, obj):
+        statuses = list(
+            obj.predisclosure_line_status
+            .order_by("-meta_created_date")
+        )
+
+        for index, status in enumerate(statuses):
+
+            if status.status in [
+                PreDisclosureLineStatusChoices.APPROVED,
+                PreDisclosureLineStatusChoices.REJECTED,
+            ]:
+
+                stage_name = ""
+                if index + 1 < len(statuses):
+                    previous_status = statuses[index + 1].status
+                    stage_name = get_approver_stage_name(
+                        previous_status
+                    )
+
+                decision = status.status.title()
+                if stage_name:
+                    stage_name = stage_name.removesuffix(
+                        "Approval"
+                    )
+                    return f"{decision} By {stage_name}"
+
+                return decision
+
+        return None
+
+
+
+
+
+
+
+
+
+
+
 validate_forms() {
 
     const predisclosureForm =
