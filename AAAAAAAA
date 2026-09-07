@@ -1,3 +1,38 @@
+add_line() {
+    const new_line = {
+        products: [],
+        product_search: "",
+    };
+
+    if (this.is_edit_mode) {
+        new_line.id = "temp";
+        this.changes.new_lines_count++;
+    }
+
+    this.lines.push(new_line);
+},
+
+copy_line(line, index) {
+    const clone = {
+        ...line,
+
+        // Create separate array for products
+        products: [...(line.products || [])],
+
+        // Reset UI search
+        product_search: "",
+    };
+
+    if (this.is_edit_mode) {
+        clone.id = "temp";
+        this.changes.new_lines_count++;
+    }
+
+    this.lines.push(clone);
+},
+
+
+
 {% if field.name == "products" %}
 
 <div class="position-relative">
