@@ -1,3 +1,10 @@
+for (let row_index = 1; row_index < copied_lines.length; row_index++) {
+
+    const row = {
+        products: [],
+        product_search: "",
+    };
+
 if (pasted_row_count > 0) {
     this.show_notification(
         `${pasted_row_count} account(s) pasted successfully. ` +
