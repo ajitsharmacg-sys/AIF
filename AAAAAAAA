@@ -1,3 +1,92 @@
+{% if field.name == "products" %}
+
+<div class="position-relative">
+
+    <!-- Search Product -->
+    <input
+        type="text"
+        class="form-control form-control-sm mb-1"
+        placeholder="Search product..."
+        v-model="line.product_search"
+    >
+
+    <!-- Product List -->
+    <div
+        class="border rounded p-2"
+        style="max-height: 180px; overflow-y: auto;"
+    >
+        <div
+            v-for="product in get_filtered_products(
+                line.product_search
+            )"
+            :key="product.id"
+            class="form-check"
+        >
+            <input
+                class="form-check-input"
+                type="checkbox"
+                :id="'product_' + index + '_' + product.id"
+                :value="product.id"
+                v-model="line.products"
+            >
+
+            <label
+                class="form-check-label"
+                :for="'product_' + index + '_' + product.id"
+            >
+                [[ product.product_name ]]
+            </label>
+        </div>
+
+        <div
+            v-if="get_filtered_products(line.product_search).length === 0"
+            class="text-muted small"
+        >
+            No products found
+        </div>
+    </div>
+
+</div>
+
+{% else %}
+
+{{ field|add_attrs:":index=index;v-model=lines;@change=handle_line_change(lines,index,$event);@paste.prevent=paste_lines_from_excel(lines,index,$event)" }}
+
+{% endif %}
+
+
+get_filtered_products(search_text) {
+    if (!search_text) {
+        return this.products;
+    }
+
+    const search = search_text.toLowerCase();
+
+    return this.products.filter(product =>
+        product.product_name
+            .toLowerCase()
+            .includes(search)
+    );
+},
+
+add_line() {
+    this.lines.push({
+        products: [],
+        product_search: "",
+    });
+},
+
+
+const line = {
+    ...your_existing_line,
+    products: [],
+    product_search: "",
+};
+
+this.lines.push(line);
+
+
+
 methods: {
     get_created_by_name(value) {
         if (!value) {
