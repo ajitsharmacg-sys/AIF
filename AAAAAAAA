@@ -1,3 +1,63 @@
+{% if field.name == "products" %}
+<div class="position-relative">
+
+    <input
+        type="text"
+        class="form-control form-control-sm mb-2"
+        placeholder="Search product..."
+        v-model="line.product_search"
+        @click.stop
+    >
+
+    <div
+        class="border rounded overflow-auto p-2"
+        :class="{
+            'border-danger':
+                invalidProductIndexes.includes(index)
+                && (!line.products || line.products.length === 0)
+        }"
+        style="height: 180px;"
+        @click.stop
+    >
+
+        <div
+            v-for="product in get_filtered_products(line.product_search)"
+            :key="product.id"
+            class="form-check mb-1"
+        >
+
+            <input
+                class="form-check-input"
+                type="checkbox"
+                :id="'product_' + index + '_' + product.id"
+                :value="product.id"
+                v-model="line.products"
+                @change="handle_line_change(
+                    lines,
+                    index,
+                    $event
+                )"
+            >
+
+            <label
+                class="form-check-label"
+                :for="'product_' + index + '_' + product.id"
+            >
+                [[ product.product_name ]]
+            </label>
+
+        </div>
+
+    </div>
+
+</div>
+{% endif %}
+
+
+data:
+-------------
+invalidProductIndexes: [],
+
 validate_forms() {
 
     const predisclosureForm =
@@ -6,6 +66,7 @@ validate_forms() {
     const predisclosureLineForm =
         document.getElementById("predisclosure_line_form");
 
+    // Header form validation
     if (
         predisclosureForm &&
         !predisclosureForm.checkValidity()
@@ -14,15 +75,15 @@ validate_forms() {
         return false;
     }
 
+    // Check at least one account
     if (this.lines.length === 0) {
-
         this.show_notification(
             "Please add at least one line."
         );
-
         return false;
     }
 
+    // Account field validation
     if (predisclosureLineForm) {
 
         const invalidFields =
@@ -39,7 +100,6 @@ validate_forms() {
                     collapseElement &&
                     !collapseElement.classList.contains("show")
                 ) {
-
                     const collapse =
                         bootstrap.Collapse.getOrCreateInstance(
                             collapseElement,
@@ -55,12 +115,12 @@ validate_forms() {
             setTimeout(() => {
 
                 const firstInvalid =
-                    predisclosureLineForm.querySelector(":invalid");
+                    predisclosureLineForm.querySelector(
+                        ":invalid"
+                    );
 
                 if (firstInvalid) {
-
                     firstInvalid.focus();
-
                     predisclosureLineForm.reportValidity();
                 }
 
@@ -71,55 +131,50 @@ validate_forms() {
     }
 
     // Product validation
-    const invalidProductIndex =
-        this.lines.findIndex(
-            line =>
-                !line.products ||
-                line.products.length === 0
-        );
+    const invalidProductIndexes = [];
 
-    if (invalidProductIndex !== -1) {
+    this.lines.forEach((line, index) => {
 
-        const productElement =
-            document.getElementById(
-                "products-" + invalidProductIndex
-            );
+        if (
+            !line.products ||
+            line.products.length === 0
+        ) {
+            invalidProductIndexes.push(index);
+        }
+
+    });
+
+    if (invalidProductIndexes.length) {
+
+        const firstInvalidIndex =
+            invalidProductIndexes[0];
 
         const collapseElement =
             document.getElementById(
-                "collapse-" + invalidProductIndex
+                "account-collapse-" + firstInvalidIndex
             );
 
-        if (collapseElement) {
-
-            bootstrap.Collapse.getOrCreateInstance(
-                collapseElement,
-                {
-                    toggle: false
-                }
-            ).show();
+        if (
+            collapseElement &&
+            !collapseElement.classList.contains("show")
+        ) {
+            bootstrap.Collapse
+                .getOrCreateInstance(
+                    collapseElement,
+                    {
+                        toggle: false
+                    }
+                )
+                .show();
         }
 
-        this.$nextTick(() => {
-
-            if (productElement) {
-
-                productElement.classList.add(
-                    "border",
-                    "border-danger",
-                    "rounded"
-                );
-
-                productElement.scrollIntoView({
-                    behavior: "smooth",
-                    block: "center"
-                });
-            }
-
-        });
+        this.invalidProductIndexes =
+            invalidProductIndexes;
 
         return false;
     }
+
+    this.invalidProductIndexes = [];
 
     return true;
 },
