@@ -1,3 +1,145 @@
+validate_forms() {
+
+    const predisclosureForm =
+        document.getElementById("predisclosure_form");
+
+    const predisclosureLineForm =
+        document.getElementById("predisclosure_line_form");
+
+    if (
+        predisclosureForm &&
+        !predisclosureForm.checkValidity()
+    ) {
+        predisclosureForm.reportValidity();
+        return false;
+    }
+
+    if (this.lines.length === 0) {
+
+        this.show_notification(
+            "Please add at least one line."
+        );
+
+        return false;
+    }
+
+    if (predisclosureLineForm) {
+
+        const invalidFields =
+            predisclosureLineForm.querySelectorAll(":invalid");
+
+        if (invalidFields.length) {
+
+            invalidFields.forEach((field) => {
+
+                const collapseElement =
+                    field.closest(".collapse");
+
+                if (
+                    collapseElement &&
+                    !collapseElement.classList.contains("show")
+                ) {
+
+                    const collapse =
+                        bootstrap.Collapse.getOrCreateInstance(
+                            collapseElement,
+                            {
+                                toggle: false
+                            }
+                        );
+
+                    collapse.show();
+                }
+            });
+
+            setTimeout(() => {
+
+                const firstInvalid =
+                    predisclosureLineForm.querySelector(":invalid");
+
+                if (firstInvalid) {
+
+                    firstInvalid.focus();
+
+                    predisclosureLineForm.reportValidity();
+                }
+
+            }, 300);
+
+            return false;
+        }
+    }
+
+    // Product validation
+    const invalidProductIndex =
+        this.lines.findIndex(
+            line =>
+                !line.products ||
+                line.products.length === 0
+        );
+
+    if (invalidProductIndex !== -1) {
+
+        const productElement =
+            document.getElementById(
+                "products-" + invalidProductIndex
+            );
+
+        const collapseElement =
+            document.getElementById(
+                "collapse-" + invalidProductIndex
+            );
+
+        if (collapseElement) {
+
+            bootstrap.Collapse.getOrCreateInstance(
+                collapseElement,
+                {
+                    toggle: false
+                }
+            ).show();
+        }
+
+        this.$nextTick(() => {
+
+            if (productElement) {
+
+                productElement.classList.add(
+                    "border",
+                    "border-danger",
+                    "rounded"
+                );
+
+                productElement.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
+            }
+
+        });
+
+        return false;
+    }
+
+    return true;
+},
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 validate_lines() {
     for (let index = 0; index < this.lines.length; index++) {
 
