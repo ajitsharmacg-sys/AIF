@@ -1,3 +1,150 @@
+validate_forms() {
+
+    const predisclosureForm =
+        document.getElementById("predisclosure_form");
+
+    const predisclosureLineForm =
+        document.getElementById("predisclosure_line_form");
+
+    if (
+        predisclosureForm &&
+        !predisclosureForm.checkValidity()
+    ) {
+        predisclosureForm.reportValidity();
+        return false;
+    }
+
+    if (this.lines.length === 0) {
+        this.show_notification(
+            "Please add at least one line."
+        );
+        return false;
+    }
+
+    // Add product validation to existing invalid validation
+    this.lines.forEach((line, index) => {
+
+        const productInput =
+            this.$refs[
+                "product_search_" + index
+            ];
+
+        if (productInput) {
+
+            if (
+                !line.products ||
+                line.products.length === 0
+            ) {
+                productInput.setCustomValidity(
+                    "Please select at least one product."
+                );
+            }
+            else {
+                productInput.setCustomValidity("");
+            }
+        }
+    });
+
+    if (predisclosureLineForm) {
+
+        const invalidFields =
+            predisclosureLineForm.querySelectorAll(
+                ":invalid"
+            );
+
+        if (invalidFields.length) {
+
+            invalidFields.forEach((field) => {
+
+                const collapseElement =
+                    field.closest(".collapse");
+
+                if (
+                    collapseElement &&
+                    !collapseElement.classList.contains("show")
+                ) {
+                    bootstrap.Collapse
+                        .getOrCreateInstance(
+                            collapseElement,
+                            {
+                                toggle: false
+                            }
+                        )
+                        .show();
+                }
+            });
+
+            setTimeout(() => {
+
+                const firstInvalid =
+                    predisclosureLineForm.querySelector(
+                        ":invalid"
+                    );
+
+                if (firstInvalid) {
+                    firstInvalid.focus();
+                    predisclosureLineForm.reportValidity();
+                }
+
+            }, 300);
+
+            return false;
+        }
+    }
+
+    return true;
+},
+
+
+<input
+    type="text"
+    class="form-control form-control-sm mb-2"
+    placeholder="Search product..."
+    v-model="line.product_search"
+    :ref="'product_search_' + index"
+    @click.stop
+>
+
+
+<input
+    type="text"
+    class="form-control form-control-sm mb-2"
+    :class="{
+        'is-invalid':
+            !line.products || line.products.length === 0
+    }"
+    placeholder="Search product..."
+    v-model="line.product_search"
+    @click.stop
+>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 {% if field.name == "products" %}
 <div class="position-relative">
 
