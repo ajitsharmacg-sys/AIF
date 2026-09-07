@@ -2,25 +2,25 @@
 
 <div class="position-relative">
 
-    <!-- Search Product -->
+    <!-- Product Search -->
     <input
         type="text"
-        class="form-control form-control-sm mb-1"
+        class="form-control form-control-sm mb-2"
         placeholder="Search product..."
         v-model="line.product_search"
+        @click.stop
     >
 
-    <!-- Product List -->
+    <!-- Scrollable Product List -->
     <div
-        class="border rounded p-2"
-        style="max-height: 180px; overflow-y: auto;"
+        class="border rounded overflow-auto p-2"
+        style="height: 180px;"
+        @click.stop
     >
         <div
-            v-for="product in get_filtered_products(
-                line.product_search
-            )"
+            v-for="product in get_filtered_products(line.product_search)"
             :key="product.id"
-            class="form-check"
+            class="form-check mb-1"
         >
             <input
                 class="form-check-input"
@@ -28,6 +28,7 @@
                 :id="'product_' + index + '_' + product.id"
                 :value="product.id"
                 v-model="line.products"
+                @change="handle_line_change(lines, index, $event)"
             >
 
             <label
@@ -40,7 +41,7 @@
 
         <div
             v-if="get_filtered_products(line.product_search).length === 0"
-            class="text-muted small"
+            class="text-muted small text-center"
         >
             No products found
         </div>
@@ -54,15 +55,14 @@
 
 {% endif %}
 
-
 get_filtered_products(search_text) {
     if (!search_text) {
-        return this.products;
+        return this.products || [];
     }
 
     const search = search_text.toLowerCase();
 
-    return this.products.filter(product =>
+    return (this.products || []).filter(product =>
         product.product_name
             .toLowerCase()
             .includes(search)
