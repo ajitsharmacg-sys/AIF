@@ -1,3 +1,91 @@
+validate_lines() {
+    for (let index = 0; index < this.lines.length; index++) {
+
+        const line = this.lines[index];
+
+        // Product validation
+        if (!line.products || line.products.length === 0) {
+            this.open_account_accordion(index);
+
+            this.show_notification(
+                `Please select at least one Product for Account #${index + 1}.`
+            );
+
+            return false;
+        }
+    }
+
+    return true;
+},
+
+open_account_accordion(index) {
+    this.$nextTick(() => {
+        const accordionElement = document.getElementById(
+            `account-collapse-${index}`
+        );
+
+        if (accordionElement) {
+            const collapse = new bootstrap.Collapse(
+                accordionElement,
+                {
+                    show: true,
+                }
+            );
+        }
+    });
+},
+
+
+<div
+    v-for="(line, index) in lines"
+    :key="'line-' + index"
+    class="accordion-item">
+
+    <h2
+        class="accordion-header"
+        :id="'account-heading-' + index">
+
+        <button
+            class="accordion-button collapsed"
+            type="button"
+            data-bs-toggle="collapse"
+            :data-bs-target="'#account-collapse-' + index">
+
+            Account #[[ index + 1 ]]
+
+        </button>
+
+    </h2>
+
+    <div
+        :id="'account-collapse-' + index"
+        class="accordion-collapse collapse"
+        :aria-labelledby="'account-heading-' + index">
+
+        <div class="accordion-body">
+
+            <!-- Fields -->
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class PreDisclosureLineReadSerializer(serializers.ModelSerializer):
     predisclosure_line_status = serializers.SerializerMethodField()
     previous_status = serializers.SerializerMethodField()
