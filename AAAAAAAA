@@ -1,3 +1,13 @@
+if (pasted_row_count > 0) {
+    this.show_notification(
+        `${pasted_row_count} account(s) pasted successfully. ` +
+        "Please select the Product(s) manually for each account."
+    );
+}
+
+this.loading = false;
+
+
 class PreDisclosureLineReadSerializer(serializers.ModelSerializer):
     predisclosure_line_status = serializers.SerializerMethodField()
     previous_status = serializers.SerializerMethodField()
