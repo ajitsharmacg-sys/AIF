@@ -1,3 +1,112 @@
+def build_sales_ops_cc(cc_mail):
+    if not cc_mail:
+        return cc_mail
+
+    notification_group = NotificationGroup.objects.filter(
+        name="CCI.Pricing"
+    ).first()
+
+    emails = []
+
+    if isinstance(cc_mail, str) and cc_mail:
+        emails.append(cc_mail)
+
+    if notification_group and notification_group.email:
+        emails.append(notification_group.email)
+
+    return ";".join(filter(None, emails))
+
+
+class AifStatusView(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+
+    http_method_names = [
+        "get",
+        "post",
+        "head",
+        "options",
+    ]
+
+    queryset = AifStatus.objects.all()
+    serializer_class = AifStatusSerializer
+
+
+class AifLineView(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+    queryset = AifLines.objects.all()
+    serializer_class = AifLineSerializer
+
+    def perform_destroy(self, instance):
+        current_status = get_aif_status(instance.aif.aif_id).status
+
+        if current_status not in [
+            AifStatusChoices.DRAFT,
+            AifStatusChoices.INVALID,
+        ]:
+            raise PermissionDenied(
+                "You can't delete a line when the AIF is not in Draft or Invalid status."
+            )
+
+        instance.delete()
+
+
+
+class AifLineStatusView(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+
+    http_method_names = [
+        "get",
+        "post",
+        "head",
+        "options",
+    ]
+
+    queryset = AifLineStatus.objects.all()
+    serializer_class = AifLinesStatusSerializer
+
+
+class AifApproverView(viewsets.ModelViewSet):
+    permission_classes = [IsApplicationUser]
+
+    queryset = AifApprover.objects.all()
+    serializer_class = AifApproverSerializer
+
+    def get_permissions(self):
+        if self.request.method in ["POST", "PATCH", "PUT", "DELETE"]:
+            if not self.request.user.groups.filter(
+                name="AIF Admin"
+            ).exists():
+                raise PermissionDenied(
+                    "Only AIF Admin can manage approvers."
+                )
+
+        return super().get_permissions()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+================================================================
+
 SELECT
     OPERATING_NAME,
     CAST(ORDERED_DATE AS DATE) AS ORDERED_DATE,
