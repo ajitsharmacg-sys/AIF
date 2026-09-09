@@ -1,3 +1,7 @@
+aif_ids = [status.aif_id for status in aif_statuses]
+
+
+
 def build_sales_ops_cc(cc_mail):
     if not cc_mail:
         return cc_mail
