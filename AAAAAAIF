@@ -324,7 +324,37 @@ validate_forms() {
 
 
 
+def get_options(self, request):
+    options = super().get_options(request)
 
+    predisclosure_type = request.query_params.get(
+        "predisclosure_type"
+    )
+
+    if predisclosure_type == "PARTNER":
+        options["sda_partner_level"]["required"] = True
+        options["account_in_sda_partner_list"]["required"] = True
+
+    return options
+
+handle_change(event) {
+    const fieldName = event.target.name;
+
+    // existing logic...
+
+    if (fieldName === "predisclosure_type") {
+        const isPartner =
+            this.selected_predisclosure.predisclosure_type === "PARTNER";
+
+        this.options["predisclosure_line"]["sda_partner_level"].required =
+            isPartner;
+
+        this.options["predisclosure_line"]["account_in_sda_partner_list"].required =
+            isPartner;
+
+        // existing reset logic...
+    }
+}
 
 
 
