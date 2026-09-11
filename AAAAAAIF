@@ -1,3 +1,14 @@
+git log --oneline --decorate -5
+
+git push --force-with-lease origin predisclosure_setup_branch
+
+
+
+
+
+
+
+
 git diff --name-only --diff-filter=U
 
 git add canon_azure_apps/settings_local.py
