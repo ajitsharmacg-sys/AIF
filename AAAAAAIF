@@ -1,5 +1,11 @@
 git diff --name-only --diff-filter=U
 
+git add canon_azure_apps/settings_local.py
+git add canon_azure_apps/urls.py
+git add common/templates/common/new_index.html
+
+git rebase --continue
+
 
 git log --oneline master..origin/master
 
