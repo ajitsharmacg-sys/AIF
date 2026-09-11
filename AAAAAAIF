@@ -1,3 +1,80 @@
+get_required_fields() {
+    const disclosure_type = String(
+        this.selected_predisclosure?.predisclosure_type ?? ""
+    )
+        .trim()
+        .toUpperCase();
+
+    if (disclosure_type === "PARTNER") {
+        return [
+            "sda_partner_level",
+            "account_in_sda_partner_list",
+        ];
+    }
+
+    if (disclosure_type === "END_CUSTOMER") {
+        return [
+            "disclosed_last_2_years",
+        ];
+    }
+
+    return [];
+},
+
+
+const required_fields = this.get_required_fields();
+
+for (let index = 0; index < this.lines.length; index++) {
+    const line = this.lines[index];
+
+    for (const field of required_fields) {
+        const value = line[field];
+
+        if (
+            value === null ||
+            value === undefined ||
+            String(value).trim() === ""
+        ) {
+            this.openAccounts[index] = true;
+
+            this.show_notification(
+                `Please enter ${this.line_fields[field].label} for Account #${index + 1}.`
+            );
+
+            this.$nextTick(() => {
+                const accountCards = document.querySelectorAll(
+                    "#predisclosure_line_form > .card.mb-3"
+                );
+
+                const accountCard = accountCards[index];
+
+                if (accountCard) {
+                    const element = accountCard.querySelector(
+                        `[name="${field}"]`
+                    );
+
+                    if (element) {
+                        element.focus();
+                        element.scrollIntoView({
+                            behavior: "smooth",
+                            block: "center",
+                        });
+                    }
+                }
+            });
+
+            return false;
+        }
+    }
+}
+
+
+
+
+
+
+
+
 updateDisclosureRequiredFields() {
     const disclosure_type = String(
         this.selected_predisclosure?.predisclosure_type ?? ""
