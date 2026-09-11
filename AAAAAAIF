@@ -1,3 +1,6 @@
+git diff --name-only --diff-filter=U
+
+
 git log --oneline master..origin/master
 
 git log --oneline HEAD..origin/master
