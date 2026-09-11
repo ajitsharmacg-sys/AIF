@@ -5,27 +5,19 @@ updateDisclosureRequiredFields() {
         .trim()
         .toUpperCase();
 
-    const line_options = this.options?.["predisclosure_line"];
-
-    if (!line_options) {
+    if (!this.options?.["predisclosure_line"]) {
         return;
     }
 
-    // Reset disclosure-specific required fields
-    if (line_options["sda_partner_level"]) {
-        line_options["sda_partner_level"].required =
-            disclosure_type === "PARTNER";
-    }
+    this.options["predisclosure_line"]["sda_partner_level"].required =
+        disclosure_type === "PARTNER";
 
-    if (line_options["account_in_sda_partner_list"]) {
-        line_options["account_in_sda_partner_list"].required =
-            disclosure_type === "PARTNER";
-    }
+    this.options["predisclosure_line"]["account_in_sda_partner_list"].required =
+        disclosure_type === "PARTNER";
 
-    // Add END_CUSTOMER required fields here if needed
-}
-
-
+    this.options["predisclosure_line"]["disclosed_last_2_years"].required =
+        disclosure_type === "END_CUSTOMER";
+},
 
 
 async select_predisclosure_and_navigate(
