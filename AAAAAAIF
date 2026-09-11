@@ -1,3 +1,342 @@
+async select_predisclosure_and_navigate(
+    item,
+    next_view_id,
+    context = null
+) {
+    this.selected_predisclosure = {
+        ...item,
+    };
+
+    if (context === "template") {
+        this.selected_predisclosure.predisclosure_line = [];
+    }
+
+    this.navigate(next_view_id, context);
+}
+
+
+
+nav_context: {
+    async handler(newVal) {
+
+        if (
+            this.current_screen === "predisclosure_app" &&
+            newVal.context === "new"
+        ) {
+            this.reset_form();
+        }
+
+        if (
+            this.current_screen === "predisclosure_app" &&
+            (
+                newVal.context === "edit" ||
+                newVal.context === "template"
+            )
+        ) {
+
+            this.setup_edit_context();
+
+            await this.get_predisclosure_lines(
+                this.selected_predisclosure.predisclosure_id
+            );
+
+            await this.load_products();
+
+            /*
+             * Template mode:
+             * Existing lines become new lines,
+             * but their selected products are retained.
+             */
+            if (newVal.context === "template") {
+
+                this.lines.forEach(line => {
+
+                    line.id = "temp";
+
+                    line.product_search = "";
+
+                    line.products = (line.products || []).map(
+                        product =>
+                            typeof product === "object"
+                                ? product.id
+                                : product
+                    );
+
+                });
+            }
+        }
+    },
+
+    deep: true,
+},
+
+
+load_products remove
+------------------
+if (Array.isArray(this.selected_predisclosure.products)) {
+    this.selected_predisclosure.products =
+        this.selected_predisclosure.products.map(...)
+}
+
+create_predisclosure remove
+--------------------
+products: (this.selected_predisclosure.products || []).map(...)
+
+async create_predisclosure() {
+
+    if (!this.validate_forms()) {
+        return;
+    }
+
+    this.loading = true;
+
+    this.show_notification(
+        "Creating PreDisclosure..."
+    );
+
+    const payload = {
+        ...this.selected_predisclosure,
+    };
+
+    delete payload.products;
+    delete payload.predisclosure_line;
+
+    await postData(
+        api_endpoints.predisclosure,
+        payload,
+    )
+    .then(response => {
+
+        if (response.ok) {
+            return response.json();
+        }
+
+        return Promise.reject(response);
+    })
+    .then(async predisclosure => {
+
+        const lines = this.lines.map(line => ({
+            ...line,
+        }));
+
+        this.selected_predisclosure = predisclosure;
+
+        await this.create_lines(lines);
+
+        this.navigate("predisclosure_view");
+
+        this.loading = false;
+
+        this.show_notification(
+            "PreDisclosure created successfully."
+        );
+    })
+    .catch(error => {
+
+        this.loading = false;
+        this.display_error(error);
+    });
+},
+
+
+patch_predisclosure
+-----------------------
+async patch_predisclosure() {
+
+    const payload = {
+        ...this.selected_predisclosure,
+    };
+
+    delete payload.products;
+    delete payload.predisclosure_line;
+
+    await patchData(
+        api_endpoints.predisclosure +
+        this.selected_predisclosure.predisclosure_id +
+        "/",
+        payload,
+    )
+    .then(response => {
+
+        if (response.ok) {
+            return response.json();
+        }
+
+        return Promise.reject(response);
+    })
+    .catch(error => {
+
+        this.display_error(error);
+    });
+},
+
+
+handle_change
+----------------
+case "product_category":
+    this.load_products();
+    break;
+
+
+validate_forms() {
+
+    const predisclosureForm =
+        document.getElementById("predisclosure_form");
+
+    const predisclosureLineForm =
+        document.getElementById("predisclosure_line_form");
+
+
+    /*
+     * Validate header form first
+     */
+    if (
+        predisclosureForm &&
+        !predisclosureForm.checkValidity()
+    ) {
+
+        predisclosureForm.reportValidity();
+
+        return false;
+    }
+
+
+    /*
+     * At least one account is required
+     */
+    if (this.lines.length === 0) {
+
+        this.show_notification(
+            "Please add at least one line."
+        );
+
+        return false;
+    }
+
+
+    /*
+     * Product is mandatory for every account.
+     *
+     * Product is a Vue checkbox selection,
+     * so validate it separately instead of
+     * using setCustomValidity().
+     */
+    const invalidProductIndex = this.lines.findIndex(
+        line =>
+            !line.products ||
+            line.products.length === 0
+    );
+
+
+    if (invalidProductIndex !== -1) {
+
+        this.openAccounts[invalidProductIndex] = true;
+
+        this.show_notification(
+            `Please select at least one product for Account #${
+                invalidProductIndex + 1
+            }.`
+        );
+
+        this.$nextTick(() => {
+
+            const productSearchInput =
+                document.getElementById(
+                    "product_search_" +
+                    invalidProductIndex
+                );
+
+            if (productSearchInput) {
+
+                productSearchInput.focus();
+
+                productSearchInput.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                });
+            }
+        });
+
+        return false;
+    }
+
+
+    /*
+     * Validate normal HTML fields
+     * inside line accordions.
+     */
+    if (predisclosureLineForm) {
+
+        const invalidFields =
+            predisclosureLineForm.querySelectorAll(":invalid");
+
+
+        if (invalidFields.length) {
+
+            invalidFields.forEach(field => {
+
+                const collapseElement =
+                    field.closest(".collapse");
+
+
+                if (
+                    collapseElement &&
+                    !collapseElement.classList.contains("show")
+                ) {
+
+                    const collapse =
+                        bootstrap.Collapse.getOrCreateInstance(
+                            collapseElement,
+                            {
+                                toggle: false
+                            }
+                        );
+
+                    collapse.show();
+                }
+            });
+
+
+            setTimeout(() => {
+
+                const firstInvalid =
+                    predisclosureLineForm.querySelector(":invalid");
+
+
+                if (firstInvalid) {
+
+                    firstInvalid.focus();
+
+                    predisclosureLineForm.reportValidity();
+                }
+
+            }, 300);
+
+
+            return false;
+        }
+    }
+
+
+    return true;
+},
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 f"The required role(s) for this action: {', '.join(roles)}. {message}"
 
 git log --oneline --decorate -5
