@@ -1,3 +1,168 @@
+validate_header_form() {
+    const form = document.getElementById("predisclosure_form");
+
+    if (form && !form.checkValidity()) {
+        form.reportValidity();
+        return false;
+    }
+
+    return true;
+},
+
+validate_required_line_fields() {
+    const required_fields = this.get_required_fields();
+
+    for (let index = 0; index < this.lines.length; index++) {
+        const line = this.lines[index];
+
+        for (const field of required_fields) {
+            const value = line[field];
+
+            if (
+                value === null ||
+                value === undefined ||
+                String(value).trim() === ""
+            ) {
+                this.openAccounts[index] = true;
+
+                this.show_notification(
+                    `Please enter ${this.line_fields[field].label} for Account #${index + 1}.`
+                );
+
+                this.$nextTick(() => {
+                    const accountCards = document.querySelectorAll(
+                        "#predisclosure_line_form > .card.mb-3"
+                    );
+
+                    const accountCard = accountCards[index];
+
+                    if (accountCard) {
+                        const element = accountCard.querySelector(
+                            `[name="${field}"]`
+                        );
+
+                        if (element) {
+                            element.focus();
+                            element.scrollIntoView({
+                                behavior: "smooth",
+                                block: "center",
+                            });
+                        }
+                    }
+                });
+
+                return false;
+            }
+        }
+    }
+
+    return true;
+},
+
+validate_products() {
+    const invalidProductIndex = this.lines.findIndex(
+        line => !line.products || line.products.length === 0
+    );
+
+    if (invalidProductIndex === -1) {
+        return true;
+    }
+
+    this.openAccounts[invalidProductIndex] = true;
+
+    this.show_notification(
+        `Please select at least one product for Account #${
+            invalidProductIndex + 1
+        }.`
+    );
+
+    this.$nextTick(() => {
+        const productSearchInput = document.getElementById(
+            "product_search_" + invalidProductIndex
+        );
+
+        if (productSearchInput) {
+            productSearchInput.focus();
+            productSearchInput.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+            });
+        }
+    });
+
+    return false;
+},
+
+validate_forms() {
+    if (!this.validate_header_form()) {
+        return false;
+    }
+
+    if (this.lines.length === 0) {
+        this.show_notification(
+            "Please add at least one line."
+        );
+        return false;
+    }
+
+    if (!this.validate_required_line_fields()) {
+        return false;
+    }
+
+    if (!this.validate_products()) {
+        return false;
+    }
+
+    const predisclosureLineForm =
+        document.getElementById("predisclosure_line_form");
+
+    if (predisclosureLineForm) {
+        const invalidFields =
+            predisclosureLineForm.querySelectorAll(":invalid");
+
+        if (invalidFields.length) {
+            invalidFields.forEach((field) => {
+                const collapseElement =
+                    field.closest(".collapse");
+
+                if (
+                    collapseElement &&
+                    !collapseElement.classList.contains("show")
+                ) {
+                    const collapse =
+                        bootstrap.Collapse.getOrCreateInstance(
+                            collapseElement,
+                            { toggle: false }
+                        );
+
+                    collapse.show();
+                }
+            });
+
+            setTimeout(() => {
+                const firstInvalid =
+                    predisclosureLineForm.querySelector(":invalid");
+
+                if (firstInvalid) {
+                    firstInvalid.focus();
+                    predisclosureLineForm.reportValidity();
+                }
+            }, 300);
+
+            return false;
+        }
+    }
+
+    return true;
+},
+
+
+
+
+
+
+
+
 get_required_fields() {
     const disclosure_type = String(
         this.selected_predisclosure?.predisclosure_type ?? ""
