@@ -1,3 +1,11 @@
+git config --global --unset credential.helper
+git config --global credential.helper manager
+git config --global --get credential.helper
+
+git fetch origin
+
+
+
 git help -a | findstr credential
 where git
 where git-credential-manager
