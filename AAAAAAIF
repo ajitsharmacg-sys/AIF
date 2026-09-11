@@ -1,3 +1,14 @@
+git log --oneline master..origin/master
+
+git log --oneline HEAD..origin/master
+
+
+git rebase origin/master
+
+
+git push --force-with-lease origin predisclosure_setup_branch
+
+
 git config --global --unset credential.helper
 git config --global credential.helper manager
 git config --global --get credential.helper
