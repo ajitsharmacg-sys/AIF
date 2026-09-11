@@ -1,3 +1,7 @@
+git config --global --get credential.helper
+git --version
+
+
 aif_ids = [status.aif_id for status in aif_statuses]
 
 
