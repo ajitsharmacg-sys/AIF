@@ -1,3 +1,5 @@
+const firstInvalid = invalidFields[0];
+
 validate_line_form() {
     const predisclosureLineForm =
         document.getElementById("predisclosure_line_form");
