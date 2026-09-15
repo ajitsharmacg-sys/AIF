@@ -1,3 +1,86 @@
+validate_line_form() {
+    const predisclosureLineForm =
+        document.getElementById("predisclosure_line_form");
+
+    if (!predisclosureLineForm) {
+        return true;
+    }
+
+    const invalidFields =
+        predisclosureLineForm.querySelectorAll(":invalid");
+
+    if (!invalidFields.length) {
+        return true;
+    }
+
+    invalidFields.forEach((field) => {
+        const collapseElement = field.closest(".collapse");
+
+        if (
+            collapseElement &&
+            !collapseElement.classList.contains("show")
+        ) {
+            const collapse =
+                bootstrap.Collapse.getOrCreateInstance(
+                    collapseElement,
+                    {
+                        toggle: false
+                    }
+                );
+
+            collapse.show();
+        }
+    });
+
+    setTimeout(() => {
+        const firstInvalid =
+            predisclosureLineForm.querySelector(":invalid");
+
+        if (firstInvalid) {
+            firstInvalid.focus();
+            predisclosureLineForm.reportValidity();
+        }
+    }, 300);
+
+    return false;
+},
+
+
+validate_forms() {
+    if (!this.validate_header_form()) {
+        return false;
+    }
+
+    if (this.lines.length === 0) {
+        this.show_notification(
+            "Please add at least one line."
+        );
+        return false;
+    }
+
+    if (!this.validate_disclosure_specific_fields()) {
+        return false;
+    }
+
+    if (!this.validate_products()) {
+        return false;
+    }
+
+    if (!this.validate_line_form()) {
+        return false;
+    }
+
+    return true;
+},
+
+
+
+
+
+
+
+
+
 validate_header_form() {
     const form = document.getElementById("predisclosure_form");
 
