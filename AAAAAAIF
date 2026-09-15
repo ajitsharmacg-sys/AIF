@@ -1,3 +1,45 @@
+async get_predisclosure_lines(predisclosure_id) {
+    await fetch(
+        api_endpoints.predisclosure_line +
+        "?predisclosure=" +
+        predisclosure_id +
+        "&page=1&page_size=1000"
+    )
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        }
+
+        return Promise.reject(response);
+    })
+    .then(data => {
+        this.selected_predisclosure.predisclosure_line =
+            data.results.map(line => ({
+                ...line,
+                products: (line.products || []).map(
+                    product =>
+                        typeof product === "object"
+                            ? product.id
+                            : product
+                ),
+                product_search: "",
+            }));
+    })
+    .catch(error => {
+        this.display_error(error);
+    });
+},
+
+
+
+
+
+
+
+
+
+
+
 if isinstance(widget, forms.Select):
     widget.attrs.update({
         "class": (
