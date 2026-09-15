@@ -1,3 +1,15 @@
+if isinstance(widget, forms.Select):
+    widget.attrs.update({
+        "class": (
+            existing_class
+            or "form-select form-select-sm"
+        )
+    })
+
+    if field.required:
+        widget.attrs["required"] = True
+
+
 const firstInvalid = invalidFields[0];
 
 validate_line_form() {
