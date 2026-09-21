@@ -1,7 +1,7 @@
 winget install BurntSushi.ripgrep.MSVC
 
 Get-ChildItem "$env:LOCALAPPDATA\Programs\Microsoft VS Code" -Filter rg.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
-
+"todo-tree.ripgrep.ripgrep": "C:\\Users\\anathsha\\AppData\\Local\\Programs\\Microsoft VS Code\\_\\resources\\app\\node_modules\\@vscode\\ripgrep\\bin\\rg.exe"
 
 for (let row_index = 1; row_index < copied_lines.length; row_index++) {
 
