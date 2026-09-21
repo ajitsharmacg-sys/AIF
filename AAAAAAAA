@@ -1,3 +1,6 @@
+winget install BurntSushi.ripgrep.MSVC
+
+
 for (let row_index = 1; row_index < copied_lines.length; row_index++) {
 
     const row = {
