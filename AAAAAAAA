@@ -1,3 +1,20 @@
+{
+    "todo-tree.ripgrep.ripgrep": "C:\\Users\\anathsha\\AppData\\Local\\Programs\\Microsoft VS Code\\_\\resources\\app\\node_modules\\@vscode\\ripgrep\\bin\\rg.exe",
+
+    "todo-tree.general.tags": [
+        "TODO",
+        "FIXME",
+        "BUG",
+        "HACK"
+    ],
+
+    "todo-tree.ripgrep.usePatternFile": false
+}
+
+& "C:\Users\anathsha\AppData\Local\Programs\Microsoft VS Code\_\resources\app\node_modules\@vscode\ripgrep\bin\rg.exe" --version
+
+
+
 winget install BurntSushi.ripgrep.MSVC
 
 Get-ChildItem "$env:LOCALAPPDATA\Programs\Microsoft VS Code" -Filter rg.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
