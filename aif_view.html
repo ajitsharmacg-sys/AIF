@@ -1,123 +1,1321 @@
-const webedi_header = ["MODIFIER_NAME","TRX_TYPE","MODIFIER_LINE_NO","LEVEL","MODIFIER_TYPE","LINE_START_DATE","LINE_END_DATE","AUTOMATIC_FLAG","OVERRIDE_FLAG","PRICING_PHASE","INCOMPATIBILITY_GROUP","BUCKET","PRODUCT_ATTRIBUTE","PRODUCT_ATTRIBUTE_VALUE","PRECEDENCE","MODIFIER_LINE_TYPE","FORMULA","APPLICATION_METHOD","VALUE","ACCRUAL"];
-const webedi_lines = ["MODIFIER_NAME","TRX_TYPE","MODIFIER_LINE_NO","GROUPING_NO","QUALIFIER_CONTEXT","QUALIFIER_ATTRIBUTE","OPERATOR","PRECEDENCE","VALUE_FROM","VALUE_TO","LINE_START_DATE","LINE_END_DATE"];
+{% load static %}
+{% load common_tags %}
+{% block aif_view %}
+<section id="aif_view" class="no-screen-navigation" data-screen-name="AIF View">
+    <div v-if="current_screen === 'aif_view'">
+        <div v-if="isLoading"
+             class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75"
+             style="z-index: 1055;">
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status"></div>
+                <div class="small mt-2 text-muted">Processing...</div>
+            </div>
+        </div>
+        <div class="fs-4 mb-3">
+            <a href="#">
+                <i class="bi bi-arrow-left-circle-fill"
+                    @click="navigate(nav_context.previous)">
+                </i>
+            </a>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="#"
+                            @click="navigate('list_of_aifs')">
+                            AIFs
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active">
+                        [[ selected_aif?.aif_id ]]
+                    </li>
+                </ol>
+            </nav>
+            <div
+              class="ms-auto d-flex align-items-center gap-2"
+                  v-if="!['DRAFT', 'INVALID'].includes(aif_status) && (this.user_role.includes('AIF App Sales Ops User') || this.user_role.includes(this.admin_role))"
+            >
+            <span class="text-muted small fw-medium">
+                Download Web ADI Template
+            </span>
 
-export_to_excel(aif) {
-  const hasCustomers = (aif.aif_customer_lines || []).length > 0;
+            <button
+                type="button"
+                class="btn btn-sm btn-outline-primary d-flex align-items-center gap-2"
+                @click="export_to_excel(selected_aif)"
+                :disabled="isLoading"
+            >
+                <template v-if="!isLoading">
+                    <i class="bi bi-download"></i>
+                </template>
 
-  // Header is always generated
-  this.generateWebEDIHeaderFile(aif);
+                <template v-else>
+                    <span class="spinner-border spinner-border-sm" role="status"></span>
+                    <span class="small">[[ downloadStep ]]</span>
+                </template>
+            </button>
+        </div>
+        </div>     
+        <div class="container-fluid">
+            <div class="card">
+                <div class="card-body">
+                    <!-- TOP GRID -->
+                    <div class="row g-4">
+                        <!-- LEFT COLUMN -->
+                        <div class="col-12 col-lg-6">
+                            <!-- Customer Details -->
+                            <div v-if="selected_aif?.aif_customer_lines?.length">
+                                <h5 class="card-title">Customer Details</h5>
 
-  // Line file ONLY when customers exist
-  if (hasCustomers) {
-    this.generateWebEDILineFile(aif);
-  }
-}
+                                <div class="table-responsive border rounded p-2 mb-4">
+                                    <table class="table table-sm  mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="fw-medium">#</th>
+                                                <th class="fw-medium w-auto text-nowrap">Customer No</th>
+                                                <th class="fw-medium">Customer Name</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="(cust, index) in selected_aif.aif_customer_lines" :key="cust.id">
+                                                <td>[[ index + 1 ]]</td>
+                                                <td class="text-nowrap">[[ cust.oracle_cust_number ]]</td>
+                                                <td>[[ cust.oracle_cust_name ]]</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="p-1 mt-3">
+                                <status-history
+                                    :api_endpoint="aif_status_history_url"
+                                    v-model:data_refresh_trigger="update_triggered"
+                                    :custom_format="custom_format?.aif_status">
+                                </status-history>
+                            </div>
+                        </div>
 
-generateWebEDILineFile(aif) {
-  const opUnit = this.getOpertaionUnitByNSO(aif.nso);
-  const lineData = [];
+                        <!-- RIGHT COLUMN -->
+                        <div class="col-12 col-lg-6">
+                            <vertical-table
+                                :api_endpoint="get_url"
+                                :columns="header_columns"
+                                v-model:data_refresh_trigger="update_triggered"
+                                :custom_format="custom_format"
+                                @on-item-update="(item) => { selected_aif = item; }">
+                                <template #actions="actionProps">
+                                    <tr v-if="actionProps?.aif_status && actionProps?.aif_status !== 'CLOSED' && actionProps?.aif_status !== 'PLANNED'">
+                                        <th>AIF Level Actions</th>
+                                        <td>
+                                            <div class="btn-group">
+                                                <template v-for="choice in get_status_choices(actionProps)">
+                                                    <button
+                                                        type="button"
+                                                        :class="get_display_action(choice).button_class"
+                                                        @click="aif_target_status = choice; show_aif_status_update = true;">
+                                                        [[ get_display_action(choice).button_text ]]
+                                                    </button>
+                                                </template>
+                                                <button
+                                                    v-if="['DRAFT', 'INVALID'].includes(actionProps?.aif_status)"
+                                                    type="button"
+                                                    class="btn btn-sm btn-primary"
+                                                    @click="navigate('aif_app', 'edit')">
+                                                    Edit
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <!-- Line Level Actions -->
+                                    <tr v-if="actionProps?.aif_status === 'PLANNED'">
+                                        <th>Line Level Actions</th>
+                                        <td>
+                                            <div v-if="selected_lines.length > 0" class="btn-group">
+                                                <template v-for="choice in multiple_line_status_choices()">
+                                                    <button
+                                                        type="button"
+                                                        :class="get_line_display_action(choice).button_class"
+                                                        @click="line_target_status = choice; show_line_status_update = true;">
+                                                        [[ get_line_display_action(choice).button_text ]]
+                                                    </button>
+                                                </template>
+                                            </div>
+                                            <div v-else class="alert alert-primary mb-0">
+                                                Please select one or multiple line(s) to see
+                                                available actions.
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </vertical-table>
+                        </div>
+                    </div>
+                </div>
+                <!--AIF Conflicting Modal-->
+                <div class="modal fade" id="conflict_modal" tabindex="-1">
+                  <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content">
 
-  aif.aif_customer_lines.forEach(customer => {
-    const customerId = customer.oracle_cust_number;
+                      <div class="modal-header">
+                        <h5 class="modal-title text-danger">Conflicting AIFs</h5>
+                        <button type="button" class="btn-close" @click="hide_modal('conflict_modal')"></button>
+                      </div>
 
-    (aif.aif_lines || []).forEach(line => {
-      lineData.push({
-        MODIFIER_NAME: opUnit,
-        TRX_TYPE: "INSERT",
-        MODIFIER_LINE_NO: this.buildModifierLineNo(line, aif, customerId),
-        GROUPING_NO: 10,
-        QUALIFIER_CONTEXT: "Customer",
-        QUALIFIER_ATTRIBUTE: "QP Customer Number",
-        OPERATOR: "=",
-        PRECEDENCE: 999,
-        VALUE_FROM: customerId,
-        VALUE_TO: "",
-        LINE_START_DATE: aif.start_date,
-        LINE_END_DATE: aif.end_date
-      });
-    });
-  });
+                      <div class="modal-body">
+                        <div v-if="conflictingRows.length === 0" class="text-muted">
+                          No conflicts AIF found to cancel.
+                        </div>
 
-  const wb = utils.book_new();
-  const ws = utils.json_to_sheet(lineData, { header: this.webedi_lines });
-  utils.book_append_sheet(wb, ws, "Lines");
-  writeFile(wb, `WebEDI_Lines_${aif.aif_id}.xlsx`);
-}
+                        <table v-else class="table table-sm table-bordered">
+                          <thead class="table-light">
+                            <tr>
+                              <th>AIF ID</th>
+                              <th>Start Date</th>
+                              <th>End Date</th>
+                              <th>Customer</th>
+                              <th>Mercury Code</th>
+                              <th>Promo. ELP</th>
+                            </tr>
+                          </thead>
 
-generateWebEDIHeaderFile(aif) {
-  const opUnit = this.getOpertaionUnitByNSO(aif.nso);
-  const customers = aif.aif_customer_lines || [];
+                          <tbody>
+                            <tr v-for="row in conflictingRows"
+                                :key="row.aif_id + row.mercury_code + row.promotional_elp">
+                              <td>[[ row.aif_id ]]</td>
+                              <td>[[ row.start_date ]]</td>
+                              <td>[[ row.end_date ]]</td>
+                              <td>[[ row.customer || 'ALL' ]]</td>
+                              <td>[[ row.mercury_code ]]</td>
+                              <td>[[ (parseFloat(row.promotional_elp) || 0).toFixed(2) ]]</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
 
-  const headerData = [];
+                      <div class="modal-footer">
+                        <button class="btn btn-secondary" @click="hide_modal('conflict_modal')">
+                          Close
+                        </button>
+                      </div>
 
-  if (customers.length > 0) {
-    // Header rows per customer × line (same MODIFIER_LINE_NO as lines)
-    customers.forEach(customer => {
-      const customerId = customer.oracle_cust_number;
+                    </div>
+                  </div>
+                </div>
+                <!--AIF Conflicting Modal END-->
+                <!--Line details-->
+                <div class="container-fluid">
+                  <div class="row align-items-center mb-3">
+                      <div class="col-md-1">
+                          <label class="form-label small text-muted mb-0">
+                              Promo Value
+                          </label>
+                      </div>
+                      <div class="col-md-2">
+                          <input
+                              type="text"
+                              class="form-control form-control-sm"
+                              :value="formatAmount(promoValue)"
+                              disabled>
+                      </div>
+                      <div class="col-md-2">
+                          <label class="form-label small text-muted mb-0">
+                              Promo Value (EUR)
+                          </label>
+                      </div>
+                      <div class="col-md-2">
+                          <input
+                              type="text"
+                              class="form-control form-control-sm"
+                              :value="formatAmount(promoValueEuro)"
+                              disabled>
+                      </div>
+                  </div>
+                </div>
+                <div class="container-fluid mt-1">
+                  <django-paged-table
+                      ref="lineTable"
+                      :api_endpoint="aif_line_url"
+                      :columns="line_columns"
+                      :fixed_query_filter="line_filter"
+                      title="AIF Lines"
+                      :filter_items="line_filter_items"
+                      @row-select="
+                          (item, index) => {
+                              if (canActOnLine(item)) {
+                                  selected_lines.push(item);
+                              } else {
+                                  this.$refs.lineTable.selected_rows.delete(index);
+                              }
+                          }"
+                      @row-unselect="
+                          (item, index) => {
+                              const indexToRemove = selected_lines.indexOf(item);
+                              if (indexToRemove !== -1) {
+                                  selected_lines.splice(indexToRemove, 1);
+                              }
+                          }
+                      "
+                      :row_select_active="true"
+                      v-model:data_refresh_trigger="update_triggered"
+                      :custom_format="custom_format">
 
-      (aif.aif_lines || []).forEach(line => {
-        headerData.push({
-          MODIFIER_NAME: opUnit,
-          TRX_TYPE: "INSERT",
-          MODIFIER_LINE_NO: this.buildModifierLineNo(line, aif, customerId),
-          LEVEL: "LINE",
-          MODIFIER_TYPE: "Discount",
-          LINE_START_DATE: aif.start_date,
-          LINE_END_DATE: aif.end_date,
-          AUTOMATIC_FLAG: "Y",
-          OVERRIDE_FLAG: "N",
-          PRICING_PHASE: "List Line Adjustment",
-          INCOMPATIBILITY_GROUP: "Level 4 Incompatibility",
-          BUCKET: 1,
-          PRODUCT_ATTRIBUTE: "First Layer",
-          PRODUCT_ATTRIBUTE_VALUE: line.mercury_code,
-          PRECEDENCE: 100,
-          MODIFIER_LINE_TYPE: "LOCAL",
-          FORMULA: "New Price",
-          APPLICATION_METHOD: "",
-          VALUE: line.elp,
-          ACCRUAL: "N"
+                      <template #actions="actionProps">
+                          <div class="btn-group">
+                              <button
+                                  type="button"
+                                  class="btn btn-secondary"
+                                  title="See Line Status History"
+                                  @click="selected_line = actionProps;show_line_history = true;">
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      width="32"
+                                      height="32"
+                                      fill="currentColor"
+                                      viewBox="0 0 16 16"
+                                    >
+                                      <path
+                                      d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022zm2.004.45a7 7 0 0 0-.985-.299l.219-.976q.576.129 1.126.342zm1.37.71a7 7 0 0 0-.439-.27l.493-.87a8 8 0 0 1 .979.654l-.615.789a7 7 0 0 0-.418-.302zm1.834 1.79a7 7 0 0 0-.653-.796l.724-.69q.406.429.747.91zm.744 1.352a7 7 0 0 0-.214-.468l.893-.45a8 8 0 0 1 .45 1.088l-.95.313a7 7 0 0 0-.179-.483m.53 2.507a7 7 0 0 0-.1-1.025l.985-.17q.1.58.116 1.17zm-.131 1.538q.05-.254.081-.51l.993.123a8 8 0 0 1-.23 1.155l-.964-.267q.069-.247.12-.501m-.952 2.379q.276-.436.486-.908l.914.405q-.24.54-.555 1.038zm-.964 1.205q.183-.183.35-.378l.758.653a8 8 0 0 1-.401.432z"
+                                      />
+                                      <path
+                                        d="M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0z"
+                                      />
+                                      <path
+                                        d="M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5"
+                                      />
+                                    </svg>
+                              </button>
+                          </div>
+                      </template>
+                  </django-paged-table>
+              </div>
+            </div>
+        </div>
+      <!--Line details End-->
+      <modal-dialog v-model="show_line_history">
+          <template #header>
+              <h5 class="modal-title">
+                  Line Status History
+              </h5>
+          </template>
+          <template #body>
+              <status-history
+                  v-if="show_line_history"
+                  :api_endpoint="line_status_history_url"
+                  :custom_format="custom_format?.aif_line_status">
+              </status-history>
+          </template>
+      </modal-dialog>
+      <modal-dialog v-model="show_line_status_update">
+        <template #header>
+            <h5 class="modal-title">Action</h5>
+        </template>
+
+        <template #body>
+            <div class="d-flex flex-column">
+                <h5>
+                    [[ line_status_update_message() ]]
+                </h5>
+                <div class="p-2">
+                    <label for="line_status_comment" class="form-label">
+                        Comment (optional)
+                    </label>
+                    <input
+                        type="text"
+                        autocomplete="off"
+                        maxlength="300"
+                        id="line_status_comment"
+                        class="form-control"
+                        v-model="comment"
+                        placeholder="Leave a comment">
+                </div>
+                <div class="p-2">
+                    <label
+                        class="form-label"
+                        for="line_status_update_attachment">
+                        Attachments (optional)
+                    </label>
+
+                    <input
+                        type="file"
+                        class="form-control"
+                        id="line_status_update_attachment"
+                        accept="image/*, application/pdf"
+                        multiple>
+                </div>
+            </div>
+        </template>
+
+        <template #footer>
+            <button
+                type="button"
+                class="btn btn-primary"
+                @click="update_line_status()">
+
+                Confirm
+
+                <span
+                    class="spinner-border spinner-border-sm"
+                    role="status"
+                    v-if="isLoading">
+                </span>
+            </button>
+        </template>
+    </modal-dialog>
+
+      <modal-dialog v-model="show_aif_status_update">
+        <template #header>
+            <h5 class="modal-title">Action</h5>
+        </template>
+        <template #body>
+            <div class="d-flex flex-column">
+                <h5>
+                    [[ get_display_message(aif_target_status) ]]
+                </h5>
+                <div class="p-2">
+                    <label for="aif_status_comment" class="form-label">
+                        Comment
+                    </label>
+                    <input type="text" autocomplete="off" maxlength="300" id="aif_status_comment" class="form-control" v-model="comment">
+                </div>
+                <div class="p-2">
+                    <label class="form-label" for="aif_status_update_attachment">
+                        Attachments (optional)
+                    </label>
+                    <input type="file" class="form-control" id="aif_status_update_attachment" accept="image/*, application/pdf" multiple>
+                </div>
+            </div>
+        </template>
+
+        <template #footer>
+            <button type="button" class="btn btn-primary" @click="update_aif_status()">
+                Confirm
+                <span
+                    class="spinner-border spinner-border-sm"
+                    role="status"
+                    v-if="isLoading">
+                </span>
+            </button>
+        </template>
+    </modal-dialog>
+    <notification-dialog
+			  v-model="show_notification_dialog"
+			  :message="notification_message">
+		</notification-dialog>	
+  </div>
+</section>
+
+<script type="module">
+  import { postData, loadOptions, patchData,upload_files_to_sharepoint } from "{% static 'common/modules/common.js' %}";
+  import { utils, writeFile } from "{% static 'common/modules/xlsx.mjs' %}";
+  import * as vuejs_components from "{% static 'common/modules/components.js' %}";
+
+  const aif_view = Vue.createApp({
+    delimiters: ['[[', ']]'],
+    data() {
+      return {
+        current_screen: current_screen,
+        nav_context: nav_context,
+        AIF_STATUS_GRAPH: AIF_STATUS_GRAPH,
+        AIF_LINE_STATUS_GRAPH: AIF_LINE_STATUS_GRAPH,
+        LINE_STATUS_TO_ROLE: LINE_STATUS_TO_ROLE,
+        AIF_STATUS_TO_ROLE: AIF_STATUS_TO_ROLE,
+        aif_id: "{{ aif_id|escapejs }}",
+        selected_aif: selected_aif,
+        selected_line: {},
+        selected_lines: [],
+        comment: null,
+        search_text: null,
+        selected_page: 0,
+        n_of_lines: 5,
+        header_columns: ["aif_id", "nso","local_currency","exchange_rate","is_all_nso_enabled","start_date","end_date", 
+        "promotion_campaign", "promotion_category","promotion_activity","aif_cancel_numbers_display","email_cc","link","aif_status"],
+        options: options,
+        customer_columns: ["oracle_cust_number","oracle_cust_name"],
+        line_columns: ["product_group", "mercury_code", "product_description",
+        "elp_eur","elp","promotional_qty","promotional_elp","promotional_elp_eur","promotion_support","support_per_unit","promotion_support_eur","line_value","line_value_eur","line_status"],
+        webedi_header: ["MODIFIER NAME","TRX TYPE","MODIFIER LINE NO","LEVEL","MODIFIER TYPE","LINE START DATE","LINE END DATE","AUTOMATIC FLAG","OVERRIDE FLAG","PRICING PHASE","INCOMPATIBILITY GROUP","BUCKET","PRODUCT ATTRIBUTE","PRODUCT ATTRIBUTE VALUE","PRECEDENCE","MODIFIER LINE TYPE","FORMULA","APPLICATION METHOD","VALUE","ACCRUAL"],
+        webedi_lines: ["MODIFIER NAME","TRX TYPE","MODIFIER LINE NO","GROUPING NO","QUALIFIER CONTEXT","QUALIFIER ATTRIBUTE","OPERATOR","PRECEDENCE","VALUE FROM","VALUE TO","LINE START DATE","LINE END DATE"],
+        filter_fields: ["id", "product_group", "mercury_code"],
+        user_role: USER_ROLE,
+        admin_role: ADMIN_ROLE,
+        checked_lines: checked_lines,
+        aif_approvers: aif_approvers,
+        ws_data: [],
+        isLoading: false,
+        downloadStep: "",
+        conflictingRows: [],
+        conflictPopupShown: false,
+        line_target_status: null,
+        show_line_history: false,
+        show_line_status_update: false,
+        show_aif_status_history: false,
+        show_aif_status_update: false,
+        show_notification_dialog: false,
+        notification_message: "",
+        update_triggered: false,
+        notification:"",
+        aif_target_status: null,
+      }
+    },
+    watch: {
+        nav_context: {
+            async handler(newVal, oldVal) {
+                if (this.current_screen === "aif_view") {
+                    this.selected_lines = [];
+                    this.aif_id = this.selected_aif?.aif_id || "";
+                    if (this.aif_id) {
+                        await this.load_aif();
+                    }
+                }
+            },
+            deep: true,
+        },
+    },
+    created() {
+      loadOptions(api_endpoints.aif_lines)
+        .then(response => {
+          return response.json();
+        })
+        .then(data => {
+          if ("actions" in data) {
+            this.options["aif_line"] = data.actions.POST;
+          }
+        })
+        .catch(error_response => {
+            this.display_error(error_response);
         });
-      });
+    },
+    computed: {
+      get_url() {
+        return api_endpoints.aif +
+            this.selected_aif?.aif_id +
+            "/";
+      },
+      aif_customer_line_url() {
+            return (
+                api_endpoints.aif_customer_line 
+            );
+        },
+      aif_line_url() {
+            return (
+                api_endpoints.aif_lines 
+            );
+        },
+      customer_filter() {
+          return "&aif=" +
+              this.selected_aif?.aif_id;
+      },
+
+      line_filter() {
+          return "&aif=" +
+              this.selected_aif?.aif_id;
+      },
+
+      aif_status_history_url() {
+          return api_endpoints.aif_status +
+              "?aif=" +
+              this.selected_aif?.aif_id;
+      },
+      line_status_history_url() {
+          return (
+              api_endpoints.aif_line_status +
+              "?line=" +
+              this.selected_line?.id
+          );
+      },
+      aif_status() {
+          return this.selected_aif?.aif_status || "";
+      },
+      custom_format() {
+          return {
+              aif_status: {
+                  DRAFT: "text-bg-secondary",
+                  PLANNED: "text-bg-warning",
+                  COMMERCIALLY_APPROVED: "text-bg-warning",
+                  AWAITING_VALIDATION: "text-bg-warning",
+                  INVALID: "text-bg-danger",
+                  REJECTED: "text-bg-danger",
+                  CLOSED: "text-bg-success"
+              },
+              line_status: {
+                  DRAFT: "text-bg-secondary",
+                  AWAITING_APPROVAL: "text-bg-warning",
+                  APPROVED: "text-bg-success",
+                  REJECTED: "text-bg-danger",
+                  CLOSED: "text-bg-success",
+                  AWAITING_VALIDATION: "text-bg-warning",
+              }
+          };
+      },
+      line_filter_items() {
+        const res = [];
+        for (const status of [
+                "DRAFT",
+                "AWAITING_APPROVAL",
+                "APPROVED",
+                "REJECTED",
+                "CLOSED",
+                "AWAITING_VALIDATION",
+
+            ]) {
+                res.push({
+                    label: status,
+                    expression:
+                        "&aif_line_status=" +
+                        status,
+                });
+            }
+            return res;
+        },
+      promoValue() {
+          return (this.selected_aif?.aif_lines || []).reduce(
+            (sum, line) => sum + (parseFloat(line.line_value) || 0),
+            0
+          ).toFixed(2);
+      },
+      promoValueEuro() {
+                return (this.selected_aif?.aif_lines || []).reduce(
+                    (sum, line) => sum + (parseFloat(line.line_value_eur) || 0),
+                    0
+                ).toFixed(2);
+      },
+    },
+    methods: {
+      show_notification(message) {
+          this.notification_message = message;
+          this.show_notification_dialog = true;
+      },
+      display_error(error_response) {
+          try {
+                error_response.json().then(data => {
+                this.show_notification(data);
+                });
+              }
+              catch {
+                  this.show_notification(
+                    "Unknown error occurred. Please contact the Support Team."
+                  );
+              }
+      },
+      show_modal(id) {
+        setTimeout(() => {
+          let modal = document.getElementById(id);
+          modal.classList.toggle("show");
+          modal.style = "display: block;";
+        }, 100);
+      },
+      hide_modal(id) {
+        let modal = document.getElementById(id);
+        if (modal.classList.contains("show")) {
+          modal.classList.toggle("show");
+          modal.style = "display: none;";
+        }
+      },
+      navigate(id, context = null) {
+          this.nav_context.context = context;
+           this.current_screen = id;
+      },
+      line_status_update_message() {
+            switch (this.line_target_status) {
+                case "APPROVED":
+                    return "Please confirm that you approve the selected account(s).";
+                case "REJECTED":
+                    return "Please confirm that you reject the selected account(s).";
+                default:
+                    return "Would you like to continue?";
+            }
+        },
+      get_verbose_name(key) {
+        switch (key) {
+          case "aif_status":
+            return "AIF Status";
+          case "aif_line":
+            return "AIF Lines";
+          default:
+            return this.options["aif"]?.[key]?.label;
+        }
+      },
+      status_format(status) {
+        switch (status) {
+          case "PLANNED":
+            return "badge rounded-pill text-bg-warning";
+          case "AWAITING_APPROVAL":
+            return "badge rounded-pill text-bg-warning";
+          case "COMMERCIALLY_APPROVED":
+            return "badge rounded-pill text-bg-warning";
+          case "APPROVED":
+            return "badge rounded-pill text-bg-success";
+          case "INVALID":
+            return "badge rounded-pill text-bg-danger";
+          case "REJECTED":
+            return "badge rounded-pill text-bg-danger";
+          case "AWAITING_VALIDATION":
+            return "badge rounded-pill text-bg-warning";
+          case "CLOSED":
+            return "badge rounded-pill text-bg-success";
+          default:
+            return "badge rounded-pill text-bg-secondary";
+        }
+      },
+      format_status_label(status) {
+        if (!status) return "";
+
+        return status
+          .replaceAll("_", " ");
+      },
+      async load_aifs_for_cancellation(aifIds = []) {
+        const aifs_cancellation_list = [];
+
+        for (const aifId of aifIds) {
+          let aifData = null;
+          await fetch(api_endpoints.aif + aifId + "/")
+            .then(res => res.json())
+            .then(data => {
+              aifData = data;
+            })
+            .catch(error_response => {
+              this.display_error(error_response);
+            });
+
+          if (!aifData) continue;
+
+          await fetch(api_endpoints.aif_lines + "?aif=" + aifId)
+            .then(res => res.json())
+            .then(data => {
+              aifData.aif_lines = data;
+            })
+            .catch(error_response => {
+              this.display_error(error_response);
+            });
+
+          await fetch(api_endpoints.aif_customer_line + "?aif=" + aifId)
+            .then(res => res.json())
+            .then(data => {
+              aifData.aif_customer_lines = data;
+            })
+            .catch(error_response => {
+              this.display_error(error_response);
+            });
+          aifs_cancellation_list.push(aifData);
+        }
+        return aifs_cancellation_list;
+      },
+      canActOnLine(line) {
+        const currentStatus = this.selected_aif?.aif_status;
+        const allowedRoles = this.AIF_STATUS_TO_ROLE[currentStatus] || [];
+
+        if (this.user_role.includes(this.admin_role)) {
+          return true;
+        }
+        const belongsToAllowedRole = allowedRoles.some(role =>
+          this.user_role.includes(role)
+        );
+        console.log(currentStatus);
+        console.log(allowedRoles);
+        console.log(belongsToAllowedRole);
+        if (!belongsToAllowedRole && currentStatus === "PLANNED") {
+            this.show_notification("You are not authorized to perform this action.");
+        }
+        if (currentStatus === "PLANNED" && belongsToAllowedRole) {
+          const userEmail = "{{ request.user.email|escapejs }}";
+          const canAct = aif_approvers.value.some(item =>
+                  item.product_group === line.product_group &&
+                  item.responsibility === "PSBD" &&
+                  item.approver?.email === userEmail
+                );
+
+          if (!canAct) {
+              this.show_notification("You are not the assigned approver for this product group.");
+              return false;
+          }
+          return true; 
+        }
+      },
+      canActOnLine1(line) {
+        console.log("canActOnLine");
+        if(this.user_role.includes(this.admin_role)){
+          console.log("AIF ADMIN");
+          return true;
+        }
+
+        const promotion_catagory_map = {
+                "Product Support": "PSBD",
+                "Tender": "Tender",
+            };
+        const userEmail = "{{ request.user.email|escapejs }}";
+        const responsibility = promotion_catagory_map[this.selected_aif.promotion_category];
+
+        const canAct = aif_approvers.value.some(item =>
+            item.product_group === line.product_group &&
+            item.responsibility === "PSBD" &&
+            item.approver?.email === userEmail
+        );
+
+        if (!canAct) {
+            this.show_notification("This line cannot be approved or rejected because you are not the assigned PSBD approver for this product group.");
+            return false;
+        }
+        return true;
+      },
+      async getOperationUnitByNSO(nso) {
+          if (!nso) return Promise.resolve("");
+
+          const url = api_endpoints.nso_currency_opunit + "?nso=" + encodeURIComponent(nso);
+
+          return fetch(url)
+              .then(res => {
+                  if (!res.ok) return Promise.reject(res);
+                  return res.json();
+              })
+              .then(data => {
+                  const config = data && data.length ? data[0] : null;
+                  const opUnit = config?.operation_unit_code;
+
+                  if (!opUnit) return "";
+
+                  return `${opUnit} ITCG ELP On Invoice Promotion (GLB)`;
+              })
+              .catch(err => {
+                  this.display_error(err);
+                  return "";
+              });
+      },
+
+      buildModifierLineNo(line, aif, customerId = null) {
+        const formattedElp = Number(line.promotional_elp || 0).toFixed(2);
+        return customerId
+          ? `${line.mercury_code}_${customerId}_${aif.aif_id}_${formattedElp}`
+          : `${line.mercury_code}_${aif.aif_id}_${formattedElp}`;
+      },
+      
+      formatExcelDates(dateStr) {
+        if (!dateStr) return "";
+
+        const date = new Date(dateStr);
+        const dd = String(date.getDate()).padStart(2, "0");
+        const mm = String(date.getMonth() + 1).padStart(2, "0");
+        const yyyy = date.getFullYear();
+
+        return `${dd}/${mm}/${yyyy}`;
+      },
+      getCurrentDateTimeForFile() {
+        const d = new Date();
+
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        const hh = String(d.getHours()).padStart(2, "0");
+        const min = String(d.getMinutes()).padStart(2, "0");
+
+        return `${yyyy}${mm}${dd}_${hh}-${min}`;
+      },
+      async buildWebEDIHeaderRows({
+          sourceAIF,        
+          effectiveAIF,     
+          trxType,
+          isCancelled = false,
+          isConflict = false           
+        }) {
+          if (!sourceAIF?.aif_lines?.length) return;
+
+          const opUnit = await this.getOperationUnitByNSO(effectiveAIF.nso);
+
+          const hasCustomers =
+            Array.isArray(sourceAIF.aif_customer_lines) &&
+              sourceAIF.aif_customer_lines.length > 0;
+            
+            let startDate = effectiveAIF.start_date;
+            let endDate = effectiveAIF.end_date;
+
+            // CANCELLED AIF LOGIC (only for UPDATE)
+            if (isCancelled && trxType === "UPDATE") {
+              startDate = sourceAIF.start_date;
+              endDate = sourceAIF.start_date; 
+            }
+            //  CONFLICT AIF LOGIC (only for UPDATE)
+            else if (isConflict && trxType === "UPDATE") {
+                if (sourceAIF.start_date >= effectiveAIF.start_date){
+                    startDate = sourceAIF.start_date;
+                    endDate = sourceAIF.start_date;
+                }else{
+                    const [year, month, day] = effectiveAIF.start_date.split("-").map(Number);
+                    const adjustedEndDate = new Date(year, month - 1, day - 1);
+                    startDate = sourceAIF.start_date;
+                    endDate = adjustedEndDate;
+                }  
+            }
+            // DEFAULT LOGIC for all INSERT
+            else {
+              startDate = effectiveAIF.start_date;
+              endDate = effectiveAIF.end_date
+            }
+
+          //CASE 1: NO CUSTOMERS
+          if (!hasCustomers) {
+            sourceAIF.aif_lines.forEach(line => {
+              this.ws_data.push([
+                opUnit,
+                trxType,
+                this.buildModifierLineNo(line, sourceAIF), 
+                "LINE",
+                "Discount",
+                this.formatExcelDates(startDate),
+                this.formatExcelDates(endDate),
+                "Y",
+                "N",
+                "List Line Adjustment",
+                "Level 4 Incompatibility",
+                1,
+                "First Layer",
+                line.mercury_code,
+                100,
+                "LOCAL",
+                "",
+                "New Price",
+                Number(line.promotional_elp) || 0,
+                "N"
+              ]);
+            });
+            return;
+          }
+          // CASE 2: CUSTOMERS EXIST
+          sourceAIF.aif_customer_lines.forEach(customer => {
+            const customerId = customer.oracle_cust_number;
+
+            sourceAIF.aif_lines.forEach(line => {
+              this.ws_data.push([
+                opUnit,
+                trxType,
+                this.buildModifierLineNo(line, sourceAIF, customerId),
+                "LINE",
+                "Discount",
+                this.formatExcelDates(startDate),
+                this.formatExcelDates(endDate),
+                "Y",
+                "N",
+                "List Line Adjustment",
+                "Level 4 Incompatibility",
+                1,
+                "First Layer",
+                line.mercury_code,
+                100,
+                "LOCAL",
+                "",
+                "New Price",
+                Number(line.promotional_elp) || 0,
+                "N"
+              ]);
+            });
+          });
+        },
+        async getConflictingRows(aifId) {
+          let rows = [];
+
+          await fetch(api_endpoints.aif + aifId + "/conflicts/")
+            .then(response => {
+              if (!response.ok) return Promise.reject(response);
+              return response.json();
+            })
+            .then(data => {
+              rows = data.conflicting_rows || [];
+            })
+            .catch(error_response => {
+              this.display_error(error_response);
+            });
+
+          return rows;
+        },
+        buildConflictAIFStructure(rows) {
+          const aifMap = {};
+
+          rows.forEach(row => {
+            const {
+              aif_id,
+              start_date,
+              end_date,
+              mercury_code,
+              promotional_elp,
+              customer
+            } = row;
+
+            if (!aifMap[aif_id]) {
+              aifMap[aif_id] = {
+                aif_id,
+                start_date,
+                end_date,
+                aif_lines: [],
+                aif_customer_lines: []
+              };
+            }
+
+            const lineExists = aifMap[aif_id].aif_lines.some(
+              l =>
+                l.mercury_code === mercury_code &&
+                l.promotional_elp === promotional_elp
+            );
+
+            if (!lineExists) {
+              aifMap[aif_id].aif_lines.push({
+                mercury_code,
+                promotional_elp
+              });
+            }
+
+            if (customer) {
+              const exists = aifMap[aif_id].aif_customer_lines.some(
+                c => c.oracle_cust_number === customer
+              );
+
+              if (!exists) {
+                aifMap[aif_id].aif_customer_lines.push({
+                  oracle_cust_number: customer
+                });
+              }
+            }
+          });
+
+          return Object.values(aifMap);
+        },
+        async generateWebEDIHeaderFile(aif) {
+          this.ws_data = [];
+          this.ws_data.push(this.webedi_header);
+
+          const wscols = [
+          { wch: 37 }, { wch: 10 }, { wch: 30 }, { wch: 6 },
+          { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 15 },
+          { wch: 20 }, { wch: 25 }, { wch: 10 }, { wch: 20 },
+          { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 20 },
+          { wch: 15 }, { wch: 10 }
+        ];
+
+          const cancelledIds = (aif.aif_cancel_numbers || "")
+            .split(";")
+            .map(v => v.trim())
+            .filter(Boolean);
+          
+          if (cancelledIds.length > 0) {
+            const cancelledAifs = await this.load_aifs_for_cancellation(cancelledIds);
+            for (const cancelledAif of cancelledAifs) {
+              await this.buildWebEDIHeaderRows({sourceAIF: cancelledAif,effectiveAIF: aif,isCancelled:true,trxType: "UPDATE"});
+            }
+          }
+          // CONFLICT AIF (NEW)
+          const rows = await this.getConflictingRows(aif.aif_id);
+          if (rows.length > 0 && !this.conflictPopupShown) {
+              this.conflictingRows = rows;
+              this.conflictPopupShown = true;
+
+              setTimeout(() => {
+                this.show_modal("conflict_modal");
+              }, 100);
+          }
+          const conflictAifs = this.buildConflictAIFStructure(rows);
+
+          // remove duplicates with cancelled AIFs
+          const cancelledSet = new Set(cancelledIds.map(id => String(id)));
+          const filteredConflictAifs = conflictAifs.filter(aifObj =>
+              !cancelledSet.has(String(aifObj.aif_id))
+          );
+          
+          
+          for (const conflictAif of filteredConflictAifs) {
+              await this.buildWebEDIHeaderRows({
+                sourceAIF: conflictAif,
+                effectiveAIF: aif,
+                trxType: "UPDATE",
+                isConflict: true 
+              });
+          }
+
+          await this.buildWebEDIHeaderRows({sourceAIF: aif,effectiveAIF: aif,trxType: "INSERT"});
+
+          const wb = utils.book_new();
+          const ws = utils.aoa_to_sheet(this.ws_data);
+          utils.book_append_sheet(wb, ws, "Header");
+          ws["!cols"] = wscols;
+
+          writeFile(
+            wb,
+            `WebADI_AIF_${aif.aif_id}_Header_Set_${this.getCurrentDateTimeForFile()}.xlsx`
+          );
+      },
+    
+      async generateWebEDILineFile(aif) {
+        const opUnit =  await this.getOperationUnitByNSO(aif.nso);
+        const customers = aif.aif_customer_lines || [];
+
+        this.ws_data = [];
+
+        const wscols = [
+          { wch: 40 }, { wch: 10 }, { wch: 30 }, { wch: 12 },
+          { wch: 18 }, { wch: 25 }, { wch: 15 }, { wch: 15 },
+          { wch: 15 }, { wch: 10 }, { wch: 15 }, { wch: 15 }
+        ];
+
+        this.ws_data.push(this.webedi_lines);
+
+        customers.forEach(customer => {
+          const customerId = customer.oracle_cust_number;
+
+          (aif.aif_lines || []).forEach(line => {
+            this.buildWebEDILineRows(aif, line, customerId, opUnit);
+          });
+        });
+
+        const wb = utils.book_new();
+        const ws = utils.aoa_to_sheet(this.ws_data);
+        ws["!cols"] = wscols;
+
+        utils.book_append_sheet(wb, ws, "Lines");
+        let line_template_name = `WebADI_AIF_${aif.aif_id}_Line_Set_${this.getCurrentDateTimeForFile()}.xlsx`;
+        writeFile(wb, line_template_name);
+      },
+
+      buildWebEDILineRows(aif, line, customerId, opUnit) {
+        this.ws_data.push([
+          opUnit,                                     
+          "INSERT",                                  
+          this.buildModifierLineNo(line, aif, customerId),
+          10,                                        
+          "Customer",                               
+          "QP Customer Number",                      
+          "=",                                       
+          999,                                       
+          customerId,                                
+          "",
+          "",                             
+          ""                                       
+        ]);
+      },
+
+      sleep(ms = 0) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      },
+      async export_to_excel(aif) {
+        this.isLoading = true;
+        const hasCustomers = (aif.aif_customer_lines || []).length > 0;
+        this.downloadStep = "Generating Header file…";
+        await this.sleep();
+        await this.generateWebEDIHeaderFile(aif);
+
+        if (hasCustomers) {
+          this.downloadStep = "Generating Line file…";
+          await this.sleep();
+          await this.generateWebEDILineFile(aif);
+        }
+        this.isLoading = false;
+        this.downloadStep = "";
+      },
+      get_line_status(line) {
+        try {
+          return line.aif_line_status.toSorted((b, a) => {
+            if (a.meta_created_date < b.meta_created_date) {
+              return -1;
+            }
+            if (a.meta_created_date > b.meta_created_date) {
+              return 1;
+            }
+            return 0;
+          })[0];
+        } catch {
+          return "ERROR";
+        }
+      },
+      get_line_verbose_name(key) {
+        return this.options["aif_line"]?.[key]?.label;
+      },
+      get_line_status_choices(line) {
+        const current_status = this.get_line_status(line)?.status;
+        if (!current_status) { return []; } 
+
+        let has_permission = false;
+        for (const role of this.LINE_STATUS_TO_ROLE[current_status]) {
+          if (this.user_role.includes(role)) {
+            has_permission = true;
+          }
+        }
+        if (has_permission) {
+          return this.AIF_LINE_STATUS_GRAPH[current_status];
+        }
+        return [];
+      },
+      get_status_choices(aif) {
+          if (!aif?.aif_status) {
+              return [];
+          }
+          const roles = this.AIF_STATUS_TO_ROLE[aif.aif_status];
+          if (!Array.isArray(roles)) {
+              return [];
+          }
+          let has_permission = false;
+          for (const role of roles) {
+              if (this.user_role.includes(role)) {
+                  has_permission = true;
+              }
+          }
+          if (has_permission) {
+              return this.AIF_STATUS_GRAPH[aif.aif_status] || [];
+          }
+          return [];
+      },
+      get_display_action(choice) {
+        switch (choice) {
+          case "AWAITING_VALIDATION":
+            return { button_text: "Confirm Setup", button_class: 'btn btn-sm btn-success' };
+          case "COMMERCIALLY_APPROVED":
+            return { button_text: "Approve", button_class: 'btn btn-sm btn-success' };
+          case "INVALID":
+            return { button_text: "Reject", button_class: 'btn btn-sm btn-danger' };
+          case "CLOSED":
+            return { button_text: "Close", button_class: 'btn btn-sm btn-success' };
+          case "PLANNED":
+            return { button_text: "Submit", button_class: 'btn btn-sm btn-primary' };
+          case "DRAFT":
+            return { button_text: "Change status to Draft", button_class: 'd-none' };
+          default:
+            return { button_text: choice, button_class: 'btn btn-sm btn-primary' };
+        }
+      },
+      get_line_display_action(choice) {
+          if (choice === "APPROVED") {
+            return { button_text: "Approve", button_class: 'btn btn-sm btn-success' };
+          }
+          if (choice === "REJECTED") {
+            return { button_text: "Reject", button_class: 'btn btn-sm btn-danger' };
+          }
+          return null;
+      },
+      multiple_line_status_choices() {
+        return ['APPROVED', 'REJECTED'];
+      },
+      async upload_file(input_id) {
+          const base_url = "{{ site_address|escapejs }}{{ library|escapejs }}";
+          const path = this.selected_aif.link.substring(base_url.length + 1);
+
+          await upload_files_to_sharepoint(input_id,
+            "{{ sharepoint_upload_endpoint|escapejs }}",
+            "{{ site_address|escapejs }}",
+            "{{ library|escapejs }}",
+            path
+          );
+      },
+      async update_line_status() {
+          this.show_notification("Updating Line Status....");
+          this.show_line_status_update = false;
+          this.isLoading = true;
+          let error_occured = false;
+          for (const line of this.selected_lines) {
+              await postData(api_endpoints.aif_line_status, {
+                  aif_line: line.id,
+                  status: this.line_target_status,
+                  comment: this.comment
+              })
+              .then(response => {
+                  if (response.ok) {
+                      return response.json();
+                  }
+                  return Promise.reject(response);
+              })
+              .catch(error_response => {
+                  error_occured = true;
+                  this.isLoading = false;
+                  this.display_error(error_response);
+              });
+          }
+          if (!error_occured) {
+              await this.upload_file("line_status_update_attachment");
+              this.update_triggered = true;
+              this.selected_lines = [];
+              this.comment = null;
+              this.line_target_status = null;
+              this.show_notification("Line Status updation completed..");
+          }
+         
+          this.isLoading = false;
+      },
+
+      async update_aif_status() {
+        this.show_notification("Updating AIF status..");
+          this.show_aif_status_update = false;
+          this.isLoading = true;
+          await postData(api_endpoints.aif_status, {
+              aif: this.selected_aif.aif_id,
+              status: this.aif_target_status,
+              comment: this.comment
+          })
+          .then(response => {
+              if (response.ok) {
+                  return response.json();
+              }
+              return Promise.reject(response);
+          })
+          .then(new_status => {
+              this.upload_file("aif_status_update_attachment");
+              this.update_triggered = true;
+              this.selected_lines = [];
+              this.comment = null;
+              this.aif_target_status = null;
+              this.isLoading = false;
+              this.show_notification("AIF status updation completed..");
+          })
+          .catch(error_response => {
+              this.isLoading = false;
+              this.display_error(error_response);
+          });
+      },
+      get_display_message(choice_value) {
+          switch (choice_value) {
+              case "PLANNED":
+                  return "Would you like to submit the AIF?";
+              case "AWAITING_VALIDATION":
+                  return "Please confirm the successful setup of the AIF.";
+              case "CLOSED":
+                  return "Please confirm that AIF setup is validated successfully.";
+              case "INVALID":
+                  return "Please confirm that you want to reject the request.";
+              default:
+                  return "Would you like to change AIF status to " + choice_value + "?";
+          }
+      },
+      async load_aif() {
+        await fetch(api_endpoints.aif_lines + "?aif=" + this.aif_id)
+          .then(response => {
+            return response.json();
+          })
+          .then(data => {
+            this.selected_aif["aif_lines"] = Array.isArray(data)
+                  ? data
+                  : (data.results || []);
+          })
+          .catch(error_response => {
+            this.display_error(error_response);
+          });
+  
+        await fetch(api_endpoints.aif_customer_line + "?aif=" + this.aif_id)
+          .then(response => response.json())
+          .then(data => {
+              this.selected_aif["aif_customer_lines"] = Array.isArray(data)
+                  ? data
+                  : (data.results || []); 
+          })
+          .catch(error_response => {
+              this.display_error(error_response);
+          });
+      },
+      formatAmount(value) {
+          return Number(value || 0).toLocaleString('en-GB', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+          });
+      },
+    }
+  });
+  Object.entries(vuejs_components).forEach((item) => {
+       aif_view.component(item[0], item[1]);
     });
-  } else {
-    // No customers → only line rows
-    (aif.aif_lines || []).forEach(line => {
-      headerData.push({
-        MODIFIER_NAME: opUnit,
-        TRX_TYPE: "INSERT",
-        MODIFIER_LINE_NO: this.buildModifierLineNo(line, aif),
-        LEVEL: "LINE",
-        MODIFIER_TYPE: "Discount",
-        LINE_START_DATE: aif.start_date,
-        LINE_END_DATE: aif.end_date,
-        AUTOMATIC_FLAG: "Y",
-        OVERRIDE_FLAG: "N",
-        PRICING_PHASE: "List Line Adjustment",
-        INCOMPATIBILITY_GROUP: "Level 4 Incompatibility",
-        BUCKET: 1,
-        PRODUCT_ATTRIBUTE: "First Layer",
-        PRODUCT_ATTRIBUTE_VALUE: line.mercury_code,
-        PRECEDENCE: 100,
-        MODIFIER_LINE_TYPE: "LOCAL",
-        FORMULA: "New Price",
-        APPLICATION_METHOD: "",
-        VALUE: line.elp,
-        ACCRUAL: "N"
-      });
-    });
-  }
-
-  const wb = utils.book_new();
-  const ws = utils.json_to_sheet(headerData, { header: this.webedi_header });
-  utils.book_append_sheet(wb, ws, "Header");
-  writeFile(wb, `WebEDI_Header_${aif.aif_id}.xlsx`);
-},
-
-buildModifierLineNo(line, aif, customerId = null) {
-  return customerId
-    ? `${line.mercury_code}${customerId}${aif.aif_id}_${line.elp}`
-    : `${line.mercury_code}${aif.aif_id}_${line.elp}`;
-},
+	aif_view.mount("#aif_view");
+</script>
 
 
+{% endblock %}

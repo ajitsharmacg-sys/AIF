@@ -1,0 +1,1369 @@
+{% load static %}
+{% load common_tags %}
+{% block aif_app %}
+<section id="aif_app" class="no-screen-navigation" data-screen-name="AIF App">
+    <div v-if="current_screen === 'aif_app'">
+        <div v-if="isLoading"
+             class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75"
+             style="z-index: 1055;">
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status"></div>
+                <div class="small mt-2 text-muted">Processing...</div>
+            </div>
+        </div>
+        <div class="fs-4 mb-3">
+			<a href="#">
+				<i class="bi bi-arrow-left-circle-fill" @click="navigate(nav_context.previous)"></i>
+			</a>
+		</div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="#"
+                        @click="navigate('list_of_aifs')">
+                        AIFs
+                    </a>
+                </li>
+                <li v-if="nav_context.context === 'edit'" class="breadcrumb-item active" aria-current="page">
+                    [[ selected_aif.aif_id ]]
+                </li>
+                <li v-if="nav_context.context === 'template'" class="breadcrumb-item active" aria-current="page">
+                    AIF As Template
+                </li>
+            </ol>
+        </nav>        
+        <div class="section">
+            <div class="card">  
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="section-title mb-2">Customer Details</div>
+                            <div class="row fw-semibold border-bottom pb-2 mb-2 text-muted small">
+                                <div class="col-1">#</div>
+                                <div class="col-4">Customer No</div>
+                                <div class="col-6">Customer Name</div>
+                                <div class="col-1"></div>
+                            </div>
+                            <div class="pe-1">
+                                <template v-for="(line, lineIndex) in customer_lines" :key="lineIndex">
+                                    <form class="row align-items-start g-2 mb-2"
+                                        :id="'custlineform' + lineIndex"
+                                        @submit.prevent="">
+                                        <div class="col-1 pt-2 small text-muted">
+                                            [[ lineIndex + 1 ]]
+                                        </div>
+
+                                        {% for field in aif_customer_line_form.visible_fields %}                                        
+                                            {% if field.name == "oracle_cust_number" %}
+                                            <div class="col-4">
+                                                {{ field|add_attrs:":index=lineIndex; v-model=customer_lines; @change=handle_customer_change(customer_lines,lineIndex,$event.target.value);@paste.prevent=paste_customer_from_excel(customer_lines,lineIndex, $event);" }}
+                                            </div>
+                                            {% endif %}
+                                            {% if field.name == "oracle_cust_name" %}
+                                            <div class="col-6 dropdown">
+                                                {{ field|add_attrs:":index=lineIndex;v-model=customer_lines; @change=searchCustomerName(lineIndex,$event.target.value);autocomplete=off;" }}
+                                                <ul v-if="customer_name_search_results[lineIndex]?.length"
+                                                    class="list-group mt-1"
+                                                    style="max-height: 220px; overflow-y: auto;">
+                                                    <li v-for="cust in customer_name_search_results[lineIndex]"
+                                                        :key="cust.party_number"
+                                                        class="list-group-item list-group-item-action small"
+                                                        style="cursor:pointer;"
+                                                        @click="selectCustomerName(lineIndex, cust)">
+                                                        [[ cust.label ]]
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                        <div class="col-1 text-end pt-1">
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    @click="delete_customer_line(line)">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        </div>
+                                    </form>
+                                </template>
+                            </div>
+                            <div class="mt-2">
+                                <add-button
+                                    :size="20" v-if="!isAllNSOMarketEnabled"  @click="add_customer_line()">
+                                </add-button>
+                            </div>
+                        </div>
+                        <!-- Promotion Details -->
+                        <div class="col-md-6">
+                            <form id="aif_form" @submit.prevent="">
+                                <div class="section-title mb-3">Promotion Details</div>
+
+                                <div class="row g-2 align-items-center">
+
+                                    {% for field in aif_form.visible_fields %}
+                                    <div class="col-4">
+                                        <label class="form-label mb-0">
+                                            {{ field.label }}
+                                            {% if field.name == "nso" or field.name == "start_date" or field.name == "end_date" or field.name == "promotion_category" %}
+                                                <span class="text-danger ms-1">*</span>
+                                            {% endif %}
+                                        </label>
+                                    </div>
+
+                                    <div class="col-8">
+                                        {% if field.name == "nso" %}
+                                            {{ field|add_attrs:"v-model=selected_aif; @change=onNSOChange; class=form-select form-select-sm" }}
+
+                                        {% elif field.name == "is_all_nso_enabled" %}
+                                            <div class="form-check form-switch">
+                                                {{ field|add_attrs:"v-model=selected_aif; @change=onNSOMarketSelect; class=form-check-input" }}
+                                                <span class="small text-muted ms-2">
+                                                    {{ field.help_text|safe }}
+                                                </span>
+                                            </div>
+
+                                        {% else %}
+                                            {% if field.field.widget.input_type == "select" or field.field.choices %}
+                                                {{ field|add_attrs:"v-model=selected_aif; class=form-select form-select-sm" }}
+                                            {% else %}
+                                                {{ field|add_attrs:"v-model=selected_aif; class=form-control form-control-sm" }}
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+
+                                    <div class="col-4">
+                                            <label class="form-label mb-1 d-flex align-items-center gap-1">
+                                                Attachments
+                                                <a :href="selected_aif.link"
+                                                target="_blank"
+                                                title="Files will be uploaded to SharePoint"
+                                                class="d-inline-flex align-items-center ms-1">
+                                                    <img src="{% static 'common/img/sharepoint.svg' %}"
+                                                        alt="SharePoint"
+                                                        width="16"
+                                                        height="16">
+                                                </a>
+                                            </label>
+                                    </div>
+                                    <div class="col-8">
+                                        <input type="file"
+                                            class="form-control form-control-sm"
+                                            id="file_aif"
+                                            accept="image/*, application/pdf"
+                                            multiple>
+                                    </div>
+
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <!-- Row 2: AIF Line Details (full width) -->
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-auto">
+                                <label class="form-label small mb-0">
+                                    Promo Value
+                                </label>
+                            </div>
+                            <div class="col-auto">
+                                <input
+                                    type="text"
+                                    class="form-control form-control-sm"
+                                    :value="promoValue"
+                                    disabled>
+                            </div>
+                            <div class="col-auto ms-3">
+                                <label class="form-label small mb-0">
+                                    Promo Value (EUR)
+                                </label>
+                            </div>
+                            <div class="col-auto">
+                                <input
+                                    type="text"
+                                    class="form-control form-control-sm"
+                                    :value="promoValueEuro"
+                                    disabled>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    {% for field in aif_line_form.visible_fields %}
+                                        <th>
+                                            {{ field.label }}
+                                            {% if field.name == "mercury_code" or field.name == "promotional_qty" or field.name == "promotional_elp" %}
+                                                <span class="text-danger">*</span>
+                                            {% endif %}
+                                            {% if field.help_text %}
+                                                <div class="small text-muted">
+                                                    {{ field.help_text|safe }}
+                                                </div>
+                                            {% endif %}
+                                        </th>
+                                    {% endfor %}
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(line,index) in lines" :key="line.id || index">
+                                    <form :id="'lineform' + lines.indexOf(line)" @submit.prevent="">
+                                        <td>[[ index + 1 ]]</td>
+                                        {% for field in aif_line_form.visible_fields %}
+                                        <td>{{ field|add_attrs:":index=index; v-model=lines; @change=handle_line_change(lines,index,$event); @paste.prevent=paste_mercury_from_excel(lines,index,$event);" }}</td>
+                                        {% endfor %}
+                                        <td>
+                                            <div class="btn-group">
+                                                <template-button
+                                                    :size="18"
+                                                    @click="copy_line(line)">
+                                                </template-button>
+                                                <delete-button
+                                                    :size="18"
+                                                    @delete-confirm="delete_line(line)">
+                                                </delete-button>
+                                            </div>
+                                        </td>
+                                    </form>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="mt-2">
+                            <add-button
+                            :size="20"  @click="add_line()">
+                            </add-button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                        <div class="text-center">
+                            <button v-if="nav_context.context === 'edit'" type="button" class="btn btn-primary" @click="save()">Save
+                                Changes</button>
+                            <button v-else type="button" class="btn btn-primary" @click="create_aif()">Save Draft</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <notification-dialog
+			v-model="show_notification_dialog"
+			:message="notification_message">
+		</notification-dialog>	
+    </div>
+</section>
+<script type="module">
+    import { postData, deleteRequest, loadOptions, patchData,postFormData } from "{% static 'common/modules/common.js' %}";
+	import { utils, writeFile } from "{% static 'common/modules/xlsx.mjs' %}";
+    import * as vuejs_components from "{% static 'common/modules/components.js' %}";
+    const aif_app = Vue.createApp({
+        delimiters: ['[[', ']]'],
+        data() {
+            return {
+                current_screen: current_screen,
+                nav_context: nav_context,
+                show_notification_dialog: false,
+                notification_message: "",
+                aifs:aifs,
+                selected_aif: selected_aif,
+                isLoading: false,
+                changes: { new_lines_count: 0, deleted_lines: new Set([]), edited_lines: new Set([]) },
+                customer_changes: { new_cust_lines_count: 0, deleted_cust_lines: new Set([]), edited_cust_lines: new Set([]) },
+                customer_name_search_results: [],
+                invalidMercuries: [],
+                invalidCustomers: [],        
+           
+            }
+        },
+        watch: {
+            nav_context: {
+                async handler(newVal) {
+                    if (this.current_screen === "aif_app" && newVal.context === "new") {
+                        this.reset_form();
+                    }
+                    if (this.current_screen === "aif_app" && (newVal.context === "edit" || newVal.context === "template")) {
+                        await this.setup_edit_context();
+                    }
+                },
+                deep: true,
+            },
+        },
+        computed: {
+            lines() {
+                return this.selected_aif.aif_lines;
+            },
+            customer_lines() {
+                return this.selected_aif.aif_customer_lines;
+            },
+            promoValue() {
+                return (this.lines || []).reduce(
+                    (sum, line) => sum + (parseFloat(line.line_value) || 0),
+                    0
+                ).toFixed(2);
+            },
+
+            promoValueEuro() {
+                return (this.lines || []).reduce(
+                    (sum, line) => sum + (parseFloat(line.line_value_eur) || 0),
+                    0
+                ).toFixed(2);
+            },
+
+            isAllNSOMarketEnabled() {
+                return !!this.selected_aif?.is_all_nso_enabled;
+            }
+        },
+        methods: {
+            show_notification(message) {
+                this.notification_message = message;
+                this.show_notification_dialog = true;
+            },
+            display_error(error_response) {
+                try {
+                    error_response.json().then(data => {
+                        this.show_notification(data);
+                    });
+                }
+                catch {
+                    this.show_notification(
+                        "Unknown error occurred. Please contact the Support Team."
+                    );
+                }
+            },
+            reset_form() {
+                this.selected_aif = {
+                    aif_lines: [],
+                    aif_status: [],
+                    aif_customer_lines: [],
+                };
+                this.changes = {
+                    new_lines_count: 0,
+                    deleted_lines: new Set([]),
+                    edited_lines: new Set([])
+                };
+                this.customer_changes = {
+                    new_cust_lines_count: 0,
+                    deleted_cust_lines: new Set([]),
+                    edited_cust_lines: new Set([])
+                };
+                this.customer_name_search_results = [];
+                this.invalidMercuries = [];
+                this.invalidCustomers = [];
+                this.isLoading = false;
+            },
+            async setup_edit_context() {
+                const aif_id = this.selected_aif?.aif_id;
+                if (!aif_id) {
+                    return;
+                }
+                await this.get_aif(aif_id);
+                if (this.nav_context.context === "template") {
+                    this.selected_aif.aif_id = null;
+                    this.customer_lines.forEach(line => {
+                        line.id = null;
+                    });
+
+                    this.lines.forEach(line => {
+                        line.id = null;
+                    });
+                }
+            },
+
+            onNSOMarketSelect() {
+                if (this.isAllNSOMarketEnabled) {
+                    this.customer_lines.forEach(line => {
+                        if (line.id) {
+                            this.customer_changes.deleted_cust_lines.add(line.id);
+                        }
+                    });
+                    this.selected_aif.aif_customer_lines = [];
+                }
+
+                this.customer_changes.edited_cust_lines = new Set([]);
+            },
+            onNSOChange(event) {
+                const nso = event.target.value;
+                if (!nso) return;
+                this.isLoading = true;
+                const url = api_endpoints.nso_currency_opunit + "?nso=" + encodeURIComponent(nso);
+                fetch(url)
+                    .then(res => {
+                        if (!res.ok) return Promise.reject(res);
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (!data || data.length === 0) {
+                            this.isLoading = false;
+
+                            this.selected_aif.local_currency = "";
+                            this.selected_aif.exchange_rate = "";
+                            this.show_notification(`No NSO Currency / Operating Unit configuration found for ${nso}. Please contact Admin.`);
+                            return;  
+                        }
+
+                        const config = data[0];
+                        const currency = config.currency;
+
+                        this.selected_aif.local_currency = currency;
+
+                        if (currency === "EUR") {
+                            this.selected_aif.exchange_rate = 1;
+                            this.recalculateAllLines();
+                            this.isLoading = false;
+                        } else {
+                            this.updateExchangeRate(true);
+                        }
+                    })
+                    .catch(err => {
+                        this.display_error(err, "Failed to load NSO configuration");
+                        this.isLoading = false;
+                    });
+            },
+            updateExchangeRate(recalculate = false) {
+                if (!this.selected_aif.local_currency) return;
+                this.isLoading = true;
+                const url = `${api_endpoints.exchange_rates}?to_currency=${encodeURIComponent(this.selected_aif.local_currency)}`;
+                fetch(url)
+                    .then(res => {
+                        if (!res.ok) return Promise.reject(res);
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (!data || data.length === 0) {
+                            this.isLoading = false;
+                            this.selected_aif.exchange_rate = "";
+                            this.show_notification(`No exchange rate found for currency ${this.selected_aif.local_currency}. Please contact Admin.`);
+                            return;  
+                        }
+                        const rate = parseFloat(data[0].conversion_rate);
+                        if (isNaN(rate)) {
+                            this.isLoading = false;
+                            this.show_notification("Exchange rate value is invalid. Please contact Admin.");
+                            return;
+                        }
+                        this.selected_aif.exchange_rate = rate.toFixed(2);
+                        if (recalculate) {
+                            this.recalculateAllLines();
+                        }
+
+                        this.isLoading = false;
+                    })
+                    .catch(err => {
+                        this.display_error(err, "Failed to load exchange rate");
+                        this.isLoading = false;
+                    });
+            },
+            recalculateAllLines() {
+                const promises = this.lines.map((line, index) => {
+                    if (!line.mercury_code) return Promise.resolve();
+
+                    return this.handle_elp_price(this.lines, index, line.mercury_code)
+                        .then(() => {
+                            if (line.promotional_qty && line.promotional_elp) {
+                                this.calculatePromotionValues(line);
+                            }
+                            if (this.nav_context.context === "edit" && line.id) {
+                                this.changes.edited_lines.add(line.id);
+                            }
+                        });
+                });
+
+                return Promise.all(promises).finally(() => {
+                    this.isLoading = false;
+                });
+            },
+           navigate(id, context = null) {
+                this.nav_context.context = context;
+                this.current_screen = id;
+            },
+            validate_cc_emails(aif) {
+                const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                const hasSemicolon = aif.email_cc.includes(';');
+                const hasMultipleEmails = ((aif.email_cc.match(/@/g) || []).length > 1);
+
+                aif.email_cc = aif.email_cc.replace(/\n/g, '');
+                
+                if (hasMultipleEmails && !hasSemicolon) {
+                    this.show_notification(`Please ensure multiple email addresses are separated by semicolons (;), and resubmit the form with a valid format.`);
+                    return false;
+                }
+
+                let emails = aif.email_cc.split(";").map(function (item) {
+                        return item.trim();
+                    });
+
+                for (let email of emails) {
+                    if (!emailRegex.test(email)) {
+                        this.show_notification(`The email address '${email}' is not in a valid format. Kindly correct it and resubmit the form`);
+                        return false;
+                    }
+                }
+                return true;
+            },
+            deleteTempField(line) {
+                delete line._promo_elp_base;
+            },
+            validate_customer_lines() {
+                if (this.isAllNSOMarketEnabled) {
+                    return true;
+                }
+                if (!this.customer_lines || this.customer_lines.length === 0) {
+                    this.show_notification("At least one customer must be entered when 'All NSO Market' is disabled.");
+                    return false;
+                }
+                for (let i = 0; i < this.customer_lines.length; ++i){
+					const cust_lineform = document.getElementById("custlineform"+String(i));
+					cust_lineform.requestSubmit();
+					if (!cust_lineform.reportValidity()) { return false; }
+				}
+                return true;
+            },
+            validate_dates() {
+                const startDate = new Date(this.selected_aif.start_date);
+                const endDate = new Date(this.selected_aif.end_date);
+
+                if (endDate < startDate) {
+                    this.show_notification("End Date cannot be earlier than Start Date. Please correct the dates.");
+                    return false;
+                }
+
+                return true;
+            },
+            validate_forms() {
+                if (this.selected_aif.email_cc && this.selected_aif.email_cc.trim() !== "") {
+                    if (!this.validate_cc_emails(this.selected_aif)) {
+                        return false;
+                    }
+                }
+                if (!this.validate_dates()) {
+                    return false;
+                }
+                if (!this.validate_customer_lines()) {
+                    return false;
+                }
+                if (this.customer_lines && this.customer_lines.length > 0) {
+                    if (this.hasDuplicateCustomers()) {
+                        return false;
+                    }
+                }
+                if (this.lines && this.lines.length > 0) {
+                    if (!this.validate_line_values()) {
+                        return false;
+                    }
+                    if (this.hasDuplicateMercuries()) {
+                        return false;
+                    }
+                }
+                const mainform = document.getElementById("aif_form");
+                mainform.requestSubmit();
+                if (!mainform.reportValidity()) { return false; }
+                if (this.lines.length == 0 ){
+                    this.show_notification("No lines are present. Please enter at least one line.");
+                    return false;
+                }
+				for (let i = 0; i < this.lines.length; ++i) {
+					const lineform = document.getElementById("lineform"+String(i));
+					lineform.requestSubmit();
+					if (!lineform.reportValidity()) { return false; }
+				}
+
+				return true;	
+            },
+            showExcelValidationError(rowIndex, message) {
+                this.show_notification(`Row ${rowIndex + 1}: ${message}`);   
+            },
+
+            validate_customer_excel_rows(copied_lines) {
+                for (let i = 0; i < copied_lines.length; i++) {
+                    const cells = copied_lines[i].split("\t");
+                    const customerRaw = cells[0];
+
+                    if (!customerRaw || !customerRaw.trim()) {
+                        this.showExcelValidationError(i, "Customer Number must not be blank.");
+                        return false;
+                    }
+                    const customer_number = customerRaw.trim();
+
+                    if (!/^[a-zA-Z0-9]+$/.test(customer_number)) {
+                        this.showExcelValidationError(i, "Customer Number must be alphanumeric.");
+                        return false;
+                    }
+                }
+
+                return true;
+            },
+
+            validate_mercury_excel_rows(copied_lines) {
+                for (let i = 0; i < copied_lines.length; i++) {
+                    const columns = copied_lines[i].split("\t");
+
+                    const mercuryRaw = columns[0]?.trim();
+                    const qtyRaw = columns[1];
+                    const elpRaw = columns[2];
+
+                    if (!mercuryRaw) {
+                        this.showExcelValidationError(i, "Mercury Code must not be blank.");
+                        return false;
+                    }
+
+                    if (!/^[a-zA-Z0-9]+$/.test(mercuryRaw)) {
+                        this.showExcelValidationError(i, "Mercury Code must be alphanumeric.");
+                        return false;
+                    }
+
+                    const qtyProvided = qtyRaw !== undefined && qtyRaw !== "";
+                    const elpProvided = elpRaw !== undefined && elpRaw !== "";
+
+                    if (qtyProvided !== elpProvided) {
+                        this.showExcelValidationError(
+                            i,
+                            "Promotion Quantity and Promotion ELP must both be provided together."
+                        );
+                        return false;
+                    }
+
+                    if (qtyProvided && elpProvided) {
+                        const qty = Number(qtyRaw);
+                        const elp = Number(elpRaw);
+
+                        if (!Number.isInteger(qty) || qty < 0) {
+                            this.showExcelValidationError(i, "Promotion Quantity must be a number ≥ 0.");
+                            return false;
+                        }
+
+                        if (isNaN(elp) || elp < 0) {
+                            this.showExcelValidationError(i, "Promotion ELP must be a number ≥ 0.");
+                            return false;
+                        }
+                    }
+                }
+
+                return true;
+            },
+            hasDuplicateCustomers() {
+                const customer_set = new Set();
+
+                for (const line of this.customer_lines) {
+                    const cust = line.oracle_cust_number;
+                    if (!cust) continue;
+
+                    if (customer_set.has(cust)) {
+                        this.show_notification(`Customer ${cust} is entered more than once.`);
+                        return true;
+                    }
+                    customer_set.add(cust);
+                }
+                return false;
+            },
+            validate_line_values() {
+                for (let i = 0; i < this.lines.length; i++) {
+                    const line = this.lines[i];
+                    if (!line.mercury_code || !line.mercury_code.trim()) {
+                        this.show_notification(
+                            `Mercury Code is required for Line ${i + 1}.`
+                        );
+                        return false;
+                    }
+                    if (line.promotional_qty === null || line.promotional_qty === undefined ||line.promotional_qty <= 0) {
+                        this.show_notification(
+                            `Promotional Quantity needs to be entered for Line ${i + 1}.`
+                        );
+                        return false;
+                    }
+                    if (line.promotional_elp === null ||line.promotional_elp === undefined || line.promotional_elp <= 0) {
+                        this.show_notification(
+                            `Promotional ELP needs to be entered for Line ${i + 1}.`
+                        );
+                        return false;
+                    }
+                }
+
+                return true;
+            },
+            hasDuplicateMercuries() {
+                const mercurySet = new Set();
+                for (const line of this.lines) {
+                    const mercury = line.mercury_code?.trim();
+                    if (!mercury) continue;
+                    if (mercurySet.has(mercury)) {
+                        this.show_notification(`Mercury Code ${mercury} is entered more than once.`);
+                        return true;
+                    }
+                    mercurySet.add(mercury); 
+                }
+                return false;
+            },
+
+            updateAifInList(updatedAif) {
+                if (!this.aifs?.results || !updatedAif?.aif_id) return;
+
+                for (let i = 0; i < this.aifs.results.length; i++) {
+                    if (this.aifs.results[i].aif_id === updatedAif.aif_id) {
+                        this.aifs.results[i] = { ...updatedAif };
+                        return;
+                    }
+                }
+            },
+            async delete_aif(aif) {
+				deleteRequest(api_endpoints.aif + aif.aif_id + "/")
+					.then(response => {
+						if (response.ok) {
+							return response;
+						}
+						return Promise.reject(response);
+					})
+			},
+            async create_aif() {
+				if (!this.validate_forms()) { return; }
+                this.prepare_email_cc(this.selected_aif)
+                this.show_notification("Creating a new AIF request, please wait...");
+				await postData(api_endpoints.aif, this.selected_aif)
+					.then(response => {
+						if (response.ok) { return response.json(); }
+						return Promise.reject(response);
+					})
+					.then(aif => {
+                        if (this.customer_lines && this.customer_lines.length > 0) {
+                            this.create_aif_customer_lines(aif);
+                        } else {
+                            this.create_aif_lines(aif);
+                        }
+					})
+					.catch(error_response => {
+						this.display_error(error_response);
+					});
+			},
+            async create_aif_customer_lines(aif) {
+                this.show_notification("Creating AIF  customer lines, please wait...");
+				let error_occured = false;
+				for (let customer of this.customer_lines) {
+					customer["aif"] = aif.aif_id;
+					await postData(api_endpoints.aif_customer_line, customer)
+						.then(response => {
+							if (response.ok) {
+								return response.json();
+							}
+							return Promise.reject(response);
+						})
+						.catch(error_response => {
+							error_occured = true;
+							this.delete_aif(aif);
+							this.display_error(error_response);
+						});
+					if (error_occured) { break; }
+				}
+				if (!error_occured) {
+					this.create_aif_lines(aif);
+				}
+			},
+            async create_aif_lines(aif) {
+                this.show_notification("Creating AIF  lines, please wait...");
+				let error_occured = false;
+				for (let line of this.lines) {
+					line["aif"] = aif.aif_id;
+					await postData(api_endpoints.aif_lines, line)
+						.then(response => {
+							if (response.ok) {
+								return response.json();
+							}
+							return Promise.reject(response);
+						})
+						.catch(error_response => {
+							error_occured = true;
+							this.delete_aif(aif);
+							this.display_error(error_response);
+						});
+					if (error_occured) { break; }
+				}
+				if (!error_occured) {
+					await this.get_aif(aif.aif_id);
+                    if (this.aifs?.results) {
+                        this.aifs.results.unshift(this.aif);
+                    }
+                    this.show_notification("Uploading attachments, please wait...");
+                    await this.upload_to_sharepoint(aif);
+                    this.navigate("aif_view");
+                    this.show_notification("AIF  has been sucessfully created! AIF Id: " + aif.aif_id);
+				}
+			},
+            add_line() {
+                const newLine = {
+                    id: null, 
+                };
+
+                this.lines.push(newLine);
+            },
+            add_customer_line() {
+                if (this.isAllNSOMarketEnabled) return;
+
+                const newLine = {
+                    id: null,
+                    oracle_cust_number: "",
+                    oracle_cust_name: ""
+                };
+
+                this.customer_lines.push(newLine);
+            },
+            copy_line(line) {
+                const clone = { ...line };
+                clone.id = null;
+                this.lines.push(clone);
+            },
+			delete_line(line) {
+				const line_index = this.lines.indexOf(line);
+				if (this.nav_context.context == "edit") {
+					this.changes.deleted_lines.add(line.id);
+				}
+				this.lines.splice(line_index, 1);
+			},
+            delete_customer_line(line) {
+                const index = this.customer_lines.indexOf(line);
+                if (line.id) {
+                    this.customer_changes.deleted_cust_lines.add(line.id);
+                }
+                this.customer_lines.splice(index, 1);
+            },
+            async create_new_lines() {
+                this.show_notification("Creating new lines, please wait...");
+				let error_occured = false;
+				for (let line of this.lines) {
+					if (line.id) continue;
+					line["aif"] = this.selected_aif.aif_id;
+					await postData(api_endpoints.aif_lines, line)
+						.then(response => {
+							if (response.ok) {
+								return response.json();
+							}
+							return Promise.reject(response);
+						})
+                        .then(data => {
+                            line.id = data.id;
+                        })
+						.catch(error_response => {
+							error_occured = true;
+							this.display_error(error_response);
+						});
+				}
+
+				if (!error_occured) {
+                    this.show_notification("New lines has been sucessfully created!");
+				}
+			},
+            async delete_lines() {
+				let error_occured = false;
+				for (const lineid of this.changes.deleted_lines) {
+                    if (!lineid) continue;
+                    await deleteRequest(api_endpoints.aif_lines + lineid + "/")
+                        .catch(error_response => {
+                           error_occured = true;
+                           this.display_error(error_response);
+                    });
+				}
+			},
+            async create_new_customer_lines() {
+                this.show_notification("Creating new customer lines, please wait...");
+                let error_occured = false;
+
+                for (let line of this.customer_lines) {
+                    if (line.id !== null) continue;
+
+                    line["aif"] = this.selected_aif.aif_id;
+                    delete line["id"];
+
+                    await postData(api_endpoints.aif_customer_line, line)
+                        .then(response => {
+                            if (response.ok) return response.json();
+                            return Promise.reject(response);
+                        })
+                        .catch(error_response => {
+                            error_occured = true;
+                            this.display_error(error_response);
+                        });
+                }
+
+                if (!error_occured) {
+                    this.show_notification("New customer lines created successfully!");
+                }
+            },
+            async patch_customer_lines() {
+                this.show_notification("Editing customer lines, please wait...");
+                let error_occured = false;
+               for (const lineid of this.customer_changes.edited_cust_lines) {
+                    if (!lineid) continue; // skip new rows
+                    if (this.customer_changes.deleted_cust_lines.has(lineid)) continue;
+                    for (const line of this.customer_lines) {
+                        if (lineid === line.id) {
+                            await patchData(api_endpoints.aif_customer_line + lineid + "/", line)
+                                .catch(error_response => {
+                                    error_occured = true;
+                                    this.display_error(error_response);
+                                });
+                        }
+                    }
+                }
+
+                if (!error_occured) {
+                    this.show_notification("Customer lines updated successfully!");
+                }
+            },
+            async delete_customer_lines() {
+				let error_occured = false;
+				for (const lineid of this.customer_changes.deleted_cust_lines) {
+                    if (lineid) {
+						deleteRequest(api_endpoints.aif_customer_line + lineid + "/")
+						.catch(error_response => {
+							error_occured = true;
+                            this.display_error(error_response);
+						});
+					}
+				}
+                this.customer_changes.deleted_cust_lines.clear();
+			},
+            async patch_lines() {
+                this.show_notification("Editing lines, please wait...");
+                let error_occured = false;
+
+                for (const lineid of this.changes.edited_lines) {
+                    if (!lineid) continue;
+
+                    const line = this.lines.find(l => l.id === lineid);
+                    if (!line) continue;
+
+                    await patchData(api_endpoints.aif_lines + lineid + "/", line)
+                        .catch(error_response => {
+                            error_occured = true;
+                            this.display_error(error_response);
+                        });
+                }
+
+                if (!error_occured) {
+                    this.show_notification("Lines updated successfully!");
+                }
+            },
+			async patch_aif() {
+                this.show_notification("Patching AIF request, please wait...");
+				await patchData(api_endpoints.aif + this.selected_aif.aif_id + "/", this.selected_aif)
+					.then(response => {
+						if (response.ok) {
+							return response.json();
+						}
+						return Promise.reject(response);
+					})
+					.then(data => {
+                        this.show_notification("AIF details has been successfully updated.");
+					})
+					.catch(error_response => {
+						this.display_error(error_response);
+					});
+			},
+            async save() {
+				if (!this.validate_forms()) { return; }
+				await this.patch_aif();
+                await this.delete_customer_lines();
+                await this.patch_customer_lines();
+                await this.create_new_customer_lines();
+                await this.delete_lines();
+                await this.patch_lines();
+                await this.create_new_lines();
+				await this.upload_to_sharepoint(this.selected_aif);
+				this.changes = { new_lines_count: 0, deleted_lines: new Set([]), edited_lines: new Set([]) }; // reset the changes track
+                this.show_notification("Reloading AIF after editing, please wait...");
+				await this.get_aif(this.selected_aif.aif_id);
+                this.updateAifInList(this.selected_aif);
+                this.show_notification("AIF modified with success!");
+				this.navigate("aif_view");
+			},
+
+            async handle_mercury_change(lines, index, mercury) {
+                if (!mercury) return Promise.resolve(false);
+
+                return fetch(`${api_endpoints.pdh_product_hierarchy}?mercury_1st_layer_8_char_field=${encodeURIComponent(mercury)}`)
+                    .then(res => {
+                        if (!res.ok) return Promise.reject(res);
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (!data || !data.length) {
+                            this.delete_line(lines[index]);
+                            this.invalidMercuries.push(mercury);
+                            if (this.invalidMercuries.length) {
+                                this.show_notification( `These mercury codes are not set up in MDM PDH:\n\n${this.invalidMercuries.join(", ")}, Please check that these exist in MDM PDH before requesting a set up.`);
+                            }
+                        }else{
+                            lines[index]["product_group"] = data[0].cemis_group;
+                            lines[index]["product_description"] = data[0].productname ? data[0].productname : data[0].description;
+                            this.handle_elp_price(lines, index, mercury);
+                        }
+                    })
+                    .catch(err => {
+                        this.display_error(err, "Failed to load Mercury Details");
+                        this.isLoading = false;
+                    });
+            },
+            handle_elp_price(lines, index, mercury) {
+                if (!mercury) return Promise.resolve();
+                const line = lines[index];
+
+                return fetch(`${api_endpoints.master_price_list}?item_code_1st_layer=${mercury}`)
+                    .then(res => {
+                        if (!res.ok) return Promise.reject(res);
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (!data || !data.length) {
+                            this.delete_line(line);
+                            this.show_notification("Price list ELP not found");
+                        }
+
+                        const elpEur = parseFloat(data[0].elp_eur);
+                        line.elp_eur = Number(elpEur.toFixed(2));
+                        line.elp = Number(this.convertElpToLocal(elpEur).toFixed(2));
+
+                        if (line.promotional_qty && line.promotional_elp) {
+                            this.calculatePromotionValues(line);
+                        }
+                        return line;
+                    })
+                    .catch(err => {
+                        this.display_error(err, "Failed to load ELP price");
+                        this.isLoading = false;
+                    })
+            },
+
+            async handle_customer_change(line, index, customer_number) {
+                if (!customer_number) {return; }
+                const row = line[index];
+                if (!row) return;
+                const url = api_endpoints.cdh_customers + "?party_number=" + encodeURIComponent(customer_number);
+                return fetch(url)
+                        .then(response => {
+                            if (!response.ok) return Promise.reject(response);
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (!data || data.length === 0) {
+                                this.delete_customer_line(row);
+                                this.invalidCustomers.push(customer_number);
+                                if (this.invalidCustomers.length) {
+                                    this.show_notification(`No customer found for Customer Number:\n\n${this.invalidCustomers.join(", ")}. Please verify and try again.`);
+                                }
+                            }else{
+                            row.oracle_cust_number = data[0].party_number;
+                            row.oracle_cust_name = data[0].customer_name;
+                            }
+                            
+                        })
+                        .catch(error => {
+                            this.isLoading = false;
+                            this.display_error(error, "Failed to load Customer Details..");
+                        });  
+                },
+            async handle_line_change(lines, index, event) {
+                const line = this.lines[index];
+                if (line.id) {
+                    this.changes.edited_lines.add(line.id);
+                }
+                const model_column = event.target.getAttribute("name");
+                const value = event.target.value;
+                switch (model_column) {
+                    case "mercury_code":
+                        this.isLoading = true;
+                        const mercury = value.trim().toUpperCase();
+                        lines[index]["mercury_code"] = mercury;
+                        await this.handle_mercury_change(lines, index, mercury);
+                        this.isLoading = false;
+                        break;
+                    case "promotional_qty":
+                        lines[index]["promotional_qty"] = Number(value);
+                        if (lines[index]["promotional_qty"] && lines[index]["promotional_elp"]) {
+                            this.calculatePromotionValues(lines[index]);
+                        }
+                        break;
+                    case "promotional_elp":
+                        lines[index]["promotional_elp"] = Number(value);
+                        if (lines[index]["promotional_elp"] && lines[index]["promotional_qty"]) {
+                            this.calculatePromotionValues(lines[index]);
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            },
+            calculatePromotionValues(lineItem) {
+                const qty = parseInt(lineItem.promotional_qty || 0);
+                const promoElpLocal = parseFloat(lineItem.promotional_elp || 0);
+                const localElp = parseFloat(lineItem.elp || 0);
+                const promoElpEur = parseFloat(lineItem.promotional_elp_eur || 0);
+                const elpEur = parseFloat(lineItem.elp_eur || 0);
+                const rate = parseFloat(this.selected_aif.exchange_rate || 1);
+
+                lineItem.support_per_unit = localElp > 0
+                        ? Number((((localElp - promoElpLocal) / localElp) * 100).toFixed(2))
+                        : 0;
+
+                if (qty > 0 && promoElpLocal > 0 ) {
+                    lineItem.promotional_elp_eur =
+                        this.selected_aif.local_currency === "EUR"
+                            ? Number(promoElpLocal.toFixed(2))
+                            : Number((promoElpLocal / rate).toFixed(2));
+
+                    lineItem.promotion_support = Number(
+                        ((localElp - promoElpLocal) * qty).toFixed(2)
+                    );
+
+                    lineItem.line_value = Number(
+                        (promoElpLocal * qty).toFixed(2)
+                    );
+
+                    lineItem.promotion_support_eur = Number(
+                        ((elpEur - lineItem.promotional_elp_eur) * qty).toFixed(2)
+                    );
+
+                    lineItem.line_value_eur = Number(
+                        (lineItem.promotional_elp_eur * qty).toFixed(2)
+                    );
+
+                } else {
+                    lineItem.promotional_elp_eur = 0;
+                    lineItem.promotion_support = 0;
+                    lineItem.promotion_support_eur = 0;
+                    lineItem.line_value = 0;
+                    lineItem.line_value_eur = 0;
+                }
+            },
+            handle_customer_line_change(line, index, event) {
+                this.customer_changes.edited_cust_lines.add(this.customer_lines[index].id);
+                const model_column = event.target.getAttribute("name");
+                const value = event.target.value;
+                if (model_column === "oracle_cust_number") {
+                    this.handle_customer_change(line, index, value);
+                    return;
+                }
+            },
+			
+            selectCustomerName(index, cust) {
+                const line = this.customer_lines[index];
+                if (!line) return;
+                line.oracle_cust_name = cust.customer_name;
+                line.oracle_cust_number = cust.party_number;
+                this.customer_name_search_results[index] = [];
+            },
+            searchCustomerName(index, searchText) {
+                if (!searchText || searchText.length < 2) return;
+                this.isLoading = true;
+                fetch(`${api_endpoints.cdh_customers}?search=${encodeURIComponent(searchText)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        const results = data.map(c => ({
+                            label: `${c.customer_name} - ${c.party_number}`,
+                            customer_name: c.customer_name,
+                            party_number: c.party_number
+                        }));
+
+                        this.customer_name_search_results[index] = results;
+                        this.isLoading = false;
+                    })
+                    .catch(err => {
+                        this.isLoading = false;
+                        this.display_error(err);
+                    });
+            },
+            convertElpToLocal(elp) {
+                    const { local_currency, exchange_rate } = this.selected_aif;
+                    return (local_currency && local_currency !== "EUR" && exchange_rate)
+                        ? elp * exchange_rate
+                        : elp;
+            },
+            async paste_mercury_from_excel(line_item, index, event) {
+                this.isLoading = true;
+                const text = event.clipboardData.getData("text/plain");
+                const copied_lines = text.trim().split(/\r?\n/);
+                if (!copied_lines.length) return;
+
+                for (let i = 0; i < copied_lines.length; i++) {
+                    const mercury = copied_lines[i].split("\t")[0]?.trim();
+                    if (!mercury || !/^[a-zA-Z0-9]+$/.test(mercury)) {
+                        this.showExcelValidationError(i, "Mercury Code must be alphanumeric and not blank.");
+                        this.isLoading = false;
+                        return;
+                    }
+                }
+
+                const rowRefs = [];
+
+                for (let i = 0; i < copied_lines.length; i++) {
+                    const mercury_code = copied_lines[i].split("\t")[0].trim().toUpperCase();
+                    
+                    let row;
+                    if (i === 0 && !line_item[index]?.mercury_code) {
+                        row = line_item[index];
+                    } else {
+                        line_item.splice(index, 0, {});
+                        row = line_item[index];
+                    }
+                    row.mercury_code = mercury_code;
+                    if (this.nav_context.context === "edit") {
+                        row.id = null;
+                    }
+                    rowRefs.push(row);
+                    index++; 
+                }
+
+                for (const row of rowRefs) {
+                    const currentIndex = line_item.indexOf(row);
+                    if (currentIndex === -1) continue; 
+                    await this.handle_mercury_change(line_item, currentIndex, row.mercury_code);
+                }
+                this.isLoading = false;
+            },
+            async paste_customer_from_excel(line_item, index, event) {
+                this.invalidCustomers = [];
+                this.isLoading = true;
+                const text = event.clipboardData.getData("text/plain");
+                const copied_lines = text.trim().split(/\r?\n/);
+                if (!copied_lines.length) {
+                    return;
+                }
+
+                for (let i = 0; i < copied_lines.length; i++) {
+                    const customer = copied_lines[i].split("\t")[0]?.trim();
+                    if (!customer || !/^[a-zA-Z0-9]+$/.test(customer)) {
+                        this.showExcelValidationError(
+                            i,
+                            "Customer Number must be alphanumeric and not blank."
+                        );
+                        this.isLoading = false;
+                        return;
+                    }
+                }
+                const rowRefs = [];
+                for (let i = 0; i < copied_lines.length; i++) {
+                    const customer_number = copied_lines[i].split("\t")[0].trim();
+                    let row;
+                    if (i === 0 && !line_item[index]?.oracle_cust_number) {
+                        row = line_item[index];
+                    } else {
+                        line_item.splice(index, 0, {});
+                        row = line_item[index];
+                    }
+                    row.oracle_cust_number = customer_number;
+                    if (this.nav_context.context === "edit") {
+                        row.id = "temp";
+                    }
+                    rowRefs.push(row);
+                    index++;
+                }
+
+                for (const row of rowRefs) {
+                    const currentIndex = line_item.indexOf(row);
+                    if (currentIndex === -1) continue;
+                    await this.handle_customer_change(line_item,currentIndex,row.oracle_cust_number);
+                }
+                this.isLoading = false;
+            },
+            prepare_email_cc(aif) {
+                if (aif.email_cc) {
+                    let emails = aif.email_cc.split(";").map(function (item) {
+                        return item.trim();
+                    });
+                    aif.email_cc = emails.join(";");
+                }
+            },
+            async get_aif(aif_id) {
+				await fetch(api_endpoints.aif + aif_id + "/")
+					.then(response => {
+						if (response.ok) {
+							return response.json();
+						}
+						return Promise.reject(response);
+					})
+					.then(data => {
+						this.selected_aif = data;
+					})
+					.catch(error_response => {
+						this.display_error(error_response);
+					});
+
+				await fetch(api_endpoints.aif_lines + "?aif=" + aif_id)
+					.then(response => {
+						return response.json();
+					})
+					.then(data => {
+						 this.selected_aif["aif_lines"] = Array.isArray(data)
+                            ? data
+                            : (data.results || []);
+					})
+                    .catch(error_response => {
+						this.display_error(error_response);
+					});
+
+				await fetch(api_endpoints.aif_status + "?aif=" + aif_id)
+					.then(response => response.json())
+					.then(data => {
+                        this.selected_aif["aif_status"] = data;
+					})
+                    .catch(error_response => {
+						this.display_error(error_response);
+					});
+
+                await fetch(api_endpoints.aif_customer_line + "?aif=" + aif_id)
+					.then(response => response.json())
+					.then(data => {
+                        this.selected_aif["aif_customer_lines"] = Array.isArray(data)
+                            ? data
+                            : (data.results || []); 
+					})
+                    .catch(error_response => {
+						this.display_error(error_response);
+					});
+			},
+            
+            
+            async upload_to_sharepoint(aif) {
+				const fileField = document.getElementById("file_aif");
+				const base_url = "{{ site_address|escapejs }}{{ library|escapejs }}";
+				const path = aif.link.substring(base_url.length + 1);
+				const upload_url = "{{ sharepoint_upload_endpoint|escapejs }}";
+
+				for (const file of fileField.files) {
+					if (!file?.name) { continue; }
+
+					let name_of_the_file = file.name;
+					if (this.nav_context.context === "edit") {
+						name_of_the_file = "edited" + String(new Date().getTime()) + "_" + file.name;
+					}
+
+					await fetch(upload_url, {
+						method: "POST",
+						body: file,
+						headers: {
+							"site_address": "{{ site_address|escapejs }}", // views.py default_context
+							"library": "{{ library|escapejs }}", // views.py default_context
+							"path": path,
+							"filename": name_of_the_file
+						}
+					})
+						.then(response => {
+							if (response.ok) {
+								return response;
+							}
+							return Promise.reject(response);
+						})
+						.catch(error_response => {
+							let message = "Your AIF has been created, however an error occured during the attachment upload to Sharepoint!";
+							message += "Please contact support team or you can manually upload the AIF file to the url: " + base_url + path;
+                            this.show_notification(message);
+						});
+				}
+
+			},
+        },
+    });
+    Object.entries(vuejs_components).forEach((item) => {
+       aif_app.component(item[0], item[1]);
+    });
+	aif_app.mount("#aif_app");
+</script>
+{% endblock %}

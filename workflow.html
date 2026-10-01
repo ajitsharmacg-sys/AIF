@@ -1,0 +1,143 @@
+{% load static %}
+{% block workflow %}
+<section id="workflow" class="screen-navigation" data-screen-name="AIF Workflow">
+    <div v-if="current_screen === 'workflow'">
+    <div class="d-flex justify-content-start">
+      <div class="p-2">
+        <div class="card" style="width: 600px;">
+          <div class="card-body border border-5">
+            <div class="card-title">Line Status Flow</div>
+            <div id="line_status_graph"></div>
+          </div>
+        </div>
+      </div>
+      <div class="p-2">
+        <div class="card" style="width: 600px;">
+          <div class="card-body border border-5">
+            <div class="card-title">AIF Status Flow</div>
+            <div id="aif_status_graph"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+<script type="module">
+  import * as vuejs_components from "{% static 'common/modules/components.js' %}";
+  const workflow = Vue.createApp({
+    delimiters: ['[[', ']]'],
+    data() {
+      return {
+        current_screen: current_screen,
+        nav_context: nav_context,
+        AIF_LINE_STATUS_GRAPH: AIF_LINE_STATUS_GRAPH,
+        LINE_STATUS_TO_ROLE: LINE_STATUS_TO_ROLE,
+        ROLE_TO_LINE_STATUS: ROLE_TO_LINE_STATUS,
+        AIF_STATUS_GRAPH: AIF_STATUS_GRAPH,
+        AIF_STATUS_TO_ROLE: AIF_STATUS_TO_ROLE,
+        colors: {
+          "DRAFT": "#adb5bd",
+          'AWAITING_APPROVAL': "#ffc107",
+          'AWAITING_VALIDATION': "#0d6efd",
+          'APPROVED': "#ffc107",
+          'CLOSED': "#198754",
+          'REJECTED': "#dc3545",
+          'INVALID': "#dc3545",
+          "PLANNED": "#ffc107",
+          "COMMERCIALLY_APPROVED": "#ffc107"
+        },
+      }
+    },
+    updated() {
+      if (document.getElementById('line_status_graph')) {
+        const Graph = ForceGraph()(document.getElementById('line_status_graph')).width(450).height(400).zoom(1);
+        this.draw(Graph, this.format_aif_line_data(this.AIF_LINE_STATUS_GRAPH));
+      }
+      if (document.getElementById('aif_status_graph')) {
+        const Graph = ForceGraph()(document.getElementById('aif_status_graph')).width(450).height(400).zoom(1);
+        this.draw(Graph, this.format_aif_data(this.AIF_STATUS_GRAPH));
+      }
+    },
+    methods: {
+      format_aif_line_data(input_data) {
+        const data = {
+          "nodes": [],
+          "links": []
+        }
+        for (const [key, value] of Object.entries(input_data)) {
+          data["nodes"].push({
+            "id": key,
+            "name": this.LINE_STATUS_TO_ROLE?.[key] ?? "",
+            "color": this.colors[key]
+          });
+          for (const item of value) {
+            data["links"].push({
+              "source": key,
+              "target": item
+            });
+          }
+        }
+        return data;
+      },
+      format_aif_data(input_data) {
+        const data = {
+          "nodes": [],
+          "links": []
+        }
+        for (const [key, value] of Object.entries(input_data)) {
+          data["nodes"].push({
+            "id": key,
+            "name": this.AIF_STATUS_TO_ROLE?.[key] ?? "",
+            "color": this.colors[key]
+          });
+          for (const item of value) {
+            data["links"].push({
+              "source": key,
+              "target": item
+            });
+          }
+        }
+        return data;
+      },
+      draw(graph, data) {
+        const storedTheme = getStoredTheme();
+        let linkColor = "black";
+        if (storedTheme === "dark" || ( storedTheme === "auto" && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          linkColor = "white";
+        }
+
+        graph.graphData(data).linkDirectionalArrowLength(6)
+          .nodeId('id').linkCurvature(0.2).linkDirectionalArrowLength(3).linkDirectionalArrowColor([linkColor]).linkColor([linkColor])
+          .nodeCanvasObject((node, ctx, globalScale) => {
+            const label = node.id;
+            const fontSize = 10 / globalScale;
+            ctx.font = `${fontSize}px Montserrat`;
+            const textWidth = ctx.measureText(label).width;
+            const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.8); // some padding
+
+            ctx.fillStyle = node.color;
+            ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y - bckgDimensions[1] / 2, ...bckgDimensions);
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = 'white';
+            ctx.fillText(label, node.x, node.y);
+          });
+      }
+    }
+});
+Object.entries(vuejs_components).forEach(
+    (item) => {
+        workflow.component(
+            item[0],
+            item[1]
+        );
+    }
+);
+workflow.mount(
+    "#workflow"
+);
+</script>
+
+{% endblock %}

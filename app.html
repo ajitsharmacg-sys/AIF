@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title class="app_name"></title>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="" name="description">
+    <meta content="request, price" name="keywords">
+    {% load static %}
+    {% load common_tags %}
+    {% include 'common/components/vuejs.html' %}
+    {% include 'common/components/bootstrap.html' %}
+    <script src="{% static 'common/js/force_graph.js' %}"></script>
+    <script>
+        const app_name = "{{ app_name }}";
+        const exclude_screens = [];
+        const current_screen = Vue.ref("{{ start_screen|escapejs }}" || "list_of_aifs");
+        const nav_context = Vue.ref({ previous: null, context: null });
+
+        const api_endpoints = {
+            products: "/common/api/v1/pdh/",
+            aif: "/aifmgmt/api/v1/aif/",
+            aif_lines: "/aifmgmt/api/v1/aif_lines/",
+			aif_customer_line: "/aifmgmt/api/v1/aif_customer_line/",
+            aif_status: "/aifmgmt/api/v1/aif_status/",
+			aif_line_status: "/aifmgmt/api/v1/aif_line_status/",
+            aif_approvers: "/aifmgmt/api/v1/aif_approver/",
+            master_price_list: "/aifmgmt/api/v1/master_price_list/",
+            pdh_product_hierarchy: "/common/api/v1/pdh_product_hierarchy/",
+            exchange_rates: "/aifmgmt/api/v1/exchange_rates/",
+            cdh_customers: "/aifmgmt/api/v1/cdh_customers/",
+            nso_currency_opunit: "/aifmgmt/api/v1/nso_currency_opunit/"
+        }
+        const options = Vue.ref({
+            aif: {},
+            aif_lines: {},
+            aif_status: {},
+            aif_line_status: {},
+            aif_customer_lines: {}
+        });
+        const selected_aif = Vue.ref({ aif_lines: [], aif_status: [],aif_customer_lines:[] });
+        const aif_approvers = Vue.ref([]);
+        const selected_line = Vue.ref({});
+        const checked_lines = Vue.ref([]);
+        const aifs = Vue.ref({});
+        const USER_ROLE = "{{ request.user|get_roles }}";
+        const ROLES = Vue.ref({});
+        const AIF_STATUS_GRAPH = Vue.ref({});
+        const AIF_LINE_STATUS_GRAPH = Vue.ref({});
+        const AIF_STATUS_TO_ROLE = Vue.ref({});
+        const ROLE_TO_AIF_STATUS = Vue.ref({});
+        const LINE_STATUS_TO_ROLE = Vue.ref({});
+        const ROLE_TO_LINE_STATUS = Vue.ref({});
+        const ADMIN_ROLE = Vue.ref({});
+        const ROLE_MAP = Vue.ref({});
+
+        fetch("/aifmgmt/workflow/")
+        .then(response => {
+            if (response.ok) {
+            return response.json();
+            }
+            return Promise.reject(response);
+        })
+        .then(data => {
+            AIF_STATUS_GRAPH.value = data["AIF_STATUS_GRAPH"];
+            AIF_LINE_STATUS_GRAPH.value = data["AIF_LINE_STATUS_GRAPH"];
+            LINE_STATUS_TO_ROLE.value = data["LINE_STATUS_TO_ROLE"];
+            ROLE_TO_LINE_STATUS.value = data["ROLE_TO_LINE_STATUS"];
+            ROLES.value = data["ROLES"];
+            ADMIN_ROLE.value = data["ADMIN_ROLE"];
+            ROLE_MAP.value = data["ROLE_MAP"];
+            ROLE_TO_AIF_STATUS.value = data["ROLE_TO_AIF_STATUS"];
+            AIF_STATUS_TO_ROLE.value = data["AIF_STATUS_TO_ROLE"];
+        });           
+    </script>
+
+</head>
+
+<body>
+    {% include 'common/components/session_timeout.html' %}
+    {% include 'common/components/app_navigation.html' %}
+    <main class="m-2">
+        {% csrf_token %}
+        {% include 'aif/list_of_aif.html' %}
+        {% include 'aif/aif_app.html' %}
+        {% include 'aif/aif_approver.html' %}
+        {% include 'aif/aif_view.html' %}
+        {% include 'aif/workflow.html' %}
+        {% include 'common/new_faq.html' %}
+        {% include 'common/new_contacts.html' %}
+    </main>
+</body>
+
+<script>
+    const metadata = {
+        app_name: "AIF Setup Tool",
+    }
+
+    for (const [key, value] of Object.entries(metadata)) {
+        let items = document.getElementsByClassName(key);
+        for (let item of items) {
+            item.innerHTML = value;
+        }
+    }
+</script>
+
+</html>

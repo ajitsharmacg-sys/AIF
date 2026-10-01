@@ -1,0 +1,214 @@
+{% load static %}
+{% load common_tags %}
+{% block aif_update_status %}
+
+<section id="aif_update_status">
+  <template v-for="choice in get_status_choices()">
+    <div class="modal fade" v-if="nav_state.aif_view" :id="'modal_' + choice.value" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Action</h5>
+            <button type="button" class="btn-close" @click="hide_modal('modal_' + choice.value)"></button>
+          </div>
+          <div class="modal-body">
+            <form class="d-flex flex-column" action="" @submit.prevent="">
+              <h5>[[ get_display_message(choice.value) ]]</h5>
+              <div class="p-2">
+                <label for="aif_status_comment" class="form-label">Comment</label>
+                <input type="text" autocomplete="off" maxlength="300" id="aif_status_comment" class="form-control"
+                  v-model="comment">
+              </div>
+              <div class="p-2">
+                <label class="form-label" :for="'file_' + choice.value">Attachments (optional)</label>
+                <input type="file" class="form-control" :id="'file_' + choice.value" accept="image/*, application/pdf" multiple>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="hide_modal('modal_' + choice.value)">Cancel</button>
+            <button type="button" class="btn btn-primary" @click="update(choice.value)">
+              Confirm
+              <span class="spinner-border spinner-border-sm" role="status"
+              :style=" refreshing ? 'display: inline-block;' : 'display: none;'"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+</section>
+
+<script type="module">
+  import { postData, loadOptions } from "{% static 'common/modules/common.js' %}";
+
+  Vue.createApp({
+    delimiters: ['[[', ']]'],
+    data() {
+      return {
+        nav_state: init_nav_state,
+        dialog: dialog,
+        aifs: aifs,
+        selected_aif: selected_aif,
+        options: options,
+        comment: null,
+        refreshing: false,
+      }
+    },
+    created() {
+      setTimeout(() => {
+        loadOptions(api_endpoints.aif_status)
+          .then(response => {
+            return response.json();
+          })
+          .then(data => {
+            if ("actions" in data) {
+              this.options["aif_status"] = data.actions.POST;
+            }
+          })
+          .catch(error_response => {
+            this.display_error(error_response);
+          });
+      }, 2500);
+    },
+    methods: {
+      hide_modal(id) {
+        let modal = document.getElementById(id);
+        if (modal.classList.contains("show")) {
+          modal.classList.toggle("show");
+          modal.style = "display: none;";
+        }
+      },
+      async update(target_status) {
+        this.hide_modal('modal_' + target_status);
+        this.dialog.reset_to_default().set_title("Progress").set_message("Updating AIF status, please wait...")
+          .set_true_action("Close").show();
+        this.refreshing = true;
+        await postData(api_endpoints.aif_status, {
+          aif: this.selected_aif.aif_id,
+          status: target_status,
+          comment: this.comment
+        })
+          .then(response => {
+            this.refreshing = false;
+            if (response.ok) { return response.json(); }
+            return Promise.reject(response);
+          })
+          .then(new_status => {
+            this.upload_file('file_' + target_status);
+            this.dialog.reset_to_default().set_title("Progress").set_message("Reloading AIF...").set_true_action("Close").show();
+            this.reload_aif();
+            this.comment = null;
+          })
+          .catch(error_response => {
+            this.display_error(error_response);
+          });
+      },
+      get_status_choices() {
+        return this.options["aif_status"]?.status?.choices ?? [];
+      },
+      get_display_message(choice_value) {
+        switch (choice_value) {
+          case "PLANNED":
+            return "Would you like to submit the AIF ?";
+          case "AWAITING_VALIDATION":
+            return "Please confirm the successful setup of the AIF.";
+          case "CLOSED":
+            return "Please confirm that  AIF setup is validated successfully.";
+          case "INVALID":
+            return "Please confirm that you want to reject the request.";
+          default:
+            return "Would you like to change AIF status to " + choice_value;
+        }
+      },
+      async reload_aif() {
+        // TODO Add Error Handling
+        // rewrite this function
+        await fetch(api_endpoints.aif + this.selected_aif.aif_id + "/")
+          .then(response => {
+            if (response.ok) { return response.json(); }
+            return Promise.reject(response);
+          })
+          .then(data => {
+             Object.assign(this.selected_aif,data);
+              for (let i = 0; i < this.aifs.results.length; ++i) {
+                if (this.aifs.results[i].aif_id === this.selected_aif.aif_id) {
+                  Object.assign(this.aifs.results[i],this.selected_aif);
+                  break;
+                }
+              }
+          });
+        // TODO Add Error Handling
+        await fetch(api_endpoints.aif_lines + "?aif=" + this.selected_aif.aif_id)
+          .then(response => {
+            return response.json();
+          })
+          .then(data => {
+             this.selected_aif["aif_lines"] = data;
+          });
+        // TODO Add Error Handling
+        await fetch(api_endpoints.aif_status + "?aif=" + this.selected_aif.aif_id)
+          .then(response => response.json())
+          .then(data => {
+            this.selected_aif["aif_status"] = data;
+          });
+
+        // TODO Add Error Handling
+        await fetch(api_endpoints.aif_customer_line + "?aif=" + this.selected_aif.aif_id)
+					.then(response => response.json())
+					.then(data => {
+              this.selected_aif["aif_customer_lines"] = data;
+					});
+          this.dialog.reset_to_default().set_title("Success").set_message("AIF status has been successfully updated.")
+        .set_true_action("Close").show();
+      },
+      display_error(error_response,
+				alternative_message = "Unknown error occurred, please try again or report it to Support Team.") {
+				try {
+					const details = error_response.json();
+					details.then(data => {
+						this.dialog.reset_to_default().set_title("Failed").set_message(data).set_true_action("Close").show();
+					});
+				} catch {
+					this.dialog.reset_to_default().set_title("Failed").set_message(alternative_message).set_true_action("Close").show();
+				}
+			},
+      async upload_file(input_id, upload_prefix = '_status_update_') {
+        const fileField = document.getElementById(input_id);
+        const base_url = "{{ site_address|escapejs }}{{ library|escapejs }}";
+        const path = this.selected_aif.link.substring(base_url.length + 1);
+        const upload_url = "{{ sharepoint_upload_endpoint|escapejs }}"
+        const prefix = new Date().toISOString().replaceAll('.', '').replaceAll(':', '') + upload_prefix;
+
+        for (const file of fileField.files) {
+          if (!file?.name) { continue; }
+          
+          await fetch(upload_url, {
+            method: "POST",
+            body: file,
+            headers: {
+              "site_address": "{{ site_address|escapejs }}", // views.py default_context
+              "library": "{{ library|escapejs }}", // views.py default_context
+              "path": path,
+              "filename": prefix + file.name
+            }
+          })
+            .then(response => {
+              if (response.ok) {
+                return response;
+              }
+              return Promise.reject(response);
+            })
+            .catch(error_response => {
+              let message = "Your attachment has not been uploaded.";
+              message += "Please contact support team or you can manually upload the file to the url: " + base_url + path;
+              this.dialog.reset_to_default().set_title("Error").set_message(message).set_true_action("Close").show();
+            });
+        }
+      },
+    }
+  }).mount("#aif_update_status");
+</script>
+
+{% endblock %}

@@ -1,0 +1,264 @@
+{% load static %}
+{% load common_tags %}
+{% block line_update_status %}
+
+<section id="line_update_status">
+  <template v-for="choice in get_status_choices()">
+    <div class="modal fade" v-if="nav_state.aif_view" :id="'line_modal_' + choice.value" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Action</h5>
+            <button type="button" class="btn-close" @click="hide_modal('line_modal_' + choice.value)"></button>
+          </div>
+          <div class="modal-body">
+            <form class="d-flex flex-column" action="">
+              <h5>[[ get_modal_display_message(choice.value).message ]]</h5>
+              <div class="p-2">
+                <label for="line_status_comment" class="form-label">Comment (optional)</label>
+                <input type="text" id="line_status_comment" maxlength="300" class="form-control" v-model="comment"
+                  placeholder="Leave a comment">
+              </div>
+              <div class="p-2">
+                <label class="form-label" :for="'line_file_' + choice.value">Attachments (optional)</label>
+                <input type="file" class="form-control" :id="'line_file_' + choice.value" accept="image/*, application/pdf" multiple>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary"
+              @click="hide_modal('line_modal_' + choice.value)">Cancel</button>
+            <button type="button" class="btn btn-primary" @click="update(choice.value)">Confirm
+              <span class="spinner-border spinner-border-sm" role="status"
+                :style=" refreshing ? 'display: inline-block;' : 'display: none;'"></span>
+              </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+  <div class="modal fade" v-if="nav_state.aif_view" id="line_modal_issue" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Report a Problem</h5>
+          <button type="button" class="btn-close" @click="hide_modal('line_modal_issue')"></button>
+        </div>
+        <div class="modal-body">
+          <form class="d-flex flex-column" action="">
+            <h5>Explain you problem</h5>
+            <div class="p-2">
+              <label for="line_status_comment" class="form-label">Comment (optional)</label>
+              <input type="text" id="line_status_comment" class="form-control" v-model="comment"
+                placeholder="Leave a comment">
+            </div>
+            <div class="p-2">
+              <label class="form-label" for="line_file_issue">Attachments (optional)</label>
+              <input type="file" class="form-control" id="line_file_issue" accept="image/*, application/pdf" multiple>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="hide_modal('line_modal_issue')">Cancel</button>
+          <button type="button" class="btn btn-primary" @click="report_problem()">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script type="module">
+  import { postData, loadOptions } from "{% static 'common/modules/common.js' %}";
+
+  Vue.createApp({
+    delimiters: ['[[', ']]'],
+    data() {
+      return {
+        nav_state: init_nav_state,
+        dialog: dialog,
+        aifs: aifs,
+        line: selected_line,
+        checked_lines: checked_lines,
+        refreshing: false,
+        options: options,
+        user_role: USER_ROLE,
+        selected_aif: selected_aif,
+        comment: null
+      }
+    },
+    created() {
+      setTimeout(() => {
+        loadOptions(api_endpoints.aif_line_status)
+          .then(response => {
+            return response.json();
+          })
+          .then(data => {
+            if ("actions" in data) {
+              this.options["aif_line_status"] = data.actions.POST;
+            }
+          });
+      }, 2000);
+    },
+    methods: {
+      display_error(error_response,
+				alternative_message = "Unknown error occurred, please try again or report it to Support Team.") {
+				try {
+					const details = error_response.json();
+					details.then(data => {
+						this.dialog.reset_to_default().set_title("Failed").set_message(data).set_true_action("Close").show();
+					});
+				} catch {
+					this.dialog.reset_to_default().set_title("Failed").set_message(alternative_message).set_true_action("Close").show();
+				}
+			},
+      hide_modal(id) {
+        let modal = document.getElementById(id);
+        if (modal.classList.contains("show")) {
+          modal.classList.toggle("show");
+          modal.style = "display: none;";
+        }
+      },
+      async update(target_status) {
+        this.hide_modal('line_modal_' + target_status);
+        this.refreshing = true;
+        let error_occured = false;
+        for (const line of this.checked_lines) {
+          this.dialog.reset_to_default().set_title("Progress").set_message("Updating status of the line id: " + line.id)
+          .set_true_action("Close").show();
+          await postData(api_endpoints.aif_line_status, {
+            aif_line: line.id,
+            status: target_status,
+            comment: this.comment
+          })
+          .then(response => {
+            this.refreshing = false;
+            if (response.ok) { return response.json(); }
+            return Promise.reject(response);
+          })
+          .catch(error => {
+            error_occured = true;
+            error.json().then(data => {
+              const message = data?.detail
+                ? data.detail
+                : "An error occured during the update of the status for the line: " + line.id;
+
+              this.dialog
+                .reset_to_default()
+                .set_title("Permission Denied")
+                .set_message(message)
+                .set_true_action("Close")
+                .show();
+            });
+          });
+        }
+        if (!error_occured) {
+          this.dialog.reset_to_default().set_title("Progress").set_message("Uploading attachment(s)...")
+          .set_true_action("Close").show();
+          await this.upload_file('line_file_' + target_status);
+          this.dialog.reset_to_default().set_title("Progress").set_message("Reloading AIF...")
+          .set_true_action("Close").show();
+          await this.reload_aif();
+          this.checked_lines = [];
+          this.comment = null;
+          this.dialog.reset_to_default().set_title("Success").set_message("Line(s) status(es) has been updated.")
+            .set_true_action("Close").show();
+        }
+      },
+      get_status_choices() {
+        return this.options["aif_line_status"]?.status?.choices ?? [];
+      },
+      get_modal_display_message(target_status) {
+        switch (target_status) {
+          case "APPROVED":
+            return { message: "Please confirm that you approve the line(s) .", target_status: target_status }
+          case "REJECTED":
+            return { message: "Please confirm that you reject the AIF line(s).", target_status: target_status }
+          default:
+            return { message: target_status, target_status: target_status }
+        }
+      },
+      async reload_aif() {
+        await fetch(api_endpoints.aif + this.selected_aif.aif_id + "/")
+          .then(response => {
+            if (response.ok) { return response.json(); }
+            return Promise.reject(response);
+          })
+          .then(data => {
+            Object.assign(this.selected_aif,data);
+            for (let i = 0; i < this.aifs.results.length; ++i) {
+              if (this.aifs.results[i].aif_id === this.selected_aif.aif_id) {
+                Object.assign(this.aifs.results[i],this.selected_aif);
+              }
+            }
+          })
+          .catch(error_response => {
+            this.display_error(error_response,"Failed to load AIF Details");
+          });
+        await fetch(api_endpoints.aif_lines + "?aif=" + this.selected_aif.aif_id)
+          .then(response => {
+            return response.json();
+          })
+          .then(data => {
+             this.selected_aif["aif_lines"] = data;
+          })
+          .catch(error_response => {
+            this.display_error(error_response,"Failed to load AIF Line Details");
+          });
+          
+        await fetch(api_endpoints.aif_status + "?aif=" + this.selected_aif.aif_id)
+          .then(response => response.json())
+          .then(data => {
+            this.selected_aif["aif_status"] = data;
+          })
+          .catch(error_response => {
+            this.display_error(error_response,"Failed to load AIF Status");
+          });
+
+        await fetch(api_endpoints.aif_customer_line + "?aif=" + this.selected_aif.aif_id)
+					.then(response => response.json())
+					.then(data => {
+              this.selected_aif["aif_customer_lines"] = data;
+					})
+          .catch(error_response => {
+            this.display_error(error_response,"Failed to load AIF Customer Details");
+          });
+      },
+      async upload_file(input_id, upload_prefix = "_status_update") {
+        const fileField = document.getElementById(input_id);
+        const base_url = "{{ site_address|escapejs }}{{ library|escapejs }}";
+        const path = this.selected_aif.link.substring(base_url.length + 1);
+        const upload_url = "{{ sharepoint_upload_endpoint|escapejs }}"
+        const prefix = new Date().toISOString().replaceAll('.', '').replaceAll(':', '') + upload_prefix;
+
+        for (const file of fileField.files) {
+          if (!file?.name) { continue; }
+
+          await fetch(upload_url, {
+            method: "POST",
+            body: file,
+            headers: {
+              "site_address": "{{ site_address|escapejs }}", // views.py default_context
+              "library": "{{ library|escapejs }}", // views.py default_context
+              "path": path,
+              "filename": prefix + file.name
+            }
+          })
+          .then(response => {
+              if (response.ok) {
+                return response;
+              }
+              return Promise.reject(response);
+            })
+            .catch(error_response => {
+              let message = "Your attachment has not been uploaded.";
+              message += "Please contact support team or you can manually upload the file to the url: " + base_url + path;
+              this.dialog.reset_to_default().set_title("Error").set_message(message).set_true_action("Close").show();
+            });
+        }
+      }
+    }
+  }).mount("#line_update_status");
+</script>
+
+
+{% endblock %}
