@@ -1,3 +1,42 @@
+class ProductGroupOPUnitConfigAdminForm(EnhancedModelForm):
+    class Meta:
+        model = ProductGroupOPUnitConfig
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if "product_group" in self.fields:
+            product_group_codes = (
+                Pdh.objects.values("product_group")
+                .distinct()
+                .order_by("product_group")
+                .values_list("product_group", flat=True)
+            )
+
+            self.fields["product_group"].widget = Select(
+                attrs={"class": "form-select form-select-sm"},
+                choices=[(None, "---")] + [(c, c) for c in product_group_codes],
+            )
+
+    def clean_product_group(self):
+        product_group = self.cleaned_data.get("product_group")
+
+        if (
+            ProductGroupOPUnitConfig.objects
+            .filter(product_group=product_group)
+            .exclude(pk=self.instance.pk)
+            .exists()
+        ):
+            raise forms.ValidationError(
+                "A configuration already exists for this Product Group."
+            )
+
+        return product_group
+
+
+
+
 async getOperationUnitForPG() {
     const url = this.endpoints.pg_opunits;
 
