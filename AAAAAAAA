@@ -1,3 +1,94 @@
+sourceAIF.aif_customer_lines.forEach(customer => {
+    const customerId = customer.oracle_cust_number;
+
+    sourceAIF.aif_lines.forEach(line => {
+
+        const opUnit = this.getOperationUnitForLine(
+            line,
+            effectiveAIF,
+            defaultOpUnit
+        );
+
+        this.ws_data.push([
+            opUnit,
+            trxType,
+            this.buildModifierLineNo(
+                line,
+                sourceAIF,
+                customerId
+            ),
+            "LINE",
+            "Discount",
+            this.formatExcelDates(startDate),
+            this.formatExcelDates(endDate),
+            "Y",
+            "N",
+            "List Line Adjustment",
+            "Level 4 Incompatibility",
+            1,
+            "First Layer",
+            line.mercury_code,
+            100,
+            "LOCAL",
+            "",
+            "New Price",
+            Number(line.promotional_elp) || 0,
+            "N"
+        ]);
+    });
+});
+
+
+if (!hasCustomers) {
+    sourceAIF.aif_lines.forEach(line => {
+
+        const opUnit = this.getOperationUnitForLine(
+            line,
+            effectiveAIF,
+            defaultOpUnit
+        );
+
+        this.ws_data.push([
+            opUnit,
+            trxType,
+            this.buildModifierLineNo(line, sourceAIF),
+            "LINE",
+            "Discount",
+            this.formatExcelDates(startDate),
+            this.formatExcelDates(endDate),
+            "Y",
+            "N",
+            "List Line Adjustment",
+            "Level 4 Incompatibility",
+            1,
+            "First Layer",
+            line.mercury_code,
+            100,
+            "LOCAL",
+            "",
+            "New Price",
+            Number(line.promotional_elp) || 0,
+            "N"
+        ]);
+    });
+
+    return;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class ProductGroupOperationUnit(models.Model):
     product_group = models.CharField(max_length=100, unique=True)
     operation_unit = models.CharField(max_length=100)
@@ -89,7 +180,17 @@ async load_product_group_operation_units() {
 },
 
 
+const opUnit = this.getOperationUnitForLine(
+    line,
+    effectiveAIF,
+    defaultOpUnit
+);
 
+this.ws_data.push([
+    opUnit,
+    trxType,
+    ...
+]);
 getOperationUnitForLine(line, defaultOpUnit) {
     const configuredOpUnit =
         this.product_group_operation_units[
