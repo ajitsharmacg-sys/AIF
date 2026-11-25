@@ -1,3 +1,52 @@
+async getOperationUnitForPG() {
+    const url = this.endpoints.pg_opunits;
+
+    return fetch(url)
+        .then(res => {
+            if (!res.ok) {
+                return Promise.reject(res);
+            }
+            return res.json();
+        })
+        .then(data => {
+            this.product_group_operation_units = {};
+
+            const config = Array.isArray(data) ? data : (data.results || []);
+
+            config.forEach(item => {
+                this.product_group_operation_units[
+                    item.product_group
+                ] = item.operation_unit;
+            });
+
+            console.log(
+                "Product Group Operation Units:",
+                this.product_group_operation_units
+            );
+        })
+        .catch(err => {
+            this.display_error(err);
+            return {};
+        });
+},
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 sourceAIF.aif_customer_lines.forEach(customer => {
     const customerId = customer.oracle_cust_number;
 
